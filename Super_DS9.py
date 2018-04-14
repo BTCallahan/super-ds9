@@ -265,10 +265,12 @@ class Planet:
 
     def canSupplyPlayer(self, player, enemyList):
         if self.planetType is PLANET_FRIENDLY and self.sectorCoords == player.sectorCoords and \
-           self.localCoords.isAdjacent(player.localCoords):
-            for e in enemyList:
+            self.localCoords.isAdjacent(player.localCoords):
+            if len(enemyList) > 0:
+                return False
+            """for e in enemyList:
                 if player.sectorCoords == e.sectorCoords:
-                    return False
+                    return False"""
             return True
         return False
 
@@ -828,6 +830,7 @@ def assignShipsInSameSector():
     global PLAYER
     global SELECTED_ENEMY_SHIP
     SHIPS_IN_SAME_SUBSECTOR = [s for s in TOTAL_STARSHIPS if (s.shipData.shipType is not TYPE_ALLIED and s.sectorCoords == PLAYER.sectorCoords)]
+    print('ships in same subsector: {0}'.format(len(SHIPS_IN_SAME_SUBSECTOR)))
     if len(SHIPS_IN_SAME_SUBSECTOR) > 0:
         if not SELECTED_ENEMY_SHIP or SELECTED_ENEMY_SHIP not in SHIPS_IN_SAME_SUBSECTOR:
             SELECTED_ENEMY_SHIP = random.choice(SHIPS_IN_SAME_SUBSECTOR)
@@ -861,6 +864,7 @@ def checkWarpCoreBreach(ship):
                 i.takeDamage(ship.shipData.maxHull / 3)
 
 def setUpGame():
+    print('beginning setup')
     global GRID
     global SEC_INFO
     
@@ -921,6 +925,7 @@ def setUpGame():
     for s in TOTAL_STARSHIPS:
         SEC_INFO[s.sectorCoords.y][s.sectorCoords.x].setShipList(s)
 
+    print('About to assign shiips')
     assignShipsInSameSector()
 
 #-----------Gameplay related-----------
@@ -1095,10 +1100,12 @@ def implementOrders():
 
 def checkForFriendyPlanetsNearby():
 
-    sec = SEC_INFO[PLAYER.sectorCoords.y][PLAYER.sectorCoords.x]
+    sec = GRID[PLAYER.sectorCoords.y][PLAYER.sectorCoords.x]
 
     for p in sec.planets:
-        if p.canSupplyPlayer(PLAYER, 
+        if p.canSupplyPlayer(PLAYER, SHIPS_IN_SAME_SUBSECTOR):
+            PLAYER.repair(5)
+            
 #------- ui related --------
 def grabLocalInfo():
     global PLAYER
@@ -1315,6 +1322,7 @@ except for moving, warping, and firing torpedos require one two numbers to be en
         TURNS_LEFT-=1
         assignOrdersEasy()
         implementOrders()
+        checkForFriendyPlanetsNearby()
         
 setUpGame()
 printScreen()
@@ -1323,4 +1331,3 @@ while PLAYER.isAlive and TURNS_LEFT > 0:
     handleCommands()
     printScreen()
     #TODO - implement actual win loss conditions
-    
