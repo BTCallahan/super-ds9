@@ -520,9 +520,6 @@ BATTLESHIP = ShipData(TYPE_ENEMY_LARGE, SYM_BATTLESHIP, 5500, 750, 20, 500, 8000
 
 #refrence - DEFIANT_CLASS ATTACK_FIGHTER ADVANCED_FIGHTER CRUISER BATTLESHIP
 
-
-
-
 class Starship:
     """
     TODO - implement crewmembers, cloaking device, ablative armor, diffrent torpedo types
@@ -824,111 +821,11 @@ class Starship:
     #TODO - add in a checker to see if the player has plowed into a planet or star, or rammed another starship
     def move(self, x, y):#assume that x = 2, y = 3
         self.handleMovment(x, y, False)
-        """
-        global EVENT_TEXT_TO_PRINT
-        print('checking if ship can move')
-        if self.sysImpulse.isOpperational and self.energy >= LOCAL_ENERGY_COST:
-            print('ship can move')
-            #print('Moving to X: {0}, Y: {1}'.format(x,y))
+       
             
-            co = Coords(x, y)#current location is 4, 7
-            
-            Coords.clampLocal(co)
-            
-            dist = LOCAL_ENERGY_COST * self.localCoords.distance(co)
-            #print('Clamped co to X: {0}, Y: {1}, Distance {2}'.format(co.x, co.y, dist))
-            #2 - 4, 3 - 7 = -2, -4
-            #pow(-2, 2), pow(-4, 2) = 4, 16
-            #4 + 16 = 20
-            #math.sqrt(20) = 4.47213595499958
-            #4.47213595499958 * 100 = 447.213595499958
-            
-            x, y = self.localCoords - co#4, 7 - 2, 3 = 2, 4
-            
-            del co
-            
-            eCost = dist / self.sysImpulse.getEffectiveValue
-            #print('Amound to move X: {0}, Y: {1}, eCost: {2}'.format(x, y, eCost))
-            #447.213595499958 / 1 = 447.213595499958
-            if eCost > self.energy:
-                fract = self.energy / eCost
-                
-                x = round(x * fract)#2 * 447.213595499958 / 100 = 894.217190 / 100 = 8.9421719
-                y = round(y * fract)
-                
-                eCost = self.energy
-
-            EVENT_TEXT_TO_PRINT+=[self.name, ' moves from position ', str(self.localCoords)]
-            
-            self.localCoords.x-= x
-            self.localCoords.y-= y
-
-            EVENT_TEXT_TO_PRINT+=[' to position ', str(self.localCoords), '. ']
-            
-            self.energy-=eCost
-
-            return True
-        return False
-    """
-            
-    def warp(self, x ,y):
+    def warp(self, x, y):
         self.handleMovment(x, y, True)
-        """
-        global EVENT_TEXT_TO_PRINT
-        if self.sysWarp.isOpperational and self.energy >= SECTOR_ENERGY_COST:
-            #assume that curent energy is 2000, curent position is 4, 1, and the ship is warping to 2, 5
-            co = Coords(x, y)
-
-            Coords.clampSector(co)
-
-            dist = SECTOR_ENERGY_COST * self.sectorCoords.distance(co)
-            #dist = 500 * sqrt(pow(4 -  2, 2) + pow(1 - 5, 2))
-            #dsit = 500 * sqrt(pow(2, 2) + pow(-4, 2))
-            #dist = 500 * sqrt(4 + 16)
-            #dist = 500 * 4.47213595499958
-            #dist = 2236.06797749979
-
-            x, y = self.sectorCoords - co
-            #x, y = 2, -4
-
-            del co
-
-            eCost = dist / self.sysWarp.getEffectiveValue
-            #assume that self.sysWarp.getEffectiveValue is 0.8
-            #2236.06797749979 / 0.8 = 2795.084971874737
-            if eCost > self.energy:
-                #so for this part, assume that the energy is actually 2000
-                fract = self.energy / eCost
-                #fract = 2000 / 2795.084971874737 = 0.7155417527999327
-
-                x = round(x * fract)
-                y = round(y * fract)
-                #round(2 * 0.7155417527999327)
-                #round(1.4310835055998654) = 1
-
-                #round(-4 * 0.7155417527999327)
-                #round(-2.862167011199731) = -3
-                eCost = self.energy
-
-            SEC_INFO[self.sectorCoords.y][self.sectorCoords.x].removeShipFromSec(self)
-
-            EVENT_TEXT_TO_PRINT+=[self.name, ' warps from subsector ', str(self.sectorCoords)]
-            
-            self.sectorCoords.x-= x#4 - 1 = 3
-            self.sectorCoords.y-= y#1 - -3 = 4
-
-            EVENT_TEXT_TO_PRINT+=[' to subsector ', str(self.sectorCoords), '. ']
-            
-            self.energy -= eCost
-            
-            
-            #self.sectorCoords.x, self.sectorCoords.y = x, y
-            SEC_INFO[self.sectorCoords.y][self.sectorCoords.x].addShipToSec(self)
-            
-            #DOTO - finish this
-            return True
-        return False
-    """
+        
         
     def takeDamage(self, amount, text, isTorp=False):
         global EVENT_TEXT_TO_PRINT
@@ -950,8 +847,6 @@ class Starship:
                 
                 shieldsDam = s * amount
                 hullDam = (1 - s) * amount
-                
-                
                 
                 if shieldsDam > self.shields:
 
@@ -1270,8 +1165,7 @@ class EnemyShip(Starship):
         return (totalHuDam + totalShDam) / timesToFire
 
     def checkTorpedoLOS(self, target):
-        global GRID
-        global SHIPS_IN_SAME_SUBSECTOR
+        global GRID, SHIPS_IN_SAME_SUBSECTOR
         dirX, dirY = Coords(target.localCoords - self.localCoords).normalize
         
         g = GRID[shipThatFired.sectorCoords.y][shipThatFired.sectorCoords.x]
@@ -1295,10 +1189,8 @@ class EnemyShip(Starship):
         return False
     
 def assignShipsInSameSubSector():
-    global SHIPS_IN_SAME_SUBSECTOR
-    global ENEMY_SHIPS_IN_ACTION
-    global PLAYER
-    global SELECTED_ENEMY_SHIP
+    global SHIPS_IN_SAME_SUBSECTOR, ENEMY_SHIPS_IN_ACTION, PLAYER, SELECTED_ENEMY_SHIP
+    
     SHIPS_IN_SAME_SUBSECTOR = list(filter(lambda s: s.isAlive and s.shipData.shipType is not TYPE_ALLIED and 
                                           s.sectorCoords == PLAYER.sectorCoords, ENEMY_SHIPS_IN_ACTION))
     #SHIPS_IN_SAME_SUBSECTOR = [s for s in ENEMY_SHIPS_IN_ACTION if (s.shipData.shipType is not TYPE_ALLIED and s.sectorCoords == PLAYER.sectorCoords)]
@@ -1340,8 +1232,7 @@ def checkWarpCoreBreach(ship):
 
 def setUpGame():
     print('beginning setup')
-    global GRID
-    global SEC_INFO
+    global GRID, SEC_INFO, PLAYER, TOTAL_STARSHIPS
     
     GRID = [[Sector(x, y) for x in SUB_SECTORS_RANGE_X] for y in SUB_SECTORS_RANGE_Y]
     SEC_INFO = [[SectorInfo(GRID[y][x]) for x in SUB_SECTORS_RANGE_X] for y in SUB_SECTORS_RANGE_X]
@@ -1354,12 +1245,10 @@ def setUpGame():
 
     randXsec, randYsec = random.randrange(0, SUB_SECTORS_X), random.randrange(0, SUB_SECTORS_Y)
 
-    locPos = GRID[randYsec][randXsec].findRandomSafeSpot()
-    global PLAYER
+    locPos = GRID[randYsec][randXsec].findRandomSafeSpot() 
+    
     PLAYER = FedShip(DEFIANT_CLASS, locPos[0], locPos[1], randXsec, randYsec)
 
-    global TOTAL_STARSHIPS
-    
     TOTAL_STARSHIPS.append(PLAYER)
 
     setOfGridPositions.remove((PLAYER.sectorCoords.x, PLAYER.sectorCoords.y))#remove the PLAYER's position fron the set - dont want 
@@ -1431,12 +1320,21 @@ def headingToCoords(heading, distance, startX, startY, rangeX, rangeY):
             return retX, retY
     return retX, retY
     
-
 def handleTorpedo(shipThatFired, torpsFired, dirX, dirY):
     global GRID, TOTAL_STARSHIPS, EVENT_TEXT_TO_PRINT
+    #global PLAYER
     
     posX, posY = shipThatFired.localCoords.x, shipThatFired.localCoords.y
+    """
+    dirX = destX - posX
+    dirY = destY - posY
+    atan2xy = math.atan2(dirX, dirY)
     
+    dirX, dirY = math.sin(atan2xy), math.cos(atan2xy)
+    """
+    if shipThatFired.isControllable:
+        print(shipThatFired.localCoords)
+        
     g = GRID[shipThatFired.sectorCoords.y][shipThatFired.sectorCoords.x]
     shipsInArea = list(filter(lambda s: s.isAlive and s.sectorCoords == shipThatFired.sectorCoords and
                               s is not shipThatFired, TOTAL_STARSHIPS))
@@ -1448,6 +1346,7 @@ def handleTorpedo(shipThatFired, torpsFired, dirX, dirY):
     eS = lambda n: '' if n is 1 else 's'
     
     EVENT_TEXT_TO_PRINT.append('{0} fired {1} torpedo{2}. '.format(shipThatFired.name, torpsFired, eS(torpsFired)))
+        
     while torpsFired > 0:
         shipThatFired.torps-=1
         hitSomething = False
@@ -1474,15 +1373,18 @@ def handleTorpedo(shipThatFired, torpsFired, dirX, dirY):
             hitList.append('dirX: {:f}, dirY: {:f}, iX: {:d}, iY {:d}, posX: {:f}, posY: {:f}'.format(dirX, dirY, iX, iY, posX, posY))
             
         torpsFired-=1
-        print('\n'.join(hitList))
+        
+        if shipThatFired.isControllable:
+            print('\n'.join(hitList))
+            
         
 def dontOppressAnybody(number):
     pass
 
 def oppressCurrentlyUnoppressedSystem(number):
     if number > 0:
-        global ENEMY_SHIPS_IN_ACTION
-        global SEC_INFO
+        global ENEMY_SHIPS_IN_ACTION, SEC_INFO
+        
         enemyShipsAvliable = list(filter(lambda e: e.order == 'REPAIR' and not
                                          SEC_INFO[e.sectorCoords.y][e.sectorCoords.x].hasFriendlyPlanets,
                                          ENEMY_SHIPS_IN_ACTION))
@@ -1505,8 +1407,7 @@ def oppressCurrentlyUnoppressedSystem(number):
                             break
 
 def huntDownThePlayer(chance, limit=1):
-    global ENEMY_SHIPS_IN_ACTION
-    global PLAYER
+    global ENEMY_SHIPS_IN_ACTION, PLAYER
     
     enemyShipsAvliable = list(filter(lambda e: e.combatEffectivness >= 0.5 and e.order.command == 'REPAIR'
                                      and not e.isDerelect and e.sectorCoords != PLAYER.sectorCoords, ENEMY_SHIPS_IN_ACTION))
@@ -1520,8 +1421,7 @@ def huntDownThePlayer(chance, limit=1):
 
 def reactivateDerelict(limit=1):
     if limit > 0:
-        global ENEMY_SHIPS_IN_ACTION
-        global PLAYER
+        global ENEMY_SHIPS_IN_ACTION, PLAYER
         
         enemyShipsAviliable = list(filter(lambda e: e.crewReadyness > 0.5 and e.order.command == 'REPAIR'
                                           and e.sectorCoords != PLAYER.sectorCoords, ENEMY_SHIPS_IN_ACTION))
@@ -1561,8 +1461,7 @@ def reactivateDerelict(limit=1):
                         derelicts.remove(recrewedDereliect)
                         
 def assignOrdersEasy():
-    global TOTAL_STARSHIPS
-    global PLAYER
+    global TOTAL_STARSHIPS, PLAYER
     #TODO - give enemy ships behavour other then shooting at the player, like moving around
     
     for s in TOTAL_STARSHIPS:
@@ -1596,8 +1495,8 @@ def assignOrdersEasy():
                     s.order.Repair()
                 
 def assignOrdersHard():
-    global TOTAL_STARSHIPS
-    global PLAYER
+    global TOTAL_STARSHIPS, PLAYER
+    
     for s in TOTAL_STARSHIPS:
         if not s.isControllable and s.isAlive and not s.isDerelict:
             if s.sectorCoords == PLAYER.sectorCoords:
@@ -1657,8 +1556,7 @@ def assignOrdersHard():
                 s.order.Repair()
                 
 def implementOrders():
-    global TOTAL_STARSHIPS
-    global PLAYER
+    global TOTAL_STARSHIPS, PLAYER
     
     def appender(shipList, filterCommand):
         for sh in shipList:
@@ -1721,8 +1619,7 @@ def checkForFriendyPlanetsNearby():
     
 #------- ui related --------
 def grabLocalInfo():
-    global PLAYER
-    global TOTAL_STARSHIPS
+    global PLAYER, TOTAL_STARSHIPS
     
     pX, pY = PLAYER.sectorCoords.x, PLAYER.sectorCoords.y
     
@@ -1869,12 +1766,7 @@ def handleCommands():
     passTurn = False
     
     command = input('Enter command (h), (t), (p), (m), (w), (c), (s), (r):\n').lower().split(':')
-    global SELECTED_ENEMY_SHIP
-    global PLAYER
-    global SHIPS_IN_SAME_SUBSECTOR
-    global SEC_INFO
-    global TURNS_LEFT
-    global cXdict, cYdict
+    global SELECTED_ENEMY_SHIP, PLAYER, SHIPS_IN_SAME_SUBSECTOR, SEC_INFO, TURNS_LEFT, cXdict, cYdict
     
     try:
         c = command[0]
@@ -1932,9 +1824,17 @@ def handleCommands():
                 tX, tY = cX, cY
                 torpNum = cZ
             else:
-                tX, tY = headingToCoords(cX, 5, PLAYER.localCoords.x, PLAYER.localCoords.y, SUB_SECTOR_SIZE_RANGE_X, SUB_SECTOR_SIZE_RANGE_Y)
+                #tX, tY = headingToCoordsTorp(cX, 3)
+                #tX+= PLAYER.localCoords.x
+                #tY+= PLAYER.localCoords.y
+                
+                tX, tY = headingToCoords(cX, 2, PLAYER.localCoords.x, PLAYER.localCoords.y, SUB_SECTOR_SIZE_RANGE_X, SUB_SECTOR_SIZE_RANGE_Y)
                 torpNum = cY
+            tX-= PLAYER.localCoords.x
+            tY-= PLAYER.localCoords.y
+            tX, tY = Coords(tX, tY).normalize
             print('tX: {:f}, tY: {:f}'.format(tX, tY))
+            
             PLAYER.order.Torpedo(tX, tY, torpNum)
             
             passTurn = True
