@@ -1,7 +1,46 @@
 #BTCallahan, 3/31/2018
+#version 0.5, 4/28/2018
 import math, random
+from operator import add
+from itertools import accumulate
 
 SHIP_ACTIONS = {'FIRE_ENERGY', 'FIRE_TORP', 'MOVE', 'WARP', 'RECHARGE', 'REPAIR'}
+
+class GameData:
+
+    def __init__(self, subsecsX, subsecsY, subsecSizeX, subsecSizeY,
+                 shipTypeAllied, shipTypeEnemySmall, shipTypeEnemyLarge,
+                 planetBarren, planetHostile, planetFriendly,
+                 noOfFighters, noOfAdFighters, noOfCruisers, noOfBattleships,
+                 turnsLeft, easyMove, easyAim):
+        self.subsecsX = subsecsX
+        self.subsecsY = subsecsY
+        self.subsecsRangeX = range(subsecsX)
+        self.subsecsRangeY = range(subsecsY)
+        self.subsecSizeX = subsecSizeX
+        self.subsecSizeY = subsecSizeY
+        self.subsecSizeRangeX = range(subsecSizeX)
+        self.subsecSizeRangeY = range(subsecSizeY)
+        
+        self.shipTypeAllied = shipTypeAllied
+        self.shipTypeEnemySmall = shipTypeEnemySmall
+        self.shipTypeEnemyLarge = shipTypeEnemyLarge
+        self.planetBarren = planetBarren
+        self.planetHostile = planetHostile
+        self.planetFriendly = planetFriendly
+
+        self.noOfFighters = noOfFighters
+        self.noOfAdFighters = noOfAdFighters
+        self.noOfCruisers = noOfCruisers
+        self.noOfBattleships = noOfBattleships
+
+        self.turnsLeft = turnsLeft
+        self.easyMove = easyMove
+        self.easyAim = easyAim
+
+        self.eventTextToPrint = []
+        self.grid = []
+        self.secInfo = []
 
 SUB_SECTORS_X = 8
 SUB_SECTORS_Y = 8
@@ -39,10 +78,11 @@ NO_OF_BATTLESHIPS = 1
 DESTRUCTION_CAUSES = {'ENERGY', 'TORPEDO', 'RAMMED_ENEMY', 'RAMMED_BY_ENEMY', 'CRASH_BARREN', 'CRASH_HOSTILE', 'CRASH_FRIENDLY', 'WARP_BREACH'}
 
 CAUSE_OF_DAMAGE = ''
+"""
 TORP_TYPE_POLARON = 60
 TORP_TYPE_PHOTON = 75
 TORP_TYPE_QUANTUM = 100
-
+"""
 LOCAL_ENERGY_COST = 100
 SECTOR_ENERGY_COST = 500
 
@@ -77,7 +117,9 @@ class PlayerData:
     @classmethod
     def newData(cls):
         return cls(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    
+
+PLAYER_DATA = PlayerData.newData()
+
 class Coords:
 
     def __init__(self, x, y):
@@ -234,11 +276,25 @@ class Sector:
     def __buildSlice():
         ba = list('.' * SUB_SECTOR_SIZE_X)
         return ba
-    
+
+    @staticmethod
+    def __grabRandomAndRemove(randList):
+        r = random.choice(randList)
+        randList.remove(r)
+        return r
+
+    @staticmethod
+    def __genSafeSpotList(xRange, yRange):
+        
+        for y in yRange:
+            for x in xRange:
+                yield tuple([x, y])
+        
+                
     def __init__(self, x, y):
         
         self.astroObjects = [Sector.__buildSlice() for s in SUB_SECTOR_SIZE_RANGE_Y]
-        
+        self.safeSpots = list(Sector.__genSafeSpotList(SUB_SECTOR_SIZE_RANGE_X, SUB_SECTOR_SIZE_RANGE_Y))
         self.x = x
         self.y = y
         
@@ -247,20 +303,35 @@ class Sector:
         
         self.totalStars = 0
         for i in range(stars):
-            rC = Coords.randomSectorCoords()
+            rC = Sector.__grabRandomAndRemove(self.safeSpots)
+
+            self.astroObjects[rC[1]][rC[0]] = '*'
+            self.totalStars+=1
+            #rC = Coords.randomSectorCoords()
             #print('{0}, {1}'.format(rC.x, rC.y))
-            
+            """
             if self.astroObjects[rC.y][rC.x] != '*':
                 #print('String value: {0}, string slice: {1} *: {2}'.format(self.astroObjects[rC.y], self.astroObjects[rC.y][rC.x], '*'))
                 self.astroObjects[rC.y][rC.x] = '*'
-                self.totalStars+=1
+                """
 
         self.planets = []
-
+        self.friendlyPlanets = 0
+        self.unfriendlyPlanets = 0
+        
         if self.totalStars > 0:
             for p in range(random.randint(0, 5)):
-                rC = Coords.randomSectorCoords()
-
+                rC = Sector.__grabRandomAndRemove(self.safeSpots)
+                self.planets.append(Planet(random.choice(PLANET_TYPES), rC[0], rC[1], x, y))
+                p = self.planets[-1]
+                if p.planetType == PLANET_FRIENDLY:
+                    self.astroObjects[rC[1]][rC[0]] = '+'
+                    self.friendlyPlanets+=1
+                else:
+                    self.astroObjects[rC[1]][rC[0]] = '-'
+                    if p.planetType == PLANET_UNFRIENDLY:
+                        self.unfriendlyPlanets+=1
+                """
                 if self.astroObjects[rC.y][rC.x] not in ['*', '+', '-']:
                     self.planets.append(Planet(random.choice(PLANET_TYPES), rC.x, rC.y, x, y))
                     p = self.planets[-1]
@@ -268,17 +339,25 @@ class Sector:
                         self.astroObjects[rC.y][rC.x] = '+'
                     else:
                         self.astroObjects[rC.y][rC.x] = '-'
+                        """
+        #self.friendlyPlanets = len([p for p in sector.planets if p.planetType is PLANET_FRIENDLY])
+        #self.unfriendlyPlanets = len([p for p in sector.planets if p.planetType is not PLANET_FRIENDLY])
+        #self.stars = sector.totalStars
+        self.bigShips = 0
+        self.smallShips = 0
+        self.playerPresent = False
 
     @property
     def numberOfPlanets(self):
         return len(self.planets)
-    
+    """
     def checkSafeSpot(self, x, y):
         return self.astroObjects[y][x] == '.'
+    """
 
     def findRandomSafeSpot(self, shipList=[]):
-        return random.choice(list(self.getSetOfSafeSpots(shipList)))
-
+        return random.choice(self.safeSpots)
+    """
     def getSetOfSafeSpots(self, shipList=[]):
 
         safeSpots = []
@@ -296,6 +375,7 @@ class Sector:
                         safeSpots.remove(t)
             
         return safeSpots
+    """
 
     def __getSubslice(self, y):
         return''.join([self.astroObjects[y][x] for x in SUB_SECTOR_SIZE_RANGE_X])
@@ -303,6 +383,42 @@ class Sector:
     @property
     def getCopy(self):
         return [[self.astroObjects[y][x] for x in SUB_SECTOR_SIZE_RANGE_X] for y in SUB_SECTOR_SIZE_RANGE_Y]
+
+    def addShipToSec(self, ship):
+        if ship.shipData.shipType is TYPE_ALLIED:
+            self.playerPresent = True
+        elif ship.shipData.shipType is TYPE_ENEMY_SMALL:
+            self.smallShips+= 1
+        else:
+            self.bigShips+= 1
+
+    def removeShipFromSec(self, ship):
+        if ship.shipData.shipType is TYPE_ALLIED:
+            self.playerPresent = False
+        elif ship.shipData.shipType is TYPE_ENEMY_SMALL:
+            self.smallShips-= 1
+        else:
+            self.bigShips-= 1
+
+    def tickOffPlanet(self):
+        self.friendlyPlanets-=1
+        self.unfriendlyPlanets+=1
+
+    @property
+    def hasFriendlyPlanets(self):
+        return self.friendlyPlanets > 0
+    
+    @property
+    def hasEnemyShips(self):
+        return self.smallShips > 0 or self.bigShips > 0
+    
+    @property
+    def getInfo(self):
+        cha = '.'
+        if self.playerPresent:
+            cha = '@'
+        return '{0.friendlyPlanets}{0.unfriendlyPlanets}{1}{0.bigShips}{0.smallShips}'.format(self, cha)
+
 
 class Star:
     orderSuffexes = ['', 'Alpha ', 'Beta ', 'Gamma ', 'Delta ']
@@ -326,6 +442,12 @@ class Planet:
         else:
             self.infastructure = 0.0
 
+    def __lt__(self, p):
+        return self.infastructure < p.infastructure
+
+    def __gt__(self, p):
+        return self.infastructure > p.infastructure
+    
     def canSupplyPlayer(self, player, enemyList):
         if self.planetType is PLANET_FRIENDLY and self.sectorCoords == player.sectorCoords and \
             self.localCoords.isAdjacent(player.localCoords):
@@ -336,7 +458,7 @@ class Planet:
         return False
 
     def hitByTorpedo(self, isPlayer, damage=40):
-        global SEC_INFO, EVENT_TEXT_TO_PRINT
+        global GRID, EVENT_TEXT_TO_PRINT
         
         if self.planetType is PLANET_BARREN:
             EVENT_TEXT_TO_PRINT.append('The torpedo struck the planet. ')
@@ -347,20 +469,41 @@ class Planet:
                 EVENT_TEXT_TO_PRINT.append('The torpedo impacted the planet, destroying the last vestages of civilisation. ')
                 if isPlayer:
                     EVENT_TEXT_TO_PRINT.append('You will definitly be charged with a war crime. ')
+                GRID.killPlanet(self.planetType)
                 self.planetType = PLANET_BARREN
                 
             elif self.planetType is PLANET_FRIENDLY:
                 EVENT_TEXT_TO_PRINT.append('The torpedo struck the planet, killing millions. ')
                 if isPlayer:
                     self.planetType = PLANET_UNFRIENDLY
-                    SEC_INFO[self.sectorCoords.y][self.sectorCoords.x].tickOffPlanet()
+                    GRID[self.sectorCoords.y][self.sectorCoords.x].tickOffPlanet()
                     EVENT_TEXT_TO_PRINT.append('The planet has severed relations with the Federation. ')
             else:
                 EVENT_TEXT_TO_PRINT.append('The torpedo struck the planet, killing millions. ')
                 if isPlayer:
                     EVENT_TEXT_TO_PRINT.append('You will probably be charged with a war crime. ' )
        
-            
+class Torpedo:
+    def __init__(self, name, damage, infrastructure):
+        self.capName = name.capitalize()
+        self.name = name
+        self.capPlural = name.capitalize() + 's'
+        self.plural = name + 's'
+        self.capPluralColon = self.capPlural + ':'
+        self.damage = damage
+        self.infrastructure = infrastructure
+
+    def _lt__(self, t):
+        return self.infrastructure < t.infrastructure
+
+    def __gt__(self, t):
+        return self.infrastructure > t.infrastructure
+
+TORP_TYPE_NONE = Torpedo('', 0, 0.0)
+TORP_TYPE_POLARON = Torpedo('polaron', 60, 0.35)
+TORP_TYPE_PHOTON = Torpedo('photon', 75, 0.5)
+TORP_TYPE_QUANTUM = Torpedo('quantum', 100, 0.75)
+
 class StarshipSystem:
 
     def __init__(self, name):
@@ -464,6 +607,9 @@ class SectorInfo:
 def genNameDefiant():
     return 'U.S.S. ' + random.choice(['Defiant', 'Sal Polo', 'Valiant'])
 
+def genNameKVort():
+    return 'I.K.S. ' + random.choice(['Buruk', 'Ch\'Tang3', 'Hegh\'ta', 'Ki\'Tang', 'Korinar', 'M\'Char', 'Ma\'Para', 'Ning\'Tau', 'Orantho', 'Qevin', 'Rotarran', 'Vorn'])
+
 def randomNeumeral(n):
     for i in range(n):
         yield random.choice(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
@@ -486,24 +632,35 @@ class Nation:
 
 """
 
-
 class ShipData:
 
-    def __init__(self, shipType, symbol, maxShields, maxHull, maxTorps, maxCrew, maxEnergy, damageCon, torpDam, torpTubes,
+    def __init__(self, shipType, symbol, maxShields, maxArmor, maxHull, maxTorps, maxCrew, maxEnergy, damageCon, torpTypes, torpTubes,
                  maxWeapEnergy, warpBreachDist, weaponName, nameGenerator):
         self.shipType = shipType
         self.symbol = symbol
         
         self.maxShields = maxShields
-
+        self.maxArmor = maxArmor
         self.maxHull = maxHull
 
-        self.maxTorps = maxTorps
+        
         self.maxCrew = maxCrew
         self.maxEnergy = maxEnergy
 
         self.damageCon = damageCon
-        self.torpDam = torpDam
+        """
+        if len(torpTypes) == 0:
+            print('torpTypes List has zero lenght')
+        elif torpTypes == None:
+            printy('torpTypes is None object')
+        """
+        if (len(torpTypes) == 0) != (torpTubes < 1) != (maxTorps < 1):
+            raise IndexError('The length of the torpTypes list is {0}, but the value of torpTubes is {1}, \
+and the value of maxTorps is {2}. All of these should be less then one, OR greater then or equal to one.'.format(len(torpTypes), torpTubes))#if (len(torpTypes) == 0 and torpTubes > 1) or (len(torpTypes) > 0 and torpTubes < 0):
+        self.torpTypes = torpTypes
+        self.torpTypes.sort()
+
+        self.maxTorps = maxTorps
         self.torpTubes = torpTubes
         self.maxWeapEnergy = maxWeapEnergy
         self.warpBreachDist = warpBreachDist
@@ -511,18 +668,29 @@ class ShipData:
         self.weaponNamePlural = self.weaponName + 's'
         self.shipNameGenerator = nameGenerator
         
-DEFIANT_CLASS = ShipData(TYPE_ALLIED, SYM_PLAYER, 2700, 500, 20, 50, 5000, 0.45, 100, 2, 800, 2, 'Phaser', genNameDefiant)
+DEFIANT_CLASS = ShipData(TYPE_ALLIED, SYM_PLAYER, 2700, 400, 500, 20, 50, 5000, 0.45,
+                         [TORP_TYPE_QUANTUM, TORP_TYPE_PHOTON], 2, 800, 2, 'Phaser', genNameDefiant)
 
-ATTACK_FIGHTER = ShipData(TYPE_ENEMY_SMALL, SYM_FIGHTER, 1200, 230, 0, 30, 3000, 0.15, 0, 0, 600, 1, 'Poleron', genNameAttackFighter)
-ADVANCED_FIGHTER = ShipData(TYPE_ENEMY_SMALL, SYM_AD_FIGHTER, 1200, 230, 5, 30, 3000, 0.15, 60, 1, 650, 1, 'Poleron', genNameAdvancedFighter)
-CRUISER = ShipData(TYPE_ENEMY_LARGE, SYM_CRUISER, 3000, 500, 10, 120, 5250, 0.125, 60, 2, 875, 3, 'Poleron', genNameCruiser)
-BATTLESHIP = ShipData(TYPE_ENEMY_LARGE, SYM_BATTLESHIP, 5500, 750, 20, 500, 8000, 0.075, 60, 6, 950, 5, 'Poleron', genNameBattleship)
+K_VORT_CLASS = ShipData(TYPE_ALLIED, SYM_PLAYER, 1900, 0, 400, 20, 12, 4000, 0.35,
+                        [TORP_TYPE_PHOTON], 1, 750, 2, 'Disruptor', genNameKVort)
+
+ATTACK_FIGHTER = ShipData(TYPE_ENEMY_SMALL, SYM_FIGHTER, 1200, 0, 230, 0, 15, 3000, 0.15,
+                          [], 0, 600, 2, 'Poleron', genNameAttackFighter)
+
+ADVANCED_FIGHTER = ShipData(TYPE_ENEMY_SMALL, SYM_AD_FIGHTER, 1200, 0, 230, 5, 15, 3000, 0.15,
+                            [TORP_TYPE_POLARON], 1, 650, 2, 'Poleron', genNameAdvancedFighter)
+
+CRUISER = ShipData(TYPE_ENEMY_LARGE, SYM_CRUISER, 3000, 0, 500, 10, 1200, 5250, 0.125,
+                   [TORP_TYPE_POLARON], 2, 875, 3, 'Poleron', genNameCruiser)
+
+BATTLESHIP = ShipData(TYPE_ENEMY_LARGE, SYM_BATTLESHIP, 5500, 0, 750, 20, 1200, 8000, 0.075,
+                      [TORP_TYPE_POLARON], 6, 950, 5, 'Poleron', genNameBattleship)
 
 #refrence - DEFIANT_CLASS ATTACK_FIGHTER ADVANCED_FIGHTER CRUISER BATTLESHIP
 
 class Starship:
     """
-    TODO - implement crewmembers, cloaking device, ablative armor, diffrent torpedo types
+    TODO - implement crewmembers(done!), cloaking device, ablative armor, diffrent torpedo types(wip)
     how crewmembers could work:
     crew effectiveness = (crew / max crew) * 0.5 + 0.5
     
@@ -540,14 +708,31 @@ class Starship:
     for example the player is next to a friendly planet with an infristructure rating of 0.62 and quantum torpdos
     have an infristructure requirement of 0.7. therefore the player will be restocked with photon torpedos instead 
     """
+    
+    
     def __init__(self, shipData, xCo, yCo, secXCo, secYCo):
+        def setTorps(torpedoTypes, maxTorps):
+            tDict = dict()
+            if torpedoTypes == [] or torpedoTypes == None:
+                return tDict
+            
+            for t in torpedoTypes:
+                if t == torpedoTypes[0]:
+                    tDict[t] = maxTorps
+                else:
+                    tDict[t] = 0
+            return tDict
+    
         self.localCoords = Coords(xCo, yCo)
         self.sectorCoords = Coords(secXCo, secYCo)
 
         self.shipData = shipData        
         self.shields = shipData.maxShields
+        self.armor = shipData.maxArmor
         self.hull = shipData.maxHull
-        self.torps = shipData.maxTorps
+        
+        self.torps = setTorps(shipData.torpTypes, shipData.maxTorps)
+        
         self.ableCrew = shipData.maxCrew
         self.injuredCrew = 0
         self.energy = shipData.maxEnergy
@@ -576,16 +761,51 @@ class Starship:
         del self.order
 
     @property
+    def shipTypeCanFireTorps(self):
+        return len(self.shipData.torpTypes) > 0 and self.shipData.maxTorps > 0 and self.shipData.torpTubes > 0
+    
+    @property
     def crewReadyness(self):
         return self.ableCrew / self.shipData.maxCrew
 
     @property
     def isDerelict(self):
         return self.ableCrew + self.injuredCrew > 0
-    
+
+    @property
+    def getTotalTorps(self):
+        if not self.shipTypeCanFireTorps:
+            return 0
+        return list(accumulate(self.torps.values()))[-1]
+
+    @property
+    def getMostPowerfulTorpAvaliable(self):
+        if self.shipData.maxTorps < 1:
+            return None
+        rt = None
+        for to in self.shipData.torpTypes:
+            if rt == None:
+                rt = to
+            elif to.damage > rt.damage and self.torps[to] > 0:
+                rt = to
+        return rt
+        
+
+    def getNumberOfTorps(self, precision):
+        scanAssistant = lambda v, p: round(v / p) * p
+        if self.shipTypeCanFireTorps:
+            if precision == 1:
+                for t in self.shipData.torpTypes:
+                    yield (t, self.torps[t])
+            else:
+                for t in self.shipData.torpTypes:
+                    yield (t, scanAssistant(self.torps[t], precision))
+        else:
+            yield (TORP_TYPE_NONE, 0)
+        
     @property
     def combatEffectivness(self):
-        if self.shipData.torpDam > 0:
+        if self.shipTypeCanFireTorps:
             return (self.sysTorp.getEffectiveValue + self.sysSensors.getEffectiveValue + 
                    self.sysEnergyWep.getEffectiveValue + self.sysShield.getEffectiveValue +
                     self.sysSensors.getEffectiveValue + (self.shield / self.shipData.maxShield) +
@@ -627,7 +847,8 @@ class Starship:
                     scanAssistant(self.energy, precision),
                     scanAssistant(self.ableCrew, precision),
                     scanAssistant(self.injuredCrew, precision),
-                    scanAssistant(self.torps, precision),
+                    list(self.getNumberOfTorps(precision)),
+                    #scanAssistant(self.torps, precision),
                     self.sysWarp.getInfo(precision) * 0.01,
                     self.sysImpulse.getInfo(precision) * 0.01, 
                     self.sysEnergyWep.getInfo(precision) * 0.01,
@@ -640,7 +861,8 @@ class Starship:
                 
                 scanAssistant(self.ableCrew, precision),
                 scanAssistant(self.injuredCrew, precision),
-                scanAssistant(self.torps, precision),
+                list(self.getNumberOfTorps(precision)),
+                #scanAssistant(self.torps, precision),
                 
                 self.sysWarp.printInfo(precision),
                 self.sysImpulse.printInfo(precision), 
@@ -659,8 +881,13 @@ class Starship:
         textList.append('Energy:  {0: =4}/{1: =4}'.format(scan[2], self.shipData.maxEnergy))
         textList.append('Crew:    {0: =4}/{1: =4}'.format(scan[3], self.shipData.maxCrew))
         textList.append('Injured: {0: =4}/{1: =4}'.format(scan[4], self.shipData.maxCrew))
-        if self.shipData.maxTorps > 0:
-            textList.append('Torpedos:  {0: =2}/  {1: =2}'.format(scan[5], self.shipData.maxTorps))
+        if self.shipTypeCanFireTorps:
+            textList.append('Max Torpedos:   {0: =2}'.format(self.shipData.maxTorps))
+            for t in scan[5]:
+                #print(str(t[0].capPlural))
+                #print(t[1])
+                textList.append('{0:<16}{1: =2}'.format(t[0].capPluralColon, t[1]))
+            #textList.append('Torpedos:  {0: =2}/  {1: =2}'.format(scan[5], self.shipData.maxTorps))
         else:
             textList.append(blank)
         textList.append(blank)
@@ -683,9 +910,9 @@ class Starship:
         return 0.0
 
     def destroy(self, cause):
-        global SEC_INFO, EVENT_TEXT_TO_PRINT, CAUSE_OF_DAMAGE
+        global GRID, EVENT_TEXT_TO_PRINT, CAUSE_OF_DAMAGE
         
-        SEC_INFO[self.sectorCoords.y][self.sectorCoords.x].removeShipFromSec(self)
+        GRID[self.sectorCoords.y][self.sectorCoords.x].removeShipFromSec(self)
         EVENT_TEXT_TO_PRINT.append(self.name)
         
         if random.uniform(self.sysWarp.getEffectiveValue * 0.5, 1.0) < self.sysWarp.getEffectiveValue:
@@ -700,7 +927,7 @@ class Starship:
     def warpCoreBreach(self, selfDestruct=False):
 
         shipList = grapShipsInSameSubSector(self)
-        oneThird = 1 / 3
+        oneThird = 1.0 / 3.0
         for s in shipList:
             distance = self.localCoords.distance(s.localCoords)
             damPercent = 1 - (distance / s.shipData.warpBreachDist)
@@ -801,7 +1028,7 @@ class Starship:
         EVENT_TEXT_TO_PRINT+=[self.name, fromText, str(selfCoords)]
 
         if usingWarp:
-            SEC_INFO[self.sectorCoords.y][self.sectorCoords.x].removeShipFromSec(self)
+            GRID[self.sectorCoords.y][self.sectorCoords.x].removeShipFromSec(self)
             
         selfCoords.x-= mo[2]
         selfCoords.y-= mo[3]
@@ -813,7 +1040,7 @@ class Starship:
             self.localCoords.x = sp[0]
             self.localCoords.y = sp[1]
             
-            SEC_INFO[self.sectorCoords.y][self.sectorCoords.x].addShipToSec(self)
+            GRID[self.sectorCoords.y][self.sectorCoords.x].addShipToSec(self)
         
         EVENT_TEXT_TO_PRINT+=[toText, str(selfCoords), '.']
         self.energy-=mo[4]
@@ -821,26 +1048,75 @@ class Starship:
     #TODO - add in a checker to see if the player has plowed into a planet or star, or rammed another starship
     def move(self, x, y):#assume that x = 2, y = 3
         self.handleMovment(x, y, False)
-       
-            
+        
     def warp(self, x, y):
         self.handleMovment(x, y, True)
-        
         
     def takeDamage(self, amount, text, isTorp=False):
         global EVENT_TEXT_TO_PRINT
         scanAssistant = lambda v, p: round(v / p) * p
 
-        pre = 1
+        safeDiv = lambda n, d: 0 if d == 0 else n / d
+
+        pc = lambda: 1 if self.isControllable else self.determinPrecision
+        pre = pc()
+        """
         if not self.isControllable:
             pre = self.determinPrecision
-        #say damage is 64, current shields are 80, max shields are 200
+        """
+        #assume damage is 64, current shields are 80, max shields are 200
+        #armor is 75, max armor is 100
         #80 * 2 / 200 = 160 / 200 = 0.8
-        #0.8 * 64 = 51.2 = shieldsDam
-        if self.hull > 0:
+        #0.8 * 64 = 51.2 = the amount of damage that hits the shields
+        #64 - 51.2 = 12.8 = the amount of damage that hits the armor and hull
+        #1 - (75 / 100) = 1 - 0.25 = 0.75
+        #12.8 * 0.75 = 9.6 = the amount of damage that hits the armor
+        #12.8 - 9.6 = 3.2 = the amount of damage that hits the hull
+        if self.hull <= 0:
+            raise AssertionError('The ship {0} has taken damage when it is clearly destroyed!'.format(self.name))
+        else:
             shieldsDam = 0.0
+            armorDam = 1.0 * amount
             hullDam = 1.0 * amount
 
+            sdm = lambda: 0.75 if isTorp else 1.0
+            shieldDamMulti = sdm()
+            
+            ahdm = lambda: (lambda: 1.75 if not self.sysShield.isOpperational and self.shields else 1.05) if isTorp else 1.0
+            armorHullDamMulti = ahdm()
+            
+            armorPercent = safeDiv(self.armor, self.shipData.maxArmor)
+
+            shieldPercent = safeDiv(self.shields, self.shipData.maxShields) * 0.5 + 0.5
+
+            torpHitWithShieldsDown = not self.sysShield.isOpperational and self.shields <= 0 and isTorp
+            
+            if self.shields <= 0:
+                shieldsDam = 0
+            else:
+                shieldsDam = shieldPercent * amount * shieldDamMulti
+
+            #hitKnockedDownShields = shieldsDam > self.shields
+
+            if shieldsDam > self.shields:
+                shieldsDam = self.shields
+            else:
+                shieldsDam = shieldPercent * amount
+             
+            amount -= shieldsDam / shieldDamMulti
+
+            amount*= armorHullDamMulti
+            
+            armorDam = amount * armorPercent
+
+            amount-= armorDam
+
+            hullDam = amount
+            
+            """
+            if isTorp:
+                if
+            
             if self.sysShield.isOpperational and self.shields > 0:
                 
                 s = (self.shields / self.shipData.maxShields) * 0.5 + 0.5
@@ -849,19 +1125,24 @@ class Starship:
                 hullDam = (1 - s) * amount
                 
                 if shieldsDam > self.shields:
-
-                    hullDam+= shieldsDam - self.shields
+                    
+                    armorDam = (shieldsDam - self.shields) * a
+                    hullDam+= shieldsDam - armorDam
                     shieldsDam = self.shields
+                    
                 if isTorp:
                     shieldsDam*= 0.75
+                    armorDam*= 1.05
                     hullDam*= 1.05
             elif isTorp:
+                armorDam*= a
                 hullDam*= 1.75#getting hit with a torp while your shields are down - game over
-
+            """
             def randomSystemDamage():
                 return random.uniform(0.0, 0.12 * (hullDam / self.shipData.maxHull))
                 
             self.hull-= hullDam
+            self.armor-= armorDam
             self.shields-= shieldsDam
             
             EVENT_TEXT_TO_PRINT+=[self.name, ' suffers {0} points of damage to the shields, and \
@@ -934,7 +1215,7 @@ class Starship:
         self.sysImpulse.affectValue(repairFactor)
         self.sysEnergyWep.affectValue(repairFactor)
         self.sysShield.affectValue(repairFactor)
-        if self.shipData.torpDam > 0:
+        if self.shipTypeCanFireTorps:
             self.sysTorp.affectValue(repairFactor)
 
     def rechargeShield(self, amount):
@@ -1025,17 +1306,17 @@ class Starship:
         return self.sysTorp.getEffectiveValue + (self.sysSensors.getEffectiveValue * 1.25) > \
             estimatedEnemyImpulse - random.uniform(0.0, 0.75)
     
-    def attackTorpedo(self, enemy):
+    def attackTorpedo(self, enemy, torp):
         global EVENT_TEXT_TO_PRINT
         if self.rollToHitTorpedo(enemy):
             #chance to hit:
             #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
-            EVENT_TEXT_TO_PRINT.append('{0} was hit by a torpedo from {1}. '.format(enemy.name, self.name))
+            EVENT_TEXT_TO_PRINT.append('{0} was hit by a {2} torpedo from {1}. '.format(enemy.name, self.name, torp.name))
             
-            enemy.takeDamage(self.shipData.torpDam, 'Destroyed by a torpedo hit from the {0}'.format(self.name), True)
+            enemy.takeDamage(torp.damage, 'Destroyed by a {1} torpedo hit from the {0}'.format(self.name, torp.name), True)
             
             return True
-        EVENT_TEXT_TO_PRINT.append('A torpedo from {1} missed {0}. '.format(enemy.name, self.name))
+        EVENT_TEXT_TO_PRINT.append('A {2} torpedo from {1} missed {0}. '.format(enemy.name, self.name, torp.name))
         return False
         
     @property
@@ -1053,9 +1334,21 @@ class FedShip(Starship):
         self.ablatArmor = 1200
         self.turnRepairing = 0
         self.damageTakenThisTurn = False
+        self.torpedoLoaded = 0
+
+    @property
+    def getMostPowerfulTorpAvaliable(self):
+        if self.getTotalTorps > 0:
+            if self.torps[self.shipData.torps[self.torpedoLoaded]] < 1:
+                rt = super().getMostPowerfulTorpAvaliable
+                if rt != None:
+                    self.torpedoLoaded = self.shipData.index(rt)
+                return rt
+            return self.shipData.torps[self.torpedoLoaded]
+        return None
         
     def repair(self, factor, externalRepair=False):
-        timeBonus = 1 + (self.turnRepairing / 25)
+        timeBonus = 1.0 + (self.turnRepairing / 25.0)
         
         repairFactor = self.shipData.damageCon * factor * self.crewReadyness * timeBonus
         healCrew = min(self.injuredCrew, round(self.injuredCrew * 0.2) + random.randint(2, 5))
@@ -1063,7 +1356,10 @@ class FedShip(Starship):
         if externalRepair:
             repairFactor = self.shipData.damageCon * factor * timeBonus
             healCrew = min(self.injuredCrew, round(self.injuredCrew * (0.2 + factor)) + random.randint(6, 10))
+
+        print('max energy :{} current energy: {}, restored energy: {}'.format(self.shipData.maxEnergy, self.energy, self.energy + factor * 100 * timeBonus))
         self.energy = min(self.shipData.maxEnergy, self.energy + factor * 100 * timeBonus)
+        
         self.hull = min(self.shipData.maxHull, self.shipData.maxHull * factor * self.shipData.damageCon * timeBonus)
         
         self.ableCrew+= healCrew
@@ -1079,8 +1375,13 @@ class FedShip(Starship):
     def resetRepair(self):
         self.turnRepairing = 0
 
-    def restockTorps(self):
-        self.torps = self.shipData.maxTorps
+    def restockTorps(self, infrastructure):
+        if self.shipData.maxTorps != self.getTotalTorps:
+            torpSpace = self.shipData.maxTorps - self.getTotalTorps
+            for t in self.shipData.torpTypes:
+                if t.infrastructure <= infrastructure:
+                    self.torps[t]+= self.getTotalTorps
+                    break
 
     def resetRepair(self):
         if self.damageTakenThisTurn:
@@ -1102,13 +1403,19 @@ class EnemyShip(Starship):
         targShield = targScan[0]
         targHull = [1]
 
-        timesToFire = min(self.getNoOfAvalibleTorpTubes(), self.torpedos)
+        torp = self.getMostPowerfulTorpAvaliable()
+        if torp == None:
+            return 0
+        torpedos = self.torps[torp]
+        
+        timesToFire = min(self.getNoOfAvalibleTorpTubes(), torpedos)
+        
         for t in range(timesToFire):
             if self.rollToHitTorpedo(target, targScan[7]):
             
                 #chance to hit:
                 #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
-                amount = self.shipData.torpDam
+                amount = torp.damage
                 
                 shieldsDam = 0.0
                 hullDam = 1.0 * amount
@@ -1201,7 +1508,7 @@ def assignShipsInSameSubSector():
     else:
         SELECTED_ENEMY_SHIP = None
 
-def grabSelectedShipInfo():
+def grabSelectedShipInfo(padding):
     global SELECTED_ENEMY_SHIP
     
     if SELECTED_ENEMY_SHIP:
@@ -1212,7 +1519,7 @@ def grabSelectedShipInfo():
     whiteSpace = ' ' * 18
     
     blankScan = []
-    for i in range(12):
+    for i in range(padding + 1):
         blankScan.append(whiteSpace)
     
     return blankScan
@@ -1232,10 +1539,10 @@ def checkWarpCoreBreach(ship):
 
 def setUpGame():
     print('beginning setup')
-    global GRID, SEC_INFO, PLAYER, TOTAL_STARSHIPS
+    global GRID, PLAYER, TOTAL_STARSHIPS
     
     GRID = [[Sector(x, y) for x in SUB_SECTORS_RANGE_X] for y in SUB_SECTORS_RANGE_Y]
-    SEC_INFO = [[SectorInfo(GRID[y][x]) for x in SUB_SECTORS_RANGE_X] for y in SUB_SECTORS_RANGE_X]
+    
 
     setOfGridPositions = set()
 
@@ -1286,7 +1593,7 @@ def setUpGame():
         TOTAL_STARSHIPS.append(ship)
 
     for s in TOTAL_STARSHIPS:
-        SEC_INFO[s.sectorCoords.y][s.sectorCoords.x].addShipToSec(s)
+        GRID[s.sectorCoords.y][s.sectorCoords.x].addShipToSec(s)
 
     print('About to assign shiips')
     assignShipsInSameSubSector()
@@ -1320,7 +1627,7 @@ def headingToCoords(heading, distance, startX, startY, rangeX, rangeY):
             return retX, retY
     return retX, retY
     
-def handleTorpedo(shipThatFired, torpsFired, dirX, dirY):
+def handleTorpedo(shipThatFired, torpsFired, dirX, dirY, torpedo):
     global GRID, TOTAL_STARSHIPS, EVENT_TEXT_TO_PRINT
     #global PLAYER
     
@@ -1340,15 +1647,17 @@ def handleTorpedo(shipThatFired, torpsFired, dirX, dirY):
                               s is not shipThatFired, TOTAL_STARSHIPS))
     
     damage = shipThatFired.shipData.torpDam
+    torpsLeftToFire = shipThatFired.torps[torpedo]
+    #!!!
+    torpsFired = min(shipThatFired.getNoOfAvalibleTorpTubes(torpsFired), torpsLeftToFire)
     
-    torpsFired = min(shipThatFired.getNoOfAvalibleTorpTubes(torpsFired), shipThatFired.torps)
-
     eS = lambda n: '' if n is 1 else 's'
     
-    EVENT_TEXT_TO_PRINT.append('{0} fired {1} torpedo{2}. '.format(shipThatFired.name, torpsFired, eS(torpsFired)))
+    EVENT_TEXT_TO_PRINT.append('{0} fired {1} {3} torpedo{2}. '.format(shipThatFired.name, torpsFired, eS(torpsFired), torpedo.name))
         
     while torpsFired > 0:
-        shipThatFired.torps-=1
+        #torpsLeftToFire-=1
+        
         hitSomething = False
         hitList = []
         
@@ -1366,33 +1675,34 @@ def handleTorpedo(shipThatFired, torpsFired, dirX, dirY):
             else:
                 for s in shipsInArea:
                     if Coords(iX, iY) == s.localCoords:
-                        hitSomething = shipThatFired.attackTorpedo(s)
+                        hitSomething = shipThatFired.attackTorpedo(s, torpedo)
             posX+= dirX
             posY+= dirY
             
             hitList.append('dirX: {:f}, dirY: {:f}, iX: {:d}, iY {:d}, posX: {:f}, posY: {:f}'.format(dirX, dirY, iX, iY, posX, posY))
             
         torpsFired-=1
+        torpsLeftToFire-=1
         
         if shipThatFired.isControllable:
             print('\n'.join(hitList))
-            
+    shipThatFired.torps[torpedo] = torpsLeftToFire
         
 def dontOppressAnybody(number):
     pass
 
 def oppressCurrentlyUnoppressedSystem(number):
     if number > 0:
-        global ENEMY_SHIPS_IN_ACTION, SEC_INFO
+        global ENEMY_SHIPS_IN_ACTION, GRID
         
         enemyShipsAvliable = list(filter(lambda e: e.order == 'REPAIR' and not
-                                         SEC_INFO[e.sectorCoords.y][e.sectorCoords.x].hasFriendlyPlanets,
+                                         GRID[e.sectorCoords.y][e.sectorCoords.x].hasFriendlyPlanets,
                                          ENEMY_SHIPS_IN_ACTION))
         if len(enemyShipsAvliable) > 0:
             systemsToOppress = []
             for y in SUB_SECTORS_RANGE_Y:
                 for x in SUB_SECTORS_RANGE_X:
-                    if SEC_INFO[y][x].hasFriendlyPlanets and SEC_INFO[y][x].hasEnemyShips:
+                    if GRID[y][x].hasFriendlyPlanets and GRID[y][x].hasEnemyShips:
                         systemsToOppress.append(tuple([x, y]))
                         
             for n in range(number):
@@ -1469,7 +1779,7 @@ def assignOrdersEasy():
             if s.sectorCoords == PLAYER.sectorCoords:
                 order = 'REPAIR'
                 canPhaser = s.energy > 0
-                canTorp = s.torps > 0
+                canTorp = s.getTotalTorps > 0
                 if canPhaser:
                     if canTorp:
                         if random.randint(0, 1) is 0:
@@ -1578,7 +1888,7 @@ def implementOrders():
     
     for s in torpShips:
         if s.order.amount > 0:
-            handleTorpedo(s, s.order.amount, s.order.x, s.order.y)
+            handleTorpedo(s, s.order.amount, s.order.x, s.order.y, s.getMostPowerfulTorpAvaliable)
             #s.attackTorpedo(s.order.target, s.order.amount)
             s.turnTaken = True
                 
@@ -1609,13 +1919,19 @@ def implementOrders():
         PLAYER.turnRepairing = 0"""
 
 def checkForFriendyPlanetsNearby():
-
+    
     sec = GRID[PLAYER.sectorCoords.y][PLAYER.sectorCoords.x]
+    if sec.friendlyPlanets > 0:#!!!!
+        pla = list(filter(lambda p: p.canSupplyPlayer(PLAYER, SHIPS_IN_SAME_SUBSECTOR), sec.planets)).sort()
 
-    for p in sec.planets:
-        if p.canSupplyPlayer(PLAYER, SHIPS_IN_SAME_SUBSECTOR):
-            PLAYER.repair(5 * p.infastructure)
-            PLAYER.restockTorps()
+        if pla is not None:
+            PLAYER.repair(5 * pla[0].infrastructure)
+            PLAYER.restockTorps(pla[0].infrastructure)
+        """
+        for p in sec.planets:
+            if p.canSupplyPlayer(PLAYER, SHIPS_IN_SAME_SUBSECTOR):
+                PLAYER.repair(5 * p.infastructure)
+                PLAYER.restockTorps()"""
     
 #------- ui related --------
 def grabLocalInfo():
@@ -1637,9 +1953,9 @@ def grabLocalInfo():
     return textSlices
 
 def grabSectorInfo():
-    global SEC_INFO
+    global GRID
     
-    textSlices = [''.join([SEC_INFO[y - 1][x].getInfo for x in range(SUB_SECTORS_X)]) for y in range(SUB_SECTORS_Y, 0, -1)]
+    textSlices = [''.join([GRID[y - 1][x].getInfo for x in range(SUB_SECTORS_X)]) for y in range(SUB_SECTORS_Y, 0, -1)]
     return textSlices
 
 def printSplashScreen():
@@ -1680,13 +1996,19 @@ def printScreen():
         t.append(s)
         t.append('\n')
     playerInfo = PLAYER.printShipInfo(1)
-    selectedInfo = grabSelectedShipInfo()
+    
+    selectedInfo = grabSelectedShipInfo(len(playerInfo))
 
+    print('player info length: {0}, enemy info length: {1}.'.format(len(playerInfo), len(selectedInfo)))
+    if len(playerInfo) < len(selectedInfo):
+        for l in range(len(playerInfo) - len(selectedInfo)):
+            playerInfo.append('' * 18)
+    
     t.append(ispace)
     t.append('\n')
     t.append('{0: <32}{1: >32}'.format('Local Position: ' + str(PLAYER.localCoords), 'Sector Position: ' + str(PLAYER.sectorCoords)))
     t.append('\n')
-             
+    print('player info length: {0}, enemy info length: {1}.'.format(len(playerInfo), len(selectedInfo)))
     for p, s in zip(playerInfo, selectedInfo):
         if type(p) is not str or type(s) is not str:
             raise ValueError('p value is: {0}, p type is {1}, s value is: {2}, s value is: {3}'.format(p, type(p), s, type(s)))
@@ -1766,7 +2088,7 @@ def handleCommands():
     passTurn = False
     
     command = input('Enter command (h), (t), (p), (m), (w), (c), (s), (r):\n').lower().split(':')
-    global SELECTED_ENEMY_SHIP, PLAYER, SHIPS_IN_SAME_SUBSECTOR, SEC_INFO, TURNS_LEFT, cXdict, cYdict
+    global SELECTED_ENEMY_SHIP, PLAYER, SHIPS_IN_SAME_SUBSECTOR, GRID, TURNS_LEFT, cXdict, cYdict
     
     try:
         c = command[0]
@@ -1841,7 +2163,7 @@ def handleCommands():
             
         elif c[0] == 'p':
             if not SELECTED_ENEMY_SHIP:
-                if SEC_INFO[PLAYER.sectorCoords.y][PLAYER.sectorCoords.x].hasEnemyShips:
+                if GRID[PLAYER.sectorCoords.y][PLAYER.sectorCoords.x].hasEnemyShips:
                     assignShipsInSameSubSector()
                     
             if SELECTED_ENEMY_SHIP:
@@ -1928,7 +2250,7 @@ require one number to be entered with a colon seperating them: (letter):(number)
 except for moving, warping, and firing torpedos require one two numbers to be entereduse the following format: @:# or @:#:#, with')
         else:
             print('Unknown command')
-    if passTurn:
+    if passTurn and not errorRaised:
         TURNS_LEFT-=1
         assignOrdersEasy()
         PLAYER.resetRepair()
@@ -1945,6 +2267,7 @@ while PLAYER.isAlive and TURNS_LEFT > 0 and len(ENEMY_SHIPS_IN_ACTION) > 0:
 
     printScreen()
     handleCommands()
+    checkForDestroyedShips()
     
     print(''.join(EVENT_TEXT_TO_PRINT))
     EVENT_TEXT_TO_PRINT = []
