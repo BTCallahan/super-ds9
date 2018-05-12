@@ -1,5 +1,7 @@
 from coords import Coords
 from random import choice, uniform, random, randint
+from itertools import accumulate
+
 from data_globals import TYPE_ALLIED, TYPE_ENEMY_SMALL, TYPE_ENEMY_LARGE, \
 SYM_PLAYER, SYM_FIGHTER, SYM_AD_FIGHTER, SYM_CRUISER, SYM_BATTLESHIP, \
 SYM_RESUPPLY, LOCAL_ENERGY_COST, SECTOR_ENERGY_COST
@@ -207,6 +209,9 @@ CRUISER = ShipData(TYPE_ENEMY_LARGE, SYM_CRUISER, 3000, 0, 500, 10, 1200, 5250, 
 BATTLESHIP = ShipData(TYPE_ENEMY_LARGE, SYM_BATTLESHIP, 5500, 0, 750, 20, 1200, 8000, 0.075,
                         [TORP_TYPE_POLARON], 6, 950, 5, 'Poleron', genNameBattleship)
 
+
+
+
 #refrence - DEFIANT_CLASS ATTACK_FIGHTER ADVANCED_FIGHTER CRUISER BATTLESHIP
 
 class Starship:
@@ -266,6 +271,35 @@ class Starship:
         del self.sysShield
         del self.sysSensors
         del self.order
+
+    def regenerateShip(self):
+        def setTorps(torpedoTypes, maxTorps):
+            tDict = dict()
+            if torpedoTypes == [] or torpedoTypes == None:
+                return tDict
+
+            for t in torpedoTypes:
+                if t == torpedoTypes[0]:
+                    tDict[t] = maxTorps
+                else:
+                    tDict[t] = 0
+            return tDict
+        self.shields = shipData.maxShields
+        self.armor = shipData.maxArmor
+        self.hull = shipData.maxHull
+
+        self.torps = setTorps(shipData.torpTypes, shipData.maxTorps)
+
+        self.ableCrew = shipData.maxCrew
+        self.injuredCrew = 0
+        self.energy = shipData.maxEnergy
+
+        self.sysWarp.moddify(1.0)
+        self.sysTorp.moddify(1.0)
+        self.sysImpulse.moddify(1.0)
+        self.sysEnergyWep.moddify(1.0)
+        self.sysShield.moddify(1.0)
+        self.sysSensors.moddify(1.0)
 
     @property
     def shipTypeCanFireTorps(self):
@@ -426,9 +460,9 @@ class Starship:
         if self.isControllable:
             gd.causeOfDamage = cause
 
-    def warpCoreBreach(self, selfDestruct=False):
+    def warpCoreBreach(self, gd, selfDestruct=False):
 
-        shipList = grapShipsInSameSubSector(self)
+        shipList = gd.grapShipsInSameSubSector(self)
         oneThird = 1.0 / 3.0
         for s in shipList:
             distance = self.localCoords.distance(s.localCoords)
@@ -872,6 +906,8 @@ class FedShip(Starship):
             self.turnRepairing = 0
             self.damageTakenThisTurn = False
 
+def createResupplyShip(x, y, secX, secY):
+    return FedShip(RESUPPLY, x, y, secX, secY)
 
 class EnemyShip(Starship):
 
@@ -970,7 +1006,7 @@ class EnemyShip(Starship):
                         if Coords(iX, iY) == p.localCoords:
                             return False
             else:
-                for s in gd.shipsInSameSubsector:
+                for s in gd.grabShipsInSameSubSector(self):
                     if Coords(iX, iY) == s.localCoords:
                         return True
         return False

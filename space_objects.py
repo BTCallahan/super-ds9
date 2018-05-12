@@ -106,7 +106,19 @@ class Sector:
     """
 
     def findRandomSafeSpot(self, shipList=[]):
-        return choice(self.safeSpots)
+        if len(shipList) == 0:
+            return choice(self.safeSpots)
+        shipSpots = []
+        for s in shipList:
+            if s.isAlive:
+                shipSpots.append(tuple([s.localCoords.x, s.localCoords.y]))
+
+        copyList = self.safeSpots[:]
+
+        for sp in shipSpots:
+            if sp in copyList:
+                copyList.remove(sp)
+        return choice(copyList)
 
     """
     def getSetOfSafeSpots(self, shipList=[]):
