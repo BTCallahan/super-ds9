@@ -1,35 +1,51 @@
+from __future__ import annotations
+from typing import Dict, Iterable, List, Optional,  Tuple, TYPE_CHECKING
 from random import choice, choices, randint, uniform, random
+from itertools import accumulate
 from coords import Coords
-from data_globals import PLANET_BARREN, PLANET_HOSTILE, PLANET_FRIENDLY, \
-PLANET_TYPES, TYPE_ALLIED, TYPE_ENEMY_SMALL
-"""
-TODO - star and planet naming conventions: randomly generateed name for star in sector. If there are more then one star,
-append Alpha, Beta, Gama, or Delta in front of the name. For planets use the star name followed by a Roman neumeral.
+from data_globals import PLANET_TYPES, PlanetHabitation, ShipTypes
+import colors
 
-Steller evoloution:
-Low mass:
-Red dward -> Blue Dwarf - > White Dwarf - > Black Dwarf
-0.4 -> 1M:
-Yellow Dwarf - > Red Giant -> White Dwarf
-More then 8-12M:
-Blue Sub-giant - > Blue Giant -> Yellow Superginat -> Red Superginat -> Yellow Hypergiant
-Blue Sub-giant - > Blue Giant -> Red Giant
-Brown Dwarf
-Brown Sub-dwarf
-Red Sub-dwarf
-Yellow Sub-dwarf
+if TYPE_CHECKING:
+    from game_data import GameData
+    from message_log import MessageLog
+    from starship import Starship
 
-"""
+star_number_weights = tuple(accumulate((5, 12, 20, 9, 6, 3)))
+star_number_weights_len = len(star_number_weights)
 
-class Sector:
+class Star:
+    orderSuffexes = ['Alpha ', 'Beta ', 'Gamma ', 'Delta ']
+    planetSuffexes = ['', ' I', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII']
+
+    def __init__(self, localCoords:Coords, sectorCoords:Coords):
+        self.localCoords = localCoords
+        self.sectorCoords = sectorCoords
+        self.color = choice(
+            (colors.star_blue,
+            colors.star_blue_white,
+            colors.star_brown,
+            colors.star_orange,
+            colors.star_red,
+            colors.star_white,
+            colors.star_yellow,
+            colors.star_yellow_white,
+            colors.black)
+            )
+        self.bg = colors.white if self.color is colors.black else colors.black
+
+class SubSector:
+    """A SubSector is a region of space that contains stars and planets. 
+
+    Returns:
+        [type]: [description]
+
+    Yields:
+        [type]: [description]
+    """
 
     @staticmethod
-    def __buildSlice(x):
-        ba = list('.' * x)
-        return ba
-
-    @staticmethod
-    def __grabRandomAndRemove(randList):
+    def __grabRandomAndRemove(randList:List[Tuple[int,int]]):
         r = choice(randList)
         randList.remove(r)
         return r
@@ -39,75 +55,94 @@ class Sector:
 
         for y in yRange:
             for x in xRange:
-                yield tuple([x, y])
+                yield Coords(x=x,y=y)
 
-    def __init__(self, gd, x, y):
+    def __init__(self, gd:GameData, x:int, y:int):
 
-        self.astroObjects = [Sector.__buildSlice(gd.subsecSizeX) for s in gd.subsecSizeRangeY]
-        self.safeSpots = list(Sector.__genSafeSpotList(gd.subsecSizeRangeX, gd.subsecSizeRangeY))
-        self.x = x
-        self.y = y
+        #self.astroObjects = [Sector.__buildSlice(gd.subsecSizeX) for s in gd.subsecSizeRangeY]
+        self.safeSpots = list(SubSector.__genSafeSpotList(gd.subsecSizeRangeX, gd.subsecSizeRangeY))
+        self.coords = Coords(x=x,y=y)
+        #self.x = x
+        #self.y = y
 
-        stars = choices(range(0,4), cum_weights=[10, 14, 17, 18])[0]
         #print(stars)
 
+        self.stars_dict:Dict[Coords, Star] = {}
+
         self.totalStars = 0
-        for i in range(stars):
-            rC = Sector.__grabRandomAndRemove(self.safeSpots)
-
-            self.astroObjects[rC[1]][rC[0]] = '*'
-            self.totalStars+=1
-            #rC = Coords.randomSectorCoords()
-            #print('{0}, {1}'.format(rC.x, rC.y))
-            """
-            if self.astroObjects[rC.y][rC.x] != '*':
-                #print('String value: {0}, string slice: {1} *: {2}'.format(self.astroObjects[rC.y], self.astroObjects[rC.y][rC.x], '*'))
-                self.astroObjects[rC.y][rC.x] = '*'
-                """
-
-        self.planets = []
+        
+        #self.planets = []
+        self.planets_dict:Dict[Coords, Planet] = {}
         self.friendlyPlanets = 0
         self.unfriendlyPlanets = 0
-
-        if self.totalStars > 0:
-            for p in range(randint(0, 5)):
-                rC = Sector.__grabRandomAndRemove(self.safeSpots)
-                self.planets.append(Planet(choice(PLANET_TYPES), rC[0], rC[1], x, y))
-                p = self.planets[-1]
-                if p.planetType == PLANET_FRIENDLY:
-                    self.astroObjects[rC[1]][rC[0]] = '+'
-                    self.friendlyPlanets+=1
-                else:
-                    self.astroObjects[rC[1]][rC[0]] = '-'
-                    if p.planetType == PLANET_HOSTILE:
-                        self.unfriendlyPlanets+=1
-                """
-                if self.astroObjects[rC.y][rC.x] not in ['*', '+', '-']:
-                    self.planets.append(Planet(random.choice(PLANET_TYPES), rC.x, rC.y, x, y))
-                    p = self.planets[-1]
-                    if p.planetType == PLANET_FRIENDLY:
-                        self.astroObjects[rC.y][rC.x] = '+'
-                    else:
-                        self.astroObjects[rC.y][rC.x] = '-'
-                        """
-        #self.friendlyPlanets = len([p for p in sector.planets if p.planetType is PLANET_FRIENDLY])
-        #self.unfriendlyPlanets = len([p for p in sector.planets if p.planetType is not PLANET_FRIENDLY])
-        #self.stars = sector.totalStars
+        self.barren_planets = 0
+        
         self.bigShips = 0
         self.smallShips = 0
         self.playerPresent = False
 
+    def random_setup(self):
+
+        stars = choices(range(star_number_weights_len), cum_weights=star_number_weights)[0]
+
+        for i in range(stars):
+            x, y = SubSector.__grabRandomAndRemove(self.safeSpots)
+
+            xy = Coords(x=x,y=y)
+
+            #self.astroObjects[y][x] = '*'
+            self.totalStars+=1
+            self.stars_dict[xy] = Star(
+                localCoords=xy, sectorCoords=self.coords
+                )
+            
+
+        if self.number_of_stars > 0:
+            for p in range(randint(0, 5)):
+                x,y = SubSector.__grabRandomAndRemove(self.safeSpots)
+
+                local_coords = Coords(x=x, y=y)
+
+                p = Planet(
+                    planet_habbitation=choice(PLANET_TYPES), 
+                    xy=local_coords, sector_x_y=self.coords
+                )
+
+                self.planets_dict[local_coords] = p
+                
+                if p.planet_habbitation == PlanetHabitation.PLANET_FRIENDLY:
+                    self.friendlyPlanets+=1
+                elif p.planet_habbitation == PlanetHabitation.PLANET_HOSTILE:
+                    self.unfriendlyPlanets += 1
+                else:
+                    self.barren_planets += 1
+                
+        
     @property
     def numberOfPlanets(self):
-        return len(self.planets)
+        return len(self.planets_dict)
+    
+    @property
+    def number_of_stars(self):
+        return len(self.stars_dict)
     """
     def checkSafeSpot(self, x, y):
         return self.astroObjects[y][x] == '.'
     """
 
-    def findRandomSafeSpot(self, shipList=[]):
+    def findRandomSafeSpot(self, shipList:Optional[Iterable[Starship]]=None):
+        if shipList:
+            ship_positions = [ship.localCoords for ship in shipList if ship.sectorCoords.x == self.x and ship.sectorCoords.y == self.y]
+            okay_spots = [c for c in self.safeSpots if c not in ship_positions]
+            return choice(okay_spots)
         return choice(self.safeSpots)
 
+    def find_random_safe_spots(self, how_many:int, shipList:Optional[Iterable[Starship]]=None):
+        if shipList:
+            ship_positions = [ship.localCoords for ship in shipList if ship.sectorCoords.x == self.x and ship.sectorCoords.y == self.y]
+            okay_spots = [c for c in self.safeSpots if c not in ship_positions]
+            return choices(okay_spots, k=how_many)
+        return choices(self.safeSpots, k=how_many)
     """
     def getSetOfSafeSpots(self, shipList=[]):
 
@@ -133,21 +168,23 @@ class Sector:
         return''.join([self.astroObjects[y][x] for x in SUB_SECTOR_SIZE_RANGE_X])
     """
 
+    """
     def getCopy(self, gd):
         return [[self.astroObjects[y][x] for x in gd.subsecSizeRangeX] for y in gd.subsecSizeRangeY]
+    """
 
-    def addShipToSec(self, ship):
-        if ship.shipData.shipType is TYPE_ALLIED:
+    def addShipToSec(self, ship:Starship):
+        if ship.shipData.shipType is ShipTypes.TYPE_ALLIED:
             self.playerPresent = True
-        elif ship.shipData.shipType is TYPE_ENEMY_SMALL:
+        elif ship.shipData.shipType is ShipTypes.TYPE_ENEMY_SMALL:
             self.smallShips+= 1
         else:
             self.bigShips+= 1
 
-    def removeShipFromSec(self, ship):
-        if ship.shipData.shipType is TYPE_ALLIED:
+    def removeShipFromSec(self, ship:Starship):
+        if ship.shipData.shipType is ShipTypes.TYPE_ALLIED:
             self.playerPresent = False
-        elif ship.shipData.shipType is TYPE_ENEMY_SMALL:
+        elif ship.shipData.shipType is ShipTypes.TYPE_ENEMY_SMALL:
             self.smallShips-= 1
         else:
             self.bigShips-= 1
@@ -165,72 +202,106 @@ class Sector:
         return self.smallShips > 0 or self.bigShips > 0
 
     @property
-    def getInfo(self):
-        cha = '.'
-        if self.playerPresent:
-            cha = '@'
-        return '{0.friendlyPlanets}{0.unfriendlyPlanets}{1}{0.bigShips}{0.smallShips}'.format(self, cha)
-
-
-class Star:
-    orderSuffexes = ['', 'Alpha ', 'Beta ', 'Gamma ', 'Delta ']
-    planetSuffexes = ['', ' I', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII']
-    def __init__(self, x, y, secX, secY, starOrder=0):
-        self.localCoords = Coords(x, y)
-        self.sectorCoords = Coords(secX, secY)
-        self.name = ' ' + orderSuffixes[starOrder]
-
-    def getPlanetName(self, planetOrder):
-        return self.name + planetSuffexes[planetOrder]
+    def getInfo(self):        
+        return f'{self.friendlyPlanets}{self.unfriendlyPlanets}{"@" if self.playerPresent else "."}{self.bigShips}{self.smallShips}'
 
 class Planet:
 
-    def __init__(self, planetType, x, y, secX, secY):
-        self.planetType = planetType
-        self.localCoords = Coords(x, y)
-        self.sectorCoords = Coords(secX, secY)
-        if self.planetType is not PLANET_BARREN:
-            self.infastructure = uniform(0.0, 1.0)
-        else:
-            self.infastructure = 0.0
+    def __init__(self, planet_habbitation:PlanetHabitation, xy:Coords, sector_x_y:Coords):
+        
+        self.planet_habbitation = planet_habbitation# if random() < change_of_life_supporting_planets[self.planetType] else PlanetHabitation.PLANET_BARREN
+        
+        self.localCoords = xy
+        self.sectorCoords = sector_x_y
 
-    def __lt__(self, p):
+        self.infastructure = uniform(0.0, 1.0) if self.planet_habbitation is not PlanetHabitation.PLANET_BARREN else 0.0
+
+    def __lt__(self, p:"Planet"):
         return self.infastructure < p.infastructure
 
-    def __gt__(self, p):
+    def __gt__(self, p:"Planet"):
         return self.infastructure > p.infastructure
 
-    def canSupplyPlayer(self, player, enemyList):
-        if self.planetType is PLANET_FRIENDLY and self.sectorCoords == player.sectorCoords and \
-            self.localCoords.isAdjacent(player.localCoords):
-            if len(enemyList) > 0:
-                return False
+    def __eq__(self, p: "Planet") -> bool:
+        return self.localCoords == p.localCoords and self.sectorCoords == p.sectorCoords and self.planet_habbitation == p.planet_habbitation and self.infastructure == p.infastructure
 
-            return True
-        return False
+    def canSupplyPlayer(self, player:Starship):
+        return self.planet_habbitation is PlanetHabitation.PLANET_FRIENDLY and self.sectorCoords == player.sectorCoords and \
+            self.localCoords.isAdjacent(player.localCoords) and len(player.game_data.grapShipsInSameSubSector(player)) < 1            
 
-    def hitByTorpedo(self, isPlayer, damage=40):
-        global GRID, EVENT_TEXT_TO_PRINT
+    def hitByTorpedo(self, isPlayer, game_data:GameData, message_log:MessageLog, damage=40):
+        """Somebody did a bad, bad, thing.
 
-        if self.planetType is PLANET_BARREN:
-            EVENT_TEXT_TO_PRINT.append('The torpedo struck the planet. ')
+        Args:
+            isPlayer (bool): Did the player fire a torpedo?
+            game_data (GameData): [description]
+            message_log (MessageLog): [description]
+            damage (int, optional): The amount of damage to do to the planet. Defaults to 40.
+        """
+
+        if self.planet_habbitation in {PlanetHabitation.PLANET_BARREN, PlanetHabitation.PLANET_BOMBED_OUT}:
+            message_log.add_message('The torpedo struck the planet. ')
+            if isPlayer:
+                game_data.player_record['times_hit_planet'] += 1
+                if self.planet_habbitation is PlanetHabitation.PLANET_BOMBED_OUT:
+                    message_log.add_message('Now you are just being petty. ')
         else:
-            self.infastructure-= random(damage * 0.5, damage * 1.0) * 0.1 * self.infastructure
+            infrustructure_damage = uniform(damage * 0.5, damage * 1.0) * 0.1 * self.infastructure
+
+            game_data.player_record["deathtoll"] += infrustructure_damage
+
+            how_many_killed = "hundreds"
+
+            des = (
+                "hundreds of millions",
+                "tens of millions",
+                "millions",
+                "hundreds of thousands",
+                "tens of thousands",
+                "thousands"
+            )
+
+            for i, deathtoll in enumerate(des):
+                if infrustructure_damage // pow(10, -i) > 0:
+                    how_many_killed = deathtoll
+                    break
+            
+            self.infastructure-= infrustructure_damage
+
             if self.infastructure <= 0:
                 self.infastructure = 0
-                EVENT_TEXT_TO_PRINT.append('The torpedo impacted the planet, destroying the last vestages of civilisation. ')
-                if isPlayer:
-                    EVENT_TEXT_TO_PRINT.append('You will definitly be charged with a war crime. ')
-                GRID.killPlanet(self.planetType)
-                self.planetType = PLANET_BARREN
 
-            elif self.planetType is PLANET_FRIENDLY:
-                EVENT_TEXT_TO_PRINT.append('The torpedo struck the planet, killing millions. ')
+                message_log.add_message(f'The torpedo impacted the planet, killing {how_many_killed} and destroying the last vestages of civilisation. ')
                 if isPlayer:
-                    self.planetType = PLANET_UNFRIENDLY
-                    GRID[self.sectorCoords.y][self.sectorCoords.x].tickOffPlanet()
-                    EVENT_TEXT_TO_PRINT.append('The planet has severed relations with the Federation. ')
+
+                    game_data.player_record['planets_depopulated'] += 1
+                    game_data.player_record['times_hit_poipulated_planet'] += 1
+                    message_log.add_message('You will definitly be charged with a war crime. ')
+                
+                self.planet_habbitation = PlanetHabitation.PLANET_BOMBED_OUT
+
+            elif self.planet_habbitation is PlanetHabitation.PLANET_FRIENDLY:
+
+                message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}. ')
+
+                if isPlayer:
+                    self.planet_habbitation = PlanetHabitation.PLANET_ANGERED
+
+                    game_data.player_record['planets_angered'] += 1
+                    game_data.player_record['times_hit_poipulated_planet'] += 1
+                    
+                    message_log.add_message('The planet has severed relations with the Federation. ')
+
+            elif self.planet_habbitation is PlanetHabitation.PLANET_PREWARP:
+
+                message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed} of unsuspecting inhabitents. ')
+                if isPlayer:
+                    game_data.player_record['times_hit_prewarp_planet'] += 1
+                    game_data.player_record['times_hit_poipulated_planet'] += 1
+
+                    message_log.add_message('This is a grevous viloation of the prime directive! ')
             else:
-                EVENT_TEXT_TO_PRINT.append('The torpedo struck the planet, killing millions. ')
+                message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}. ')
                 if isPlayer:
-                    EVENT_TEXT_TO_PRINT.append('You will probably be charged with a war crime. ' )
+                    game_data.player_record['times_hit_poipulated_planet'] += 1
+                    message_log.add_message('You will probably be charged with a war crime. ' )
