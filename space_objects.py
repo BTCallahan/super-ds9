@@ -1,19 +1,18 @@
 from __future__ import annotations
+from enum import Enum, auto
 from typing import Dict, Iterable, List, Optional,  Tuple, TYPE_CHECKING
 from random import choice, choices, randint, uniform, random
 from itertools import accumulate
 from coords import Coords
-from data_globals import PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_TYPES, PlanetHabitation
+from data_globals import PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_TYPES, STATUS_ACTIVE, PlanetHabitation
 import colors
-from torpedo import ALL_TORPEDO_TYPES, Torpedo
+from torpedo import Torpedo
 
 if TYPE_CHECKING:
     from game_data import GameData
     from message_log import MessageLog
     from starship import Starship
 
-star_number_weights = tuple(accumulate((5, 12, 20, 9, 6, 3)))
-star_number_weights_len = len(star_number_weights)
 
 class CanDockWith:
     
@@ -140,40 +139,293 @@ STAR_COLORS = (
 )
 '''
 
-class Star(InterstellerObject):
+
     
+"""
+TODO - star and planet naming conventions: randomly generateed name for star in sector. If there are more then one star,
+append Alpha, Beta, Gama, or Delta in front of the name. For planets use the star name followed by a Roman neumeral.
+
+Steller evoloution:
+Low mass:
+Red Dwarf -> Blue Dwarf - > White Dwarf - > Black Dwarf
+0.4 -> 0.5M:
+Yellow Dwarf - > Red Giant -> Blue Sub Dwarf -> White Dwarf
+0.5 -> 1M
+Yellow Dwarf - > Red Giant -> White Dwarf
+More then 1M
+Yellow Sub-giant
+
+More then 8-12M:
+Blue Sub-giant - > Blue Giant -> Yellow Superginat -> Red Superginat -> Yellow Hypergiant
+Blue Sub-giant - > Blue Giant -> Red Giant
+
+Brown Dwarf
+Brown Sub-dwarf
+Red Sub-dwarf
+Yellow Sub-dwarf
+
+Blue-White Sub-giant
+Orange Giant
+Orange Sub-dwarf
+
+Blue supergiant -> Red Giant -> Blue Giant
+
+Blue sub dwarf: about 0.5 solar masses, post red giant
+
+"""
+
+
+class StarType(Enum):
+
+    SUB_DWARF = auto()
+    DWARF = auto()
+    SUB_GIANT = auto()
+    GIANT = auto()
+    SUPER_GIANT = auto()
+    HYPER_GIANT = auto()
+
+class StarColor(Enum):
+
+    BROWN = auto()
+    RED = auto()
+    ORANGE = auto()
+    YELLOW = auto()
+    YELLOW_WHITE = auto()
+    WHITE = auto()
+    BLUE_WHITE = auto()
+    BLUE = auto()
+
+star_color_dict = {
+    StarColor.BROWN : colors.star_brown,
+    StarColor.RED : colors.star_red,
+    StarColor.ORANGE : colors.star_orange,
+    StarColor.YELLOW : colors.star_yellow,
+    StarColor.YELLOW_WHITE : colors.star_yellow_white,
+    StarColor.WHITE : colors.white,
+    StarColor.BLUE_WHITE : colors.star_blue_white,
+    StarColor.BLUE : colors.star_blue
+}
+
+planet_generation_chances = {
+    (StarType.SUB_DWARF, StarColor.BROWN), ((50, 60, 65), 0.045),
+    (StarType.SUB_DWARF, StarColor.RED), ((45, 55, 60, 61), 0.055),
+    (StarType.SUB_DWARF, StarColor.BLUE), ((), 0.03)
+
+    (StarType.DWARF, StarColor.WHITE), ((40, 60, 72, 80, 84), 0.001),
+    (StarType.DWARF, StarColor.BROWN), ((50, 63, 68, 70), 0.05),
+    (StarType.DWARF, StarColor.RED), ((45, 58, )),
+    ()
+}
+
+star_number_weights = tuple(accumulate((5, 12, 20, 9, 6, 3)))
+star_numbers = tuple(range(len(star_number_weights)))
+class Star(InterstellerObject):
     orderSuffexes = ['Alpha ', 'Beta ', 'Gamma ', 'Delta ']
     planetSuffexes = ['', ' I', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII']
 
-    def __init__(self, local_coords:Coords, sector_coords:Coords, system:SubSector):
+    def __init__(self, 
+        local_coords:Coords, sector_coords:Coords, *,
+        star_order:int=-1,
+        star_name:str,
+        star_temp:int,
+        star_mass:float,
+        star_radius:float,
+        star_luminosity:float,
+        star_type:str,
+        star_class:str ="",
+        nova_threshold:float,
+        nova_range:int,
+        system:SubSector,
+    ):
         super().__init__(local_coords, sector_coords, system)
-        self.name = choices(
-            STAR_TYPES,
-            cum_weights=STAR_WEIGHTS
-        )[0]
-        
-        self.color = STAR_COLORS[self.name]
-        
-        self.bg = colors.white if self.color is colors.black else colors.black
-        '''
-        if self.color in {colors.star_blue, colors.star_blue_white}:
-            self.name = choice(("Blue giant", "Blue supergiant", "Blue hypergiant", "Blue subdwarf"))
-        elif self.color is colors.star_white:
-            self.name = "White dwarf"
-        elif self.color in {colors.star_yellow, colors.star_yellow_white}:
-            self.name = choice(("Yellow dwarf", "Yellow giant", "Yellow supergiant", "Yellow hypergiant"))
-        elif self.color is colors.star_orange:
-            self.name = "Orange dwarf"
-        elif self.color is colors.star_red:
-            self.name = choice(("Red dwarf", "Red giant", "Red supergiant", "Red hypergiant"))
-        elif self.color is colors.star_brown:
-            self.name = choice(("Brown dwarf", "Brown subdwarf"))
-        else:
-            self.name = "Black hole"
-        '''
 
-    def hit_by_torpedo(self, is_player:bool, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
-        pass
+        self.name = star_name
+        self.star_type = star_type
+        self.kelvins = star_temp
+        self.mass = star_mass
+        self.radius = star_radius
+        self.luminosity = star_luminosity,
+        self.abs_mag = 0
+        self.star_color = None
+        self.nova_threshold = nova_threshold
+        self.nova_range = nova_range
+        self.nova_status = 0.0
+        self.system=system
+        self.star_order = star_order
+        
+        if self.kelvins > 28000:
+            self.star_color = colors.star_blue
+            self.star_class = "O"
+        elif self.kelvins > 10000:
+            self.star_color = colors.star_blue_white
+            self.star_class = "B"
+        elif self.kelvins > 7500:
+            self.star_color = colors.star_white
+            self.star_class = "A"
+        elif self.kelvins > 6000:
+            self.star_color = colors.star_yellow_white
+            self.star_class = "F"
+        elif self.kelvins > 5000:
+            
+            self.star_color = colors.star_yellow
+            self.star_class = "G"
+        elif self.kelvins > 3500:
+            
+            self.star_color = colors.star_orange
+            self.star_class= "K"
+        elif self.kelvins > 2500:
+            self.star_color = colors.star_red
+            self.star_class= "M"
+            
+        else:
+            self.star_color = colors.star_brown if self.kelvins > 0 else colors.black
+            self.star_class = "L" if self.kelvins > 500 else "T"
+
+        if star_class:
+            self.star_class = star_class
+
+        self.bg = colors.white if self.star_color is colors.black else colors.black
+
+    @property
+    def can_go_nova(self):
+        return self.nova_threshold > 0
+
+    def getPlanetName(self, planetOrder):
+        return self.name + self.planetSuffexes[planetOrder]
+    
+    def hit_by_torpedo(self, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
+
+        if not self.can_go_nova:
+            return
+
+        self.nova_status += torpedo.infrastructure
+
+        if self.nova_status >= self.nova_threshold:
+            
+            ships = [ship for ship in game_data.total_starships if ship.sector_coords == self.sector_coords and (ship.ship_status.is_collidable)]
+
+            for ship in ships:
+                distance = ship.local_coords.distance(coords=self.local_coords)
+
+                if distance <= self.nova_range:
+                    
+                    ship.take_damage(amount=(self.nova_range - distance) * 1000, text="A minor nova.")
+
+            self.nova_status -= self.nova_threshold
+
+
+class StarTemplate:
+
+    def __init__(self, *, 
+        name:str, 
+        temp_min:int, temp_max:int,
+        mass_min:float, mass_max:float,
+        radius_min:float, radius_max:float,
+        luminosity_min:float, luminosity_max:float,
+        nova_threshold:float, nova_range:int,
+        chance:int,
+
+    ) -> None:
+        self.name = name
+        self.temp_min = temp_min
+        self.temp_max = temp_max
+        self.mass_min = mass_min
+        self.mass_max = mass_max
+        self.radius_min = radius_min
+        self.radius_max = radius_max
+        self.luminosity_min = luminosity_min
+        self.luminosity_max = luminosity_max
+        self.nova_threshold = nova_threshold
+        self.nova_range = nova_range
+        self.chance = chance
+
+    def create_star(self, *, 
+        order:int=0, 
+        local_coords:Coords, sector_coords:Coords,
+        name:str
+    ):
+        return Star(
+            localCoords=local_coords,
+            sectorCoords=sector_coords,
+            starOrder=order,
+            star_name=name,
+            star_temp=randrange(self.temp_min, self.temp_max),
+            star_mass=uniform(self.mass_min, self.mass_max),
+            star_radius=uniform(self.radius_min, self.radius_max),
+            star_luminosity=uniform(self.luminosity_min, self.luminosity_max),
+            star_type=self.name
+            
+        )
+
+o_type_main_sequence_star = StarTemplate(
+    name="O-type main-sequence star",
+    temp_max=50000,
+    temp_min=30000,
+    luminosity_max=1000000,
+    luminosity_min=40000,
+    mass_max=90,
+    mass_min=15,
+    radius_max=10,
+    radius_min=8,
+    chance=1
+)
+
+b_type_main_sequence_star = StarTemplate(
+    name="B-type main-sequence star",
+    temp_max=30000,
+    temp_min=10000,
+    mass_max=16,
+    mass_min=2
+)
+
+a_type_main_sequence_star = StarTemplate(
+    name="A-type main-sequence star",
+    temp_max=10000,
+    temp_min=7600,
+    mass_max=2.1,
+    mass_min=1.4
+)
+
+f_type_main_sequence_star = StarTemplate(
+    name="F-type main-sequence star",
+    temp_max=7600,
+    temp_min=6000,
+    mass_max=1.4,
+    mass_min=1,
+)
+
+g_type_main_sequence_star = StarTemplate(
+    name="G-type main-sequence star",
+    temp_max=6000,
+    temp_min=5300,
+    mass_max=1.1,
+    mass_min=0.9
+
+)
+
+k_type_main_sequence_star = StarTemplate(
+    name="K-type main-sequence star",
+    temp_max=5200,
+    temp_min=3900,
+    mass_max=0.8,
+    mass_min=0.5
+)
+
+m_type_main_sequence_star = StarTemplate(
+    name="M-type main-sequence star",
+    temp_max=3900,
+    temp_min=2000,
+    mass_max=0.6,
+    mass_min=0.075
+)
+
+wolf_rayet_star = StarTemplate(
+    name="Wolf–Rayet star",
+    temp_max=210000,
+    temp_min=2000,
+
+)
+
 
 class SubSector:
     """A SubSector is a region of space that contains stars and planets. 
@@ -234,7 +486,7 @@ class SubSector:
 
     def random_setup(self, star_number_weights:Iterable[int], star_number_weights_len:int):
 
-        stars = choices(range(star_number_weights_len), cum_weights=star_number_weights)[0]
+        stars = choices(star_numbers, cum_weights=star_number_weights)[0]
 
         for i in range(stars):
             x, y = SubSector.__grab_random_and_remove(self.safe_spots)
@@ -318,15 +570,43 @@ class SubSector:
         else:
             self.hostile_ships-= 1
 
+class PlanetType(Enum):
+
+    CLASS_D = auto()
+    CLASS_H = auto()
+    CLASS_J = auto()
+    CLASS_K = auto()
+    CLASS_L = auto()
+    CLASS_M = auto()
+    CLASS_N = auto()
+    CLASS_R = auto()
+    CLASS_Y = auto()
+
+change_of_life_supporting_planets = defaultdict(float,
+    {
+        PlanetType.CLASS_M : 0.5,
+        PlanetType.CLASS_H : 0.1,
+        PlanetType.CLASS_N : 0.25,
+        PlanetType.CLASS_R : 0.05,
+        PlanetType.CLASS_Y : 0.01
+    }
+)
+
+
 class Planet(InterstellerObject, CanDockWith):
 
     def __init__(
-        self, planet_habbitation:PlanetHabitation, local_coords:Coords, sector_coords:Coords, system:SubSector
+        self, planet_habbitation:PlanetHabitation, planetType:PlanetType, local_coords:Coords, sector_coords:Coords, system:SubSector, name:str=""
     ):    
         super().__init__(local_coords, sector_coords, system)
-        self.planet_habbitation = planet_habbitation# if random() < change_of_life_supporting_planets[self.planetType] else PlanetHabitation.PLANET_BARREN
 
         self.infastructure = self.planet_habbitation.generate_development()
+
+        self.planetType = planetType
+
+        self.planet_habbitation = planet_habbitation
+                
+        self.name = name
 
     def __lt__(self, p:"Planet"):
         return self.infastructure < p.infastructure
@@ -403,6 +683,8 @@ class Planet(InterstellerObject, CanDockWith):
             if is_player:
                 game_data.player_record["deathtoll"] += infrustructure_damage
 
+            self.infastructure-= infrustructure_damage
+
             how_many_killed = "hundreds"
 
             des = (
@@ -417,7 +699,7 @@ class Planet(InterstellerObject, CanDockWith):
                 if infrustructure_damage // pow(10, -i) > 0:
                     how_many_killed = deathtoll
                     break
-            
+
             self.infastructure-= infrustructure_damage
 
             if self.infastructure <= 0:
@@ -468,3 +750,23 @@ class Planet(InterstellerObject, CanDockWith):
                     game_data.player_record['times_hit_poipulated_planet'] += 1
                     message_log.add_message('You will probably be charged with a war crime.', colors.red)
                     self.system.count_planets()
+
+def set_star_names(stars: Iterable[Star]):
+
+    if len(stars) > 1:
+
+        order_suffexes = ('Alpha', 'Beta', 'Gamma', 'Delta')
+
+        for i, star in enumerate(stars):
+
+            star.name = f"{order_suffexes[i]} {star.name}"
+
+def set_planet_names(planets: Iterable[Planet]):
+
+    if len(planets) > 1:
+
+        planet_suffexes = ('I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII')
+
+        for i, planet in enumerate(planets):
+
+            planet.name = f"{planet.name} {planet_suffexes[i]}"
