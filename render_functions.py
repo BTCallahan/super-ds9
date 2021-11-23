@@ -6,7 +6,7 @@ import tcod
 
 from coords import Coords
 from space_objects import Planet, Star, SubSector
-from starship import Starship
+from starship import ShipStatus, Starship
 from data_globals import PlanetHabitation, planet_habitation_color_dict
 import colors
 from get_config import config_object
@@ -93,7 +93,7 @@ def print_subsector(console:Console, gamedata:GameData):
             x=x + (s.local_coords.x * 2) + 1, 
             y=y + (s.local_coords.y * 2) + 1, 
             string=s.ship_data.symbol, 
-            fg=colors.red)
+            fg=colors.red if s.ship_status == ShipStatus.ACTIVE else colors.grey)
     
     console.print(
         x=x + (player.local_coords.x * 2) + 1, 
