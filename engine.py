@@ -3,7 +3,7 @@ from typing import Dict, Tuple
 from data_globals import ENERGY_REGEN_PER_TURN, REPAIR_MULTIPLIER
 from message_log import MessageLog
 from game_data import GameData
-from starship import Starship
+from starship import ShipStatus, Starship
 from get_config import config_object
 import lzma, pickle
 
@@ -46,7 +46,7 @@ class Engine:
 
         for entity in self.game_data.all_enemy_ships:
 
-            if entity.sector_coords == self.player.sector_coords and entity.ai and entity.is_alive and not entity.is_derelict:
+            if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status is ShipStatus.ACTIVE:
                 entity.ai.perform()
                 entity.repair()
                 

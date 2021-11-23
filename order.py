@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Iterable, Optional
 from global_functions import to_rads, headingToCoords, headingToDirection
 from data_globals import DAMAGE_BEAM, LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, DamageType, PlanetHabitation
 from space_objects import Planet, SubSector
+from starship import ShipStatus
+from torpedo import ALL_TORPEDO_TYPES
 from get_config import config_object
 
 if TYPE_CHECKING:
@@ -400,7 +402,7 @@ class TorpedoOrder(Order):
         
         self.coord_list = tuple([Coords(co.x+entity.local_coords.x, co.y+entity.local_coords.y) for co in self.game_data.engine.get_lookup_table(direction_x=x_aim, direction_y=y_aim, normalise_direction=False)])
 
-        self.ships = {ship.local_coords.create_coords() : ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(self.entity) if ship.local_coords in self.coord_list and ship.is_alive}
+        self.ships = {ship.local_coords.create_coords() : ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(self.entity) if ship.local_coords in self.coord_list and ship.ship_status == ShipStatus.ACTIVE}
     
     def __hash__(self):
         return hash((self.entity, self.heading, self.amount, self.x, self.y, self.x_aim, self.y_aim, self.coord_list))
@@ -584,6 +586,83 @@ class SelfDestructOrder(Order):
 
         return OrderWarning.SAFE if ships_in_range else OrderWarning.NO_ENEMY_SHIPS_NEARBY
 
+class ReactivateDerlict(Order):
+
+    def __init__(self, entity: Starship, target:Starship, crew:int) -> None:
+        super().__init__(entity)
+        self.target = target
+        self.crew = crew
+
+        self.delrict_ships = [ship for ship in self.entity.game_data.enemyShipsInAction if ship.ableCrew + ship.injuredCrew < 1]
+
+        if self.delrict_ships:
+            self.delrict_ships.sort(lambda ship: ship.sectorCoords.distance(self.entity.sectorCoords))
+        
+        self.ships_in_same_system = self.entity.game_data.grapShipsInSameSubSector(self.entity)
+
+    def raise_warning(self):
+
+        if self.crew >= self.entity.ableCrew:
+            return OrderWarning.NOT_ENOUGHT_ENERGY
+
+        if self.target.sectorCoords != self.entity.sectorCoords:
+            return OrderWarning.NO_TARGET
+        
+        if not self.entity.localCoords.is_adjacent(self.target.localCoords):
+            return OrderWarning.OUT_OF_RANGE
+
+        return super().raise_warning()
+
+    def perform(self) -> None:
+
+        max_crew = self.target.shipData.maxCrew
+
+        crew_to_send_over = min(max_crew, self.crew)
+
+        self.entity.ableCrew -= crew_to_send_over
+        self.target.ableCrew += crew_to_send_over
+
+        
+
+    def reactivateDerelict(self, limit=1):
+        if limit > 0:
+
+            enemyShipsAviliable = list(filter(lambda e: e.crewReadyness > 0.5 and e.order.command == 'REPAIR'
+                                                and e.sectorCoords != self.player.sectorCoords, self.enemyShipsInAction))
+
+            derelicts = list(filter(lambda e: e.isDerelect and e.sectorCoords != self.player.sectorCoords, self.enemyShipsInAction))
+
+            if len(enemyShipsAviliable) > 0 and len(derelicts) > 0:
+                for s in enemyShipsAviliable:
+                    if limit < 1:
+                        break
+                    recrewedDereliect = None
+                    for d in derelicts:
+                        if s.sectorCoords.distance(coords=d.sectorCoords) == 0:
+                            crewToBeam = min(d.shipData.maxCrew, round(s.ableCrew * 0.5))
+                            d.ableCrew = crewToBeam
+                            s.ableCrew-= crewToBeam
+                            limit-=1
+                            recrewedDereliect = d
+                            break
+
+                    if recrewedDereliect:
+                        derelicts.remove(recrewedDereliect)
+
+                if limit > 1:
+                    for s in enemyShipsAviliable:
+                        if limit < 1:
+                            break
+                        recrewedDereliect = None
+                        for d in derelicts:
+                            if s.checkIfCanReachLocation(self, d.sectorCoords.x, d.sectorCoords.y, True):
+                                s.order.Warp(d.sectorCoords.x, d.sectorCoords.y)
+                                recrewedDereliect = d
+                                limit-=1
+                                break
+
+                        if recrewedDereliect:
+                            derelicts.remove(recrewedDereliect)
 
 
 

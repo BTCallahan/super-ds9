@@ -369,6 +369,20 @@ HIDEKI = ShipData(
 
 #refrence - DEFIANT_CLASS ATTACK_FIGHTER ADVANCED_FIGHTER CRUISER BATTLESHIP
 
+class ShipStatus(Enum):
+    """Enum of the four ship statuses.
+
+    ACTIVE: The ship is intact and crewed.
+    DERLICT: The ship is intact but has no living crew.
+    HULK: The ship is wrecked but mostly intact. Think battle of Wolf 359
+    OBLITERATED: The ship has been reduced to space dust.
+    """
+
+    ACTIVE = auto()
+    DERLICT = auto()
+    HULK = auto()
+    OBLITERATED = auto()
+    
 class Starship:
     """
     TODO - implement cloaking device,
@@ -498,15 +512,6 @@ class Starship:
     @property
     def crew_readyness(self):
         return (self.able_crew / self.ship_data.max_crew) + (self.injured_crew / self.ship_data.max_crew) * 0.25
-
-    @property
-    def is_derelict(self):
-        """Checks is the ship has no living crew, and returns True if it does not, False if it does.
-
-        Returns:
-            bool: [description]
-        """
-        return self.able_crew + self.injured_crew <= 0
 
     @property
     def get_total_torpedos(self):
@@ -687,7 +692,7 @@ class Starship:
 
     @property
     def get_ship_value(self):
-        return (self.hull + self.ship_data.max_hull) * 0.5 if self.is_alive else 0.0
+        return (self.hull + self.ship_data.max_hull) * 0.5 if self.ship_status == ShipStatus.ACTIVE else 0.0
 
     def destroy(self, cause, warp_core_breach=False):
         gd = self.game_data
@@ -760,12 +765,19 @@ class Starship:
         return averaged_shield , averaged_hull, averaged_shield_damage, averaged_hull_damage, averaged_hull <= 0
 
     @property
-    def is_alive(self):
-        return self.hull > 0
-    
-    @property
-    def is_capiable(self):
-        return self.hull > 0 and self.able_crew + self.injured_crew > 0
+    def ship_status(self):
+        """Checks if the ship is relitivly intact. If a ship is destroyed but intact ship, then is a a runined hulk, like we saw in aftermath of the battle of Wolf 389. 
+
+        Checks is the ship has no living crew, and returns True if it does not, False if it does.
+
+        Returns:
+            bool: Returns True if the hull is greater then or equal to half the negitive max hit points, and less then or equal to zero.
+        """
+        if self._hull < self.ship_data.max_hull * -0.5:
+            return ShipStatus.OBLITERATED
+        if self._hull <= 0:
+            return ShipStatus.HULK
+        return ShipStatus.DERLICT if self.able_crew + self.injured_crew < 1 else ShipStatus.ACTIVE
 
     def ram(self, otherShip:Starship):
         """Prepare for RAMMING speed!

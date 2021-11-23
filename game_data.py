@@ -1,16 +1,17 @@
 from __future__ import annotations
 from collections import Counter
 from ai import BaseAi, HostileEnemy
-from get_config import config_object
 from coords import Coords
 from data_globals import DAMAGE_TORPEDO, ShipTypes, CONDITIONS, Condition
 from random import choice, randrange
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union
-from starship import ADVANCED_FIGHTER, ATTACK_FIGHTER, BATTLESHIP, CRUISER, DEFIANT_CLASS, Starship
-from space_objects import InterstellerObject, Star, SubSector, Planet
+from get_config import config_object
+from starship import ADVANCED_FIGHTER, ATTACK_FIGHTER, BATTLESHIP, CRUISER, DEFIANT_CLASS, ShipStatus, Starship
+from space_objects import InterstellerObject, SubSector, Planet
 
-from torpedo import TorpedoType, ALL_TORPEDO_TYPES
 import numpy as np
+
+from torpedo import ALL_TORPEDO_TYPES, TorpedoType
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -235,7 +236,7 @@ class GameData:
     def grab_ships_in_same_sub_sector(self, ship:Starship, include_self_in_ships_to_grab:bool=False):
 
         return (
-            [s for s in self.total_starships if s.is_alive and s.sector_coords == ship.sector_coords] 
+            [s for s in self.total_starships if s.ship_status == ShipStatus.ACTIVE and s.sector_coords == ship.sector_coords] 
             if include_self_in_ships_to_grab else 
             [s for s in self.total_starships if s.is_alive and s.sector_coords == ship.sector_coords and s is not ship]
         )

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 from order import SelfDestructOrder, blocks_action, torpedo_warnings, collision_warnings, \
     Order, DockOrder, OrderWarning, EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from space_objects import Planet
+from starship import ShipStatus
 from ui_related import ButtonBox, NumberHandeler, TextHandeler, confirm
 import tcod
 import tcod.event
@@ -91,10 +92,10 @@ class EventHandler(BaseEventHandler):
         if isinstance(action_or_state, BaseEventHandler):
             return action_or_state
         if self.handle_action(action_or_state):
-            if not self.engine.player.is_alive:
+            if not self.engine.player.ship_status == ShipStatus.ACTIVE:
                 # The player was killed sometime during or after the action.
                 return GameOverEventHandler(self.engine)
-        if not self.engine.player.is_alive:
+        if not self.engine.player.ship_status == ShipStatus.ACTIVE:
             pass
         return self
 
@@ -1888,7 +1889,7 @@ class GameOverEventHandler(EventHandler):
             if not s.is_controllable:
                 startingEnemyFleetValue+= s.ship_data.max_hull
                 currentEnemyFleetValue+= s.get_ship_value
-                if s.is_derelict:
+                if s.ship_status == ShipStatus.DERLICT:
                     derlict_ships += 1
 
         destructionPercent = 1.0 - currentEnemyFleetValue / startingEnemyFleetValue
