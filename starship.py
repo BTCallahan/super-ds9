@@ -6,6 +6,8 @@ from math import ceil, inf
 from itertools import accumulate
 from functools import lru_cache
 
+from global_functions import headingToDirection
+from nation import Nation
 from space_objects import SubSector
 from torpedo import Torpedo, TorpedoType, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
@@ -186,7 +188,8 @@ class ShipData:
         max_crew:int, max_energy:int, damage_control:float, torp_types:Optional[Iterable[TorpedoType]]=None, 
         torp_tubes:int=0,
         max_weap_energy:int, warp_breach_dist:int=2, weapon_name:str, 
-        nameGenerator:Callable[[], str]
+        nameGenerator:Callable[[], str],
+        nation:Nation
     ):
         self.ship_type = ship_type
         self.symbol = symbol
@@ -199,6 +202,7 @@ class ShipData:
         self.max_energy = max_energy
 
         self.damage_control = damage_control
+        self.nation = nation
         """
         if len(torp_types) == 0:
             print('torp_types List has zero lenght')
@@ -227,7 +231,10 @@ class ShipData:
             has_torpedo_launchers= max_torps > 0 and torp_tubes > 0,
             beam_weapon_name=self.weapon_namePlural
         )
-    
+
+    def create_name(self):
+        return self.nation.ship_name(self.shipNameGenerator())
+
     @property
     @lru_cache
     def ship_type_can_fire_torps(self):
@@ -420,7 +427,7 @@ class Starship:
         self.sys_sensors = StarshipSystem('Sensors:')
         self.sys_warp_core = StarshipSystem('Warp Core:')
 
-        self.name = self.ship_data.shipNameGenerator()
+        self.name = self.ship_data.nation.ship_name(self.shipData.shipNameGenerator()) 
 
         self.docked = False
 
@@ -524,6 +531,10 @@ class Starship:
     @property
     def get_max_firepower(self):
         return self.ship_data.max_weap_energy
+    
+    @property
+    def ship_color(self):
+        return self.ship_data.nation.ship_color
 
     @property
     def get_max_effective_firepower(self):
