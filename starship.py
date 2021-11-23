@@ -711,14 +711,7 @@ class Starship:
         if self is self.game_data.selected_ship_or_planet:
             self.game_data.selected_ship_or_planet = None
 
-        self.hull = 0
-        
-    def self_destruct(self):
-
-        if self.isControllable:
-            self.game_data.engine.message_log.add_message("Captain, it has been an honor...")
-        self.hull = 0
-        self.warpCoreBreach(True)
+        self.hull = -self.shipData.maxHull
 
     def warpCoreBreach(self, selfDestruct=False):
 

@@ -18,6 +18,7 @@ class OrderWarning(Enum):
     SAFE = auto()
     ZERO_VALUE_ENTERED = auto()
     ENEMY_SHIPS_NEARBY = auto()
+    NO_ENEMY_SHIPS_NEARBY = auto()
     TORPEDO_WILL_HIT_PLANET = auto()
     TORPEDO_COULD_HIT_PLANET = auto()
     TORPEDO_WILL_NOT_HIT_ANYTHING = auto()
@@ -59,6 +60,11 @@ collision_warnings = {
     OrderWarning.SHIP_COULD_COLLIDE_WITH_SHIP : "Warning: That course could result in a ship to ship collision!",
     OrderWarning.SHIP_WILL_COLLIDE_WITH_PLANET : "Warning: That course will result in our ship crashing into a planet!",
     OrderWarning.SHIP_WILL_COLLIDE_WITH_STAR : "Warning: That course will result in our ship crashing into a star!"
+}
+
+misc_warnings = {
+    OrderWarning.NO_ENEMY_SHIPS_NEARBY : "Warning: There are no enemy ships nearbye."
+
 }
 
 class Order:
@@ -485,6 +491,32 @@ class RepairOrder(Order):
         self.entity.repair(self.amount)
         
         self.entity.turnRepairing += 1
+
+
+class SelfDestructOrder(Order):
+
+    def __init__(self, entity: Starship) -> None:
+        super().__init__(entity)
+        self.ships = self.game_data.grapShipsInSameSubSector(self.entity)
+
+    def perform(self) -> None:
+        if self.entity.isControllable:
+            self.game_data.engine.message_log.add_message("Captain, it has been an honor...")
+        self.entity.hull = -self.entity.shipData.maxHull
+        self.entity.warpCoreBreach(True)
+        
+    def raise_warning(self):
+
+        sector_ships = self.ships
+
+        if not sector_ships:
+            return OrderWarning.NO_ENEMY_SHIPS_NEARBY
+        
+        ships_in_range = [
+            ship for ship in sector_ships if self.entity.localCoords.distance(ship.localCoords) <= self.entity.shipData.warpBreachDist
+        ]
+
+        return super().raise_warning() if ships_in_range else OrderWarning.NO_TARGETS
 
 
 
