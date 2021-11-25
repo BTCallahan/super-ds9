@@ -1,8 +1,9 @@
 from __future__ import annotations
 from enum import Enum, auto
 from typing import Dict, Iterable, List, Optional,  Tuple, TYPE_CHECKING
-from random import choice, choices, randint, uniform, random
+from random import choice, choices, randint, randrange, uniform, random
 from itertools import accumulate
+from string import ascii_lowercase
 from coords import Coords
 from data_globals import PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_TYPES, STATUS_ACTIVE, PlanetHabitation
 import colors
@@ -232,14 +233,14 @@ class Star(InterstellerObject):
         star_radius:float,
         star_luminosity:float,
         star_type:str,
-        star_class:str ="",
+        star_class:Optional[Tuple[str]] = None,
         nova_threshold:float,
         nova_range:int,
         system:SubSector,
     ):
         super().__init__(local_coords, sector_coords, system)
 
-        self.name = star_name
+        self.name = star_name if star_order == -1 else f"{star_name} {ascii_lowercase[star_order]}"
         self.star_type = star_type
         self.kelvins = star_temp
         self.mass = star_mass
@@ -250,39 +251,50 @@ class Star(InterstellerObject):
         self.nova_threshold = nova_threshold
         self.nova_range = nova_range
         self.nova_status = 0.0
-        self.system=system
-        self.star_order = star_order
-        
-        if self.kelvins > 28000:
-            self.star_color = colors.star_blue
-            self.star_class = "O"
-        elif self.kelvins > 10000:
-            self.star_color = colors.star_blue_white
-            self.star_class = "B"
-        elif self.kelvins > 7500:
-            self.star_color = colors.star_white
-            self.star_class = "A"
-        elif self.kelvins > 6000:
-            self.star_color = colors.star_yellow_white
-            self.star_class = "F"
-        elif self.kelvins > 5000:
-            
-            self.star_color = colors.star_yellow
-            self.star_class = "G"
-        elif self.kelvins > 3500:
-            
-            self.star_color = colors.star_orange
-            self.star_class= "K"
-        elif self.kelvins > 2500:
-            self.star_color = colors.star_red
-            self.star_class= "M"
-            
-        else:
-            self.star_color = colors.star_brown if self.kelvins > 0 else colors.black
-            self.star_class = "L" if self.kelvins > 500 else "T"
 
         if star_class:
-            self.star_class = star_class
+            self.star_class = choice(star_class)
+        else:
+            if self.kelvins > 28000:
+                
+                self.star_color = colors.star_blue
+                self.star_class = "O"
+                
+            elif self.kelvins > 10000:
+                
+                self.star_color = colors.star_blue_white
+                self.star_class = "B"
+                
+            elif self.kelvins > 7500:
+                
+                self.star_color = colors.star_white
+                self.star_class = "A"
+                
+            elif self.kelvins > 6000:
+                
+                self.star_color = colors.star_yellow_white
+                self.star_class = "F"
+                
+            elif self.kelvins > 5000:
+                
+                self.star_color = colors.star_yellow
+                self.star_class = "G"
+                
+            elif self.kelvins > 3500:
+                
+                self.star_color = colors.star_orange
+                self.star_class= "K"
+                
+            elif self.kelvins > 2500:
+                
+                self.star_color = colors.star_red
+                self.star_class= "M"
+                
+            else:
+                self.star_color = colors.star_brown if self.kelvins > 0 else colors.black
+                self.star_class = "L" if self.kelvins > 500 else "T"
+
+        
 
         self.bg = colors.white if self.star_color is colors.black else colors.black
 
@@ -313,6 +325,7 @@ class Star(InterstellerObject):
 
             self.nova_status -= self.nova_threshold
 
+JUPITER_MASS = 1/1000
 
 class StarTemplate:
 
@@ -323,6 +336,7 @@ class StarTemplate:
         radius_min:float, radius_max:float,
         luminosity_min:float, luminosity_max:float,
         nova_threshold:float, nova_range:int,
+        star_class_override:Optional[Tuple[str]]=None,
         chance:int,
 
     ) -> None:
@@ -337,6 +351,7 @@ class StarTemplate:
         self.luminosity_max = luminosity_max
         self.nova_threshold = nova_threshold
         self.nova_range = nova_range
+        self.star_class_override = star_class_override
         self.chance = chance
 
     def create_star(self, *, 
@@ -353,8 +368,8 @@ class StarTemplate:
             star_mass=uniform(self.mass_min, self.mass_max),
             star_radius=uniform(self.radius_min, self.radius_max),
             star_luminosity=uniform(self.luminosity_min, self.luminosity_max),
-            star_type=self.name
-            
+            star_type=self.name,
+            star_class=self.star_class_override
         )
 
 o_type_main_sequence_star = StarTemplate(
@@ -395,16 +410,15 @@ f_type_main_sequence_star = StarTemplate(
 )
 
 g_type_main_sequence_star = StarTemplate(
-    name="G-type main-sequence star",
+    name="G-type main-sequence star (Yellow Dwarf)",
     temp_max=6000,
     temp_min=5300,
     mass_max=1.1,
     mass_min=0.9
-
 )
 
 k_type_main_sequence_star = StarTemplate(
-    name="K-type main-sequence star",
+    name="K-type main-sequence star (Orange Dwarf)",
     temp_max=5200,
     temp_min=3900,
     mass_max=0.8,
@@ -412,7 +426,7 @@ k_type_main_sequence_star = StarTemplate(
 )
 
 m_type_main_sequence_star = StarTemplate(
-    name="M-type main-sequence star",
+    name="M-type main-sequence star (Red Dwarf)",
     temp_max=3900,
     temp_min=2000,
     mass_max=0.6,
@@ -423,9 +437,88 @@ wolf_rayet_star = StarTemplate(
     name="Wolf–Rayet star",
     temp_max=210000,
     temp_min=2000,
-
+    mass_max=200,
+    mass_min=10,
+    radius_max=20,
+    radius_min=0.89,
+    star_class_override=("WR", "WO", "WN")
 )
 
+brown_dwarf = StarTemplate(
+    name="Brown Dwarf",
+    temp_max=2800,
+    temp_min=300,
+    mass_max=80*JUPITER_MASS,
+    mass_min=13*JUPITER_MASS,
+    radius_max=0.12,
+    radius_min=0.08
+)
+
+methane_dwarf = StarTemplate(
+    name="Methane Dwarf",
+    temp_max=1300,
+    temp_min=550,
+)
+
+b_type_subdwarf = StarTemplate(
+    name="B-type subdwarf",
+    temp_max=40000,
+    temp_min=20000,
+    mass_max=0.51,
+    mass_min=0.49,
+    radius_max=0.25,
+    radius_min=0.15,
+)
+
+o_type_subdwarf = StarTemplate(
+    name="O-type subdwarf",
+    temp_max=100000,
+    temp_min=40000,
+    mass_max=0.51,
+    mass_min=0.49,
+)
+
+blue_giant = StarTemplate(
+    name="Blue Giant",
+    temp_max=30000,#placeholder
+    temp_min=10000,
+    mass_max=50,#placeholder
+    mass_min=2
+)
+
+red_giant = StarTemplate(
+    name="Red Giant",
+    temp_max=5000,
+    temp_min=4000,#placeholder value, check this
+    mass_max=8,
+    mass_min=0.3,   
+)
+
+blue_supergiant = StarTemplate(
+    name="Blue supergiant",
+    temp_max=50000,
+    temp_min=10000,
+    mass_max=300,
+    mass_min=10,
+    luminosity_max=1000000,
+    luminosity_min=10000
+)
+
+yellow_supergiant = StarTemplate(
+    name="Yellow supergiant",
+    temp_max=7000,
+    temp_min=4000,
+    mass_max=12,
+    mass_min=5,
+    luminosity_max=100000,
+    luminosity_min=1000
+)
+
+red_supergiant = StarTemplate(
+    
+    mass_max=40,
+    mass_min=10
+)
 
 class SubSector:
     """A SubSector is a region of space that contains stars and planets. 
