@@ -1,5 +1,4 @@
 from enum import Enum, auto
-from collections import defaultdict, namedtuple
 from random import uniform
 from typing import Dict, Final, Optional, Tuple, Union
 import colors
@@ -213,3 +212,9 @@ STATUS_OBLITERATED:Final = ShipStatus(
     is_destroyed=True, 
     can_be_targeted=False
 )
+
+class CloakStatus(Enum):
+    ACTIVE = auto()
+    INACTIVE = auto()
+    COMPRIMISED = auto()
+

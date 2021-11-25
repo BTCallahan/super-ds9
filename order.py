@@ -5,7 +5,7 @@ from random import choice
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Iterable, Optional
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
-from data_globals import DAMAGE_BEAM, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
+from data_globals import DAMAGE_BEAM, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, CloakStatus
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
@@ -38,16 +38,19 @@ class OrderWarning(Enum):
     NO_TARGET = auto()
     NO_TARGETS = auto()
     SYSTEM_INOPERATIVE = auto()
+    SYSTEM_MISSING = auto()
     PLANET_TOO_DISTANT = auto()
     PLANET_TOO_PRIMITIVE = auto()
     PLANET_UNFRIENDLY = auto()
     PLANET_AFRAID = auto()
     NO_REPAIRS_NEEDED = auto()
+    CLOAK_COOLDOWN = auto()
     
 blocks_action = {
     OrderWarning.NOT_ENOUGHT_ENERGY : "Error: We possess insufficent energy reserves.",
     OrderWarning.OUT_OF_RANGE : "Error: Our destination is out of range.",
     OrderWarning.SYSTEM_INOPERATIVE : "Error: That ship system is off line.",
+    OrderWarning.SYSTEM_MISSING : "Error: The required system is not present on this ship.",
     OrderWarning.PLANET_AFRAID : "Error: The planet is too afarid of the nearby hostile forces.",
     OrderWarning.PLANET_TOO_DISTANT : "Error: The planet is too far from our ship.",
     OrderWarning.PLANET_TOO_PRIMITIVE : "Error: The planet lacks the infurstucture to repaire and repsuply our ship.",
@@ -57,8 +60,11 @@ blocks_action = {
     OrderWarning.NO_TORPEDOS_LEFT : "Error: We have no remaining torpedos.",
     OrderWarning.ZERO_VALUE_ENTERED : "Error: You have entered a value of zero.",
     OrderWarning.NO_CHANGE_IN_POSITION : "Error: There is no change in our position.", # reword this later
-    OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY : "Error: There is no change in shield energy."
+    OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY : "Error: There is no change in shield energy.",
+    
+    OrderWarning.CLOAK_COOLDOWN : "Error: Our cloaking system is still colling down.",
 }
+
 
 torpedo_warnings = {
     OrderWarning.TORPEDO_WILL_HIT_PLANET : "Warning: If we fire, the torpedo will hit a planet.",
@@ -423,6 +429,8 @@ class EnergyWeaponOrder(Order):
     def perform(self) -> None:
 
         actual_amount = floor(self.entity.sys_beam_array.get_effective_value * self.amount)
+        self.entity.cloak_status = CloakStatus.INACTIVE
+        self.entity.cloak_cooldown = 5
 
         if self.multi_targets:
             
@@ -520,7 +528,10 @@ class TorpedoOrder(Order):
 
     def perform(self) -> None:
 
-        #torpedo = torpedo_types[self.entity.torpedo_loaded]
+        self.entity.cloak_status = CloakStatus.INACTIVE
+        self.entity.cloak_cooldown = 5
+
+        #torpedo = torpedo_types[self.entity.torpedoLoaded]
 
         self.entity.game_data.handle_torpedo(
             shipThatFired=self.entity,torpsFired=self.amount, 
@@ -720,6 +731,25 @@ class RepairOrder(Order):
             return OrderWarning.NO_REPAIRS_NEEDED
         
         return OrderWarning.SAFE
+
+class CloakOrder(Order):
+
+    def __init__(self, entity: Starship, deloak:bool) -> None:
+        super().__init__(entity)
+        self.deloak = deloak
+    
+    def perform(self) -> None:
+
+        self.entity.cloak_status = CloakStatus.INACTIVE if self.deloak else CloakStatus.ACTIVE
+
+    def raise_warning(self):
+
+        if not self.entity.shipData.ship_type_can_cloak:
+            return OrderWarning.SYSTEM_INOPERATIVE
+        
+        if self.entity.cloak_cooldown > 0 and not self.deloak:
+            return OrderWarning.CLOAK_COOLDOWN
+        return super().raise_warning()
 
 class SelfDestructOrder(Order):
 

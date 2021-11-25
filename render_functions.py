@@ -1,11 +1,12 @@
 from __future__ import annotations
+from enum import Enum
 from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 import tcod
 
 from coords import Coords
 from space_objects import Planet, Star, SubSector
 from starship import Starship
-from data_globals import STATUS_HULK
+from data_globals import STATUS_HULK, CloakStatus
 import colors
 from get_config import CONFIG_OBJECT
 from torpedo import ALL_TORPEDO_TYPES
@@ -93,7 +94,7 @@ def print_system(console:Console, gamedata:GameData):
         fg=star.color,bg=star.bg
         )
 
-    ships = gamedata.ships_in_same_sub_sector_as_player
+    ships = gamedata.visible_ships_in_same_sub_sector_as_player
     
     #number_of_ships = len(ships)
 

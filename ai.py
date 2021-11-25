@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Optional
-from data_globals import DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
+from data_globals import DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, CloakStatus
 
 from order import MoveOrder, Order, EnergyWeaponOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
 
@@ -58,7 +58,9 @@ class HostileEnemy(BaseAi):
             
             has_energy = self.entity.energy > 0
             
-            if player_is_present:
+            player_is_not_cloaked = self.game_data.player.cloak_status != CloakStatus.ACTIVE
+            
+            if player_is_present and player_is_not_cloaked:
                 
                 precision = self.entity.determin_precision
             

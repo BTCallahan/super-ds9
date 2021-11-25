@@ -3,6 +3,7 @@ from __future__ import annotations
 from coords import Coords, AnyCoords
 from typing import Dict, Tuple, TYPE_CHECKING
 import lzma, pickle
+from data_globals import CloakStatus
 from message_log import MessageLog
 from game_data import GameData
 from get_config import CONFIG_OBJECT
@@ -46,10 +47,23 @@ class Engine:
             f.write(save_data)
 
     def handle_enemy_turns(self):
+        
+        if self.player.cloak_status == CloakStatus.COMPRIMISED:
+            self.player.cloak_status = CloakStatus.ACTIVE
 
         for entity in self.game_data.all_enemy_ships:
 
             if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status.is_active:
+                
+                if entity.cloak_cooldown > 0:
+                    entity.cloak_cooldown -= 1
+                
+                if entity in self.game_data.ships_in_same_sub_sector_as_player:
+
+                    if self.player.cloak_status != CloakStatus.INACTIVE:
+                        
+                        self.player.cloak_status = CloakStatus.COMPRIMISED if entity.detect_cloaked_ship(self.player) else CloakStatus.ACTIVE
+                        
                 entity.ai.perform()
                 entity.repair()
                 

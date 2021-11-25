@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from ai import BaseAi, HostileEnemy
 from coords import Coords
-from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, ShipStatus
+from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, CloakStatus, ShipStatus
 from random import choice, randrange
-from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Tuple, Union, Set, OrderedDict
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set, OrderedDict
 
 from get_config import CONFIG_OBJECT
 from global_functions import stardate
@@ -88,6 +88,7 @@ class GameData:
 
         self.ships_in_same_sub_sector_as_player:List[Starship] = []
         self.enemy_ship_dict:OrderedDict[str,int] = enemy_ship_dict
+        self.visible_ships_in_same_sub_sector_as_player:List[Starship] = []
 
         self.captain_name = ""
         self.player_record = OrderedDict(
@@ -238,6 +239,7 @@ class GameData:
         self.total_starships = [self.player] + self.all_enemy_ships
 
         self.ships_in_same_sub_sector_as_player = self.grab_ships_in_same_sub_sector(self.player)
+        self.visible_ships_in_same_sub_sector_as_player = [ship for ship in self.ships_in_same_sub_sector_as_player if ship.cloak_status != CloakStatus.ACTIVE and ship.isAlive]
 
         self.set_condition()
         

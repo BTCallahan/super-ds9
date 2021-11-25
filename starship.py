@@ -17,7 +17,7 @@ from torpedo import Torpedo, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
 from torpedo import ALL_TORPEDO_TYPES
 import colors
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
 def scan_assistant(v:IntOrFloat, precision:int):
     """This takes a value, v and devides it by the precision. Next, the quotent is rounded to the nearest intiger and then multiplied by the precision. The product is then returned. A lower precision value ensures more accurate results. If precision is 1, then v is returned
@@ -190,6 +190,7 @@ class ShipClass:
     torp_types:Optional[List[str]]=None    
     torp_tubes:int=0
     warp_breach_dist:int=2
+    cloak_strength:float=0.0
 
     """
     def __init__(self, *,
@@ -265,7 +266,8 @@ to one.'''
         max_weap_energy:int, 
         warp_breach_dist:int=2, 
         energy_weapon_code:str,
-        nation_code:str
+        nation_code:str,
+        cloak_strength:float
     ):
         
         if (torp_types is None or len(torp_types) == 0) != (torp_tubes < 1) != (max_torpedos < 1):
@@ -304,7 +306,8 @@ to one.'''
             energy_weapon_code=energy_weapon_code,
             nation_code=nation_code,
             system_names=system_names, 
-            system_keys=system_keys
+            system_keys=system_keys,
+            cloak_strength=cloak_strength
         )
 
     @property
@@ -541,6 +544,7 @@ class Starship:
         self.sys_beam_array = StarshipSystem(f'{self.ship_class.get_energy_weapon.short_beam_name_cap}s:')
         self.sys_shield_generator = StarshipSystem('Shield:')
         self.sys_sensors = StarshipSystem('Sensors:')
+        self.sysCloak = StarshipSystem("Cloak:")
         self.sys_warp_core = StarshipSystem('Warp Core:')
         self.override_nation_code = override_nation_code
 
@@ -555,6 +559,8 @@ class Starship:
         self.turn_taken = False
 
         self.turn_repairing = 0
+        self.cloak_status = CloakStatus.INACTIVE
+        self.cloak_cooldown = 0
 
         try:
             self.torpedo_loaded = "NONE" if not self.ship_type_can_fire_torps else self.ship_class.torp_types[0]
@@ -637,6 +643,14 @@ class Starship:
         return 1.0 if self.ship_class.is_automated else (
             (self.able_crew / self.ship_class.max_crew) + (self.injured_crew / self.ship_class.max_crew) * 0.25
         )
+    
+    @property
+    def ship_type_can_cloak(self):
+        return self.ship_class.ship_type_can_cloak
+
+    @property
+    def ship_can_cloak(self):
+        return self.ship_class.ship_type_can_cloak and self.sysCloak.is_opperational
 
     @property
     def able_crew_percent(self):
@@ -876,8 +890,10 @@ It's actually value is {precision}."
             d["sys_sensors"] = self.sys_sensors.get_info(precision, False)# * 0.01,
             if ship_type_can_fire_torps:
                 d["sys_torpedos"] = self.sys_torpedos.get_info(precision, False)# * 0.01
+            if self.ship_type_can_cloak:
+                d["sys_cloak"] = self.sysCloak.getInfo(precision)
             d["sys_warp_core"] = self.sys_warp_core.get_info(precision, False)
-
+            
         d["status"] = status
 
         if ship_type_can_fire_torps:
@@ -1078,7 +1094,7 @@ It's actually value is {precision}."
         
         shield_effectiveness = 0 if old_scan["sys_shield"] < 0.15 else min(old_scan["sys_shield"] * 1.25, 1.0)
         
-        shields_are_already_down = shield_effectiveness <= 0 or current_shields <= 0 or is_hulk or is_derlict
+        shields_are_already_down = shield_effectiveness <= 0 or current_shields <= 0 or is_hulk or is_derlict or self.cloak_status != CloakStatus.INACTIVE
         
         shields_dam = 0
         armorDam = amount
@@ -1395,6 +1411,11 @@ It's actually value is {precision}."
                             
                 if self.ship_type_can_fire_torps and torpedo_sys_damage > 0:
                     message_log.add_message('Torpedo launcher damaged.')
+                
+                if self.shipData.ship_type_can_cloak and randint(0, 3) == 0:
+                        if is_controllable:
+                            gd.engine.message_log.add_message("Cloaking device damaged. ")
+                        self.sysCloak.integrety -= randomSystemDamage()
                 
         elif not ship_originaly_destroyed:
             wc_breach = ((not old_ship_status.is_destroyed and new_ship_status is STATUS_OBLITERATED) or (
@@ -1795,3 +1816,16 @@ It's actually value is {precision}."
         total = sum(score)
         
         return total / number_of_ship_hits
+
+    def detect_cloaked_ship(self, ship:Starship):
+        if ship.cloak_status != CloakStatus.INACTIVE:
+            raise AssertionError(f"The ship {self.name} is atempting to detect the ship {ship.name}, even though {ship.name} is not cloaked.")
+
+        if not self.sysSensors.isOpperational:
+            return False
+
+        for i in range(3):
+
+            if uniform(0.0, self.sysSensors.getEffectiveValue) * 0.2 > uniform(0.0, ship.sysCloak.getEffectiveValue):
+                return False
+        return True
