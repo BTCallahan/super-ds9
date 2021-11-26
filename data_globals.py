@@ -1,6 +1,9 @@
 from enum import Enum, auto
 from collections import defaultdict
+from typing import Union
 import colors
+
+string_or_int = Union[int,str]
 
 class ShipTypes(Enum):
 

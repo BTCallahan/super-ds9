@@ -180,7 +180,7 @@ class MoveOrder(Order):
 
         x_, y_ = c.normalize()
 
-        self.coord_list = tuple([Coords(co.x, co.y) for co in self.game_data.engine.get_lookup_table(x_, y_)][:ceil(distance)])
+        self.coord_list = tuple([Coords(co.x, co.y) for co in self.game_data.engine.get_lookup_table(direction_x=x_, direction_y=y_)][:ceil(distance)])
 
         self.ships = {ship.localCoords.create_coords() : ship for ship in self.entity.game_data.grapShipsInSameSubSector(self.entity) if ship.localCoords in self.coord_list}
     
@@ -197,7 +197,7 @@ class MoveOrder(Order):
 
         heading = atan2(y_, x_) / to_rads
 
-        return cls(entity, ceil(distance), heading=heading, x=x, y=y, x_aim=x_, y_aim=y_)
+        return cls(entity, distance=ceil(distance), heading=heading, x=x, y=y, x_aim=x_, y_aim=y_)
     
     @classmethod
     def from_heading(cls, entity:Starship, heading:int, distance:int):
@@ -209,7 +209,7 @@ class MoveOrder(Order):
             config_object.subsector_width, config_object.subsector_height
         )
 
-        return cls(entity, distance, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
+        return cls(entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
 
     """
     def can_be_carried_out(self):
@@ -330,6 +330,7 @@ class PhaserOrder(Order):
                 self.entity.attackEnergyWeapon(ship, floor(actual_amount), amount)
         else:
             self.entity.attackEnergyWeapon(self.target, actual_amount, actual_amount)
+        self.entity.turnRepairing = 0
 
     def raise_warning(self):
 
@@ -479,6 +480,8 @@ class RechargeOrder(Order):
             self.amount = min(self.amount + amount, self.entity.shipData.maxEnergy)
     
     def raise_warning(self):
+        if self.amount == 0:
+            return OrderWarning.ZERO_VALUE_ENTERED
         return OrderWarning.NOT_ENOUGHT_ENERGY if self.amount > self.entity.energy else OrderWarning.SAFE
 
 class RepairOrder(Order):
@@ -491,7 +494,6 @@ class RepairOrder(Order):
         self.entity.repair(self.amount)
         
         self.entity.turnRepairing += 1
-
 
 class SelfDestructOrder(Order):
 

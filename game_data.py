@@ -24,7 +24,8 @@ class GameData:
                  noOfFighters:int, noOfAdFighters:int, noOfCruisers:int, noOfBattleships:int,
                  turnsLeft:int, 
                  easyMove:bool, easyAim:bool, easyWarp:bool,
-                 torpedo_warning:bool, crash_warning:bool, two_d_movment:bool
+                 torpedo_warning:bool, crash_warning:bool, two_d_movment:bool,
+                 auto_destruct_code:str
                  ):
         self.subsecsX = subsecsX
         self.subsecsY = subsecsY
@@ -72,6 +73,8 @@ class GameData:
         self.condition = Condition.GREEN
 
         self.ships_in_same_sub_sector_as_player:List[Starship] = []
+
+        self.auto_destruct_code = auto_destruct_code
 
         self.player_record = {
             "planets_angered" : 0,

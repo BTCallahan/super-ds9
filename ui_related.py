@@ -120,9 +120,9 @@ class InputHanderer:
     text_to_print = ""
     cursor = 0
 
-    def __init__(self, limit:int, text_char_list:List[IntOrString] = []):
+    def __init__(self, limit:int, text_char_list:Optional[List[IntOrString]] = None):
         self.limit = limit
-        self.text_char_list: List[IntOrString] = text_char_list
+        self.text_char_list: List[IntOrString] = text_char_list if text_char_list is not None else []
         self.text_to_print = self.send()
 
     def set_text(self, character:IntOrString):
@@ -155,7 +155,7 @@ class InputHanderer:
             print("Delete")
             self.text_char_list.pop(self.cursor)
             return True
-        if not reverse and self.cursor > 0 and self.number_of_chars > 1:
+        if not reverse and self.cursor > 0 and self.number_of_chars >= 1:
             print("Backspace")
             self.text_char_list.pop(self.cursor - 1)
 
@@ -203,8 +203,8 @@ class TextHandeler(InputHanderer):
     """
 
     def __init__(self, limit: int, text_char_list: Optional[List[IntOrString]] = None):
-        super().__init__(limit, text_char_list=text_char_list if text_char_list is not None else [])
-        self.text_to_print = "".join(text_char_list)
+        super().__init__(limit, text_char_list=text_char_list)
+        self.text_to_print = "".join(self.text_char_list)
 
     def set_text(self, character: str):
         if len(character) > self.limit:
@@ -377,7 +377,8 @@ class NumberHandeler(InputHanderer):
     def delete(self, reverse: bool = False):
 
         if super().delete(reverse=reverse):
-            
+            if self.is_empty:
+                self.text_char_list.append(0)
             return True
         return False
 

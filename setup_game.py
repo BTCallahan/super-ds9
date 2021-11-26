@@ -119,7 +119,8 @@ def setUpGame(
         noOfFighters=12,
         noOfCruisers=5,
         noOfBattleships=3,
-        turnsLeft=80
+        turnsLeft=80,
+        auto_destruct_code=config_object.auto_destruct_code
     )
 
     engine = Engine(

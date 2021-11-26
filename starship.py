@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
 from random import choice, uniform, random, randint
 from math import ceil, inf
 from itertools import accumulate
@@ -63,7 +63,11 @@ class StarshipSystem:
     
     @integrety.setter
     def integrety(self, value):
-        self._integrety = min(max(value + self.integrety, 0.0), 1.0)
+        self._integrety = value
+        if self._integrety < 0.0:
+            self._integrety = 0.0
+        elif self._integrety > 1.0:
+            self._integrety = 1.0
 
     @property
     def isOpperational(self):
@@ -184,8 +188,7 @@ class ShipData:
             printy('torpTypes is None object')
         """
         if (torpTypes is None or len(torpTypes) == 0) != (torpTubes < 1) != (maxTorps < 1):
-            raise IndexError(f'The length of the torpTypes list is {len(torpTypes)}, but the value of torpTubes is {torpTubes}, \
-and the value of maxTorps is {maxTorps}. All of these should be less then one, OR greater then or equal to one.')
+            raise IndexError(f'The length of the torpTypes list is {len(torpTypes)}, but the value of torpTubes is {torpTubes}, and the value of maxTorps is {maxTorps}. All of these should be less then one, OR greater then or equal to one.')
 #if (len(torpTypes) == 0 and torpTubes > 1) or (len(torpTypes) > 0 and torpTubes < 0):
         #torpTypes.sort()
 
@@ -270,7 +273,7 @@ K_VORT_CLASS = ShipData(
     maxWeapEnergy=750, 
     warpBreachDist=2, 
     weaponName='Disruptor', 
-    cloak_strength=0.875,
+    #cloak_strength=0.875,
     nameGenerator=genNameKVort)
 
 ATTACK_FIGHTER = ShipData(
@@ -612,7 +615,7 @@ class Starship:
                 self.sysTorp.printInfo(precision))
     """
 
-    def scan_this_ship(self, precision: int=1)->Dict[str,Any]:
+    def scan_this_ship(self, precision: int=1)->Dict[str,Union[int,Tuple]]:
         """
         @ precision - this must be an intiger between 1 and 100
         Returns a dictionary containing 
@@ -717,7 +720,7 @@ class Starship:
 
         shipList = self.game_data.grapShipsInSameSubSector(self)
 
-        damage = self.shipData.maxHull * ((1 if selfDestruct else 2) / 3)
+        damage = self.shipData.maxHull * ((2 if selfDestruct else 1) / 3)
 
         for s in shipList:
 
@@ -727,16 +730,47 @@ class Starship:
 
             if damPercent > 0.0 and s.hull < 0:
 
-                s.takeDamage(damPercent * damage, f'Caught in the {"blast radius" if selfDestruct else "warp core breach"} of the {self.name}')
+                s.takeDamage(round(damPercent * damage), f'Caught in the {"auto destruct radius" if selfDestruct else "warp core breach"} of the {self.name}')
 
-    def calcSelfDestructDamage(self, player:Starship):
+    def calcSelfDestructDamage(self, target:Starship):
         #TODO - write an proper method to look at factors such as current and max hull strength to see if using a self destruct is worthwhile
-        if self.hull / self.shipData.maxHull < 0.25 and self.shields / self.shipData.maxShields < 0.25 and player.sectorCoords == self.sectorCoords:
-            damAmount = 1 - (self.localCoords.distance(coords=player.localCoords) / self.shipData.warpBreachDist) * self.shipData.maxHull * (2 / 3)
-            if damAmount > 0.0:
-                playerHealth = player.hull + player.shields
-                return playerHealth <= damAmount
-        return False
+        
+        scan = target.scan_this_ship(self.determinPrecision)
+        
+        shields:int = scan["shields"]
+        
+        shields_percentage = shields / target.shipData.maxShields
+        
+        shieldPercent = shields_percentage * 0.5 + 0.5
+        
+        damage = self.shipData.maxHull * (2 / 3)
+        
+        distance = self.localCoords.distance(coords=target.localCoords)
+        
+        damPercent = 1 - (distance / self.shipData.warpBreachDist)
+        
+        amount = round(damPercent * damage)
+        
+        shields_are_already_down = not target.sysShield.isOpperational or shields <= 0
+        
+        if not shields_are_already_down:
+            shieldsDam = round(shieldPercent * amount)# * shieldDamMulti
+
+            amount -= shieldsDam
+
+            #shieldsDam *= shieldDamMulti
+
+            if shieldsDam > shields:
+                
+                shieldsDam = shields
+            
+            hullDam = amount
+        else:
+            shieldsDam = 0
+        
+            hullDam = amount
+        
+        return target, shieldsDam, hullDam, shieldsDam >= target.shipData.maxHull
 
     @property
     def isAlive(self):
@@ -1044,15 +1078,17 @@ class Starship:
         healCrew = min(self.injuredCrew, round(self.injuredCrew * 0.2) + randint(2, 5))
         self.ableCrew+= healCrew
         self.injuredCrew-= healCrew
+        
+        repair_amount = repairFactor * (0.5 + random() * 0.5) * self.shipData.maxHull * 0.05
 
-        self.hull = min(self.shipData.maxHull, self.hull + repairFactor * (0.5 + random() * 0.5))
-        self.sysWarp.integrety = repairFactor * (0.5 + random() * 0.5)
-        self.sysSensors.integrety = repairFactor * (0.5 + random() * 0.5)
-        self.sysImpulse.integrety = repairFactor * (0.5 + random() * 0.5)
-        self.sysEnergyWep.integrety = repairFactor * (0.5 + random() * 0.5)
-        self.sysShield.integrety = repairFactor * (0.5 + random() * 0.5)
+        self.hull += repair_amount
+        self.sysWarp.integrety += repairFactor * (0.5 + random() * 0.5)
+        self.sysSensors.integrety += repairFactor * (0.5 + random() * 0.5)
+        self.sysImpulse.integrety += repairFactor * (0.5 + random() * 0.5)
+        self.sysEnergyWep.integrety += repairFactor * (0.5 + random() * 0.5)
+        self.sysShield.integrety += repairFactor * (0.5 + random() * 0.5)
         if self.shipTypeCanFireTorps:
-            self.sysTorp.integrety = repairFactor * (0.5 + random() * 0.5)
+            self.sysTorp.integrety += repairFactor * (0.5 + random() * 0.5)
 
     def aiBehavour(self):
         #TODO - trun this into an actual AI dicision making process instaid of a glorified RNG
@@ -1099,6 +1135,9 @@ class Starship:
     def attackEnergyWeapon(self, enemy:Starship, amount:float, energy_cost:float, cannon:bool=False):
         gd = self.game_data
         if self.sysEnergyWep.isOpperational:
+            
+            attacker_is_player = self is self.game_data.player
+            target_is_player = enemy is self.game_data.player
 
             self.energy-=energy_cost
 
@@ -1106,7 +1145,7 @@ class Starship:
                 amount*=1.25
 
             gd.engine.message_log.add_message(
-                f"Firing on the {enemy.name}!" if self.isControllable else f"The {self.name} has fired on {'us' if enemy.isControllable else f'the {enemy.name}'}!"
+                f"Firing on the {enemy.name}!" if attacker_is_player else f"The {self.name} has fired on {'us' if target_is_player else f'the {enemy.name}'}!"
             )
 
             hit = self.roll_to_hit_energy(enemy=enemy, estimatedEnemyImpulse=-1.0, cannon=cannon)
@@ -1114,17 +1153,21 @@ class Starship:
             if hit:
 
                 is_beam = not cannon
+                
+                target_name = "We're" if target_is_player else f'The {enemy.name} is'
 
                 gd.engine.message_log.add_message(
-                    f"Direct hit on {enemy.name}!" if self.isControllable else
-                    f"{'We`re' if enemy.isControllable else 'The '+enemy.name+'is'} hit!"
+                    f"Direct hit on {enemy.name}!" if attacker_is_player else
+                    f"{target_name} hit!", fg=colors.orange
                 )
 
-                enemy.takeDamage(amount * self.sysEnergyWep.getEffectiveValue,
-                                 f'Destroyed by a {self.shipData.weaponName} hit from the {self.name}.', is_beam=is_beam)
+                enemy.takeDamage(amount * self.sysEnergyWep.getEffectiveValue, f'Destroyed by a {self.shipData.weaponName} hit from the {self.name}.', is_beam=is_beam)
                 return True
             else:
-                gd.engine.message_log.add_message(f"{self.name} misses {enemy.name}!")
+                gd.engine.message_log.add_message(
+                    "We missed!" if attacker_is_player else "A miss!"
+                    )
+                #f"{self.name} misses {enemy.name}!"
 
         return False
 

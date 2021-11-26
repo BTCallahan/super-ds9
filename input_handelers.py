@@ -5,7 +5,7 @@ from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST
 from engine import config_object
 from typing import TYPE_CHECKING, List, Optional, Union
 from global_functions import headingToCoords
-from order import blocks_action, torpedo_warnings, collision_warnings, \
+from order import SelfDestructOrder, blocks_action, torpedo_warnings, collision_warnings, \
     Order, DockOrder, OrderWarning, PhaserOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from space_objects import Planet
 from ui_related import ButtonBox, NumberHandeler, TextHandeler, confirm
@@ -174,6 +174,14 @@ class CommandEventHandler(MainGameEventHandler):
             height=3,
             text="(T)orpedos",
         )
+        
+        self.auto_destruct_button = ButtonBox(
+            x=2+13+config_object.command_display_x,
+            y=14+config_object.command_display_y,
+            width=10,
+            height=4,
+            text="(A)uto-Destruct"
+        )
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[ActionOrHandler]:
         
@@ -212,9 +220,6 @@ class CommandEventHandler(MainGameEventHandler):
                 else:
                     return ShieldsHandler(self.engine)
                 
-            elif self.repair_button.cursor_overlap(event):
-                pass
-
             elif self.phasers_button.cursor_overlap(event):
                 if not self.engine.player.sysEnergyWep.isOpperational:
                     self.engine.message_log.add_message("Error: Phaser systems are inoperative, Captain", fg=colors.red)
@@ -263,6 +268,8 @@ class CommandEventHandler(MainGameEventHandler):
                     self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
                 else:
                     return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
+            elif self.auto_destruct_button.cursor_overlap(event):
+                return SelfDestructHandler(self.engine)
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[ActionOrHandler]:
 
@@ -339,6 +346,8 @@ class CommandEventHandler(MainGameEventHandler):
                 self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
             else:
                 return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
+        elif event.sym == tcod.event.K_a:
+            return SelfDestructHandler(self.engine)
 
     def on_render(self, console: tcod.Console) -> None:
         super().on_render(console)
@@ -357,6 +366,7 @@ class CommandEventHandler(MainGameEventHandler):
         self.repair_button.render(console)
         if self.engine.player.shipTypeCanFireTorps:
             self.torpedos_button.render(console)
+        self.auto_destruct_button.render(console)
         
 class WarpHandler(MainGameEventHandler):
 
@@ -1733,10 +1743,22 @@ class TorpedoHandlerEasy(MainGameEventHandler):
         else:
             self.selected_handeler.handle_key(event)
 
-class SelfDestructHandler(EventHandler):
+class SelfDestructHandler(MainGameEventHandler):
 
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
+        
+        player = engine.player
+        
+        nearbye_foes = [ship for ship in engine.game_data.grapShipsInSameSubSector(player) if player.localCoords.distance(coords=ship.localCoords) <= player.shipData.warpBreachDist]
+        
+        nearbye_foes.sort(key=lambda ship: ship.localCoords.distance(coords=player.localCoords), reverse=True)
+        
+        self.nearbye_foes = tuple(
+            (player.calcSelfDestructDamage(ship)) for ship in nearbye_foes
+        )
+        
+        self.any_ships_nearby = len(self.nearbye_foes) > 0
 
         self.code_handler = TextHandeler(
             12
@@ -1753,7 +1775,7 @@ class SelfDestructHandler(EventHandler):
         )
 
         self.cancel = ButtonBox(
-            x=12+config_object.command_display_x,
+            x=16+config_object.command_display_x,
             y=4+config_object.command_display_y,
             width=10,
             height=3,
@@ -1762,8 +1784,8 @@ class SelfDestructHandler(EventHandler):
 
         self.code = ButtonBox(
             x=4+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=14,
+            y=9+config_object.command_display_y,
+            width=18,
             height=3,
             title="Input code:",
             text=self.code_handler.send()
@@ -1784,9 +1806,44 @@ class SelfDestructHandler(EventHandler):
 
         self.code.render(
             console,
-            text=self.code_handler.text_to_print
+            text=self.code_handler.text_to_print,
+            cursor_position=self.code_handler.cursor
         )
-
+        
+        console.print(
+            x=4+config_object.command_display_x,
+            y=12+config_object.command_display_y,
+            string=f"Code: {config_object.auto_destruct_code}"
+        )
+        
+        if self.any_ships_nearby:
+            console.print(
+                x=2+config_object.command_display_x,
+                y=16+config_object.command_display_y,
+                string="Ships in radius of a-destruct:"
+            )
+            
+            console.print(
+                x=2+config_object.command_display_x,
+                y=17+config_object.command_display_y,
+                string="Name    S. Dam.  H. Dam.  Kill"
+            )
+            for i, ship_info in enumerate(self.nearbye_foes):
+                ship, shield_dam, hull_dam, kill = ship_info
+                console.print(
+                    x=2+config_object.command_display_x,
+                    y=i+18+config_object.command_display_y,
+                    string=f"{ship.name: <8}  {shield_dam: <7}  {hull_dam: <7} {'Yes' if kill else 'No'}"
+                )
+        else:
+            console.print_box(
+                x=2+config_object.command_display_x,
+                y=16+config_object.command_display_y,
+                width=(config_object.command_display_end_x - 2) - (2 + config_object.command_display_x),
+                height=5,
+                string="No ships in radius of auto destruct"
+            )
+            
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[ActionOrHandler]:
 
         if event.sym == tcod.event.K_CANCEL:
@@ -1794,13 +1851,27 @@ class SelfDestructHandler(EventHandler):
 
         if event.sym in confirm:
 
-            if self.code_handler.text_to_print == "Destruct":
-                self.engine.player.warpCoreBreach(True)
+            if self.code_handler.text_to_print == config_object.auto_destruct_code:
 
+                return SelfDestructOrder(self.engine.player)
+            else:
+                self.engine.message_log.add_message("Error: The code for the self destruct is not correct.")
         else:
         
             self.code_handler.handle_key(event)
 
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[ActionOrHandler]:
+        
+        if self.cancel.cursor_overlap(event):
+            
+            return CommandEventHandler(self.engine)
+        if self.confirm.cursor_overlap(event):
+            if self.code_handler.text_to_print == config_object.auto_destruct_code:
+
+                return SelfDestructOrder(self.engine.player)
+            else:
+                self.engine.message_log.add_message("Error: The code for the self destruct is not correct.")
+                
 class GameOverEventHandler(EventHandler):
 
     def generate_evaluation(self):
@@ -1990,6 +2061,7 @@ of {how_many_planets_killed} ,")
         self.text_scroll = 0
         self.console_height = engine.screen_height
         self.ending_text = self.generate_evaluation()
+        self.show_evaluation = False
 
     def on_quit(self) -> None:
         """Handle exiting out of a finished game."""
@@ -2004,34 +2076,48 @@ of {how_many_planets_killed} ,")
         self.on_quit()
 
     def ev_keydown(self, event: tcod.event.KeyDown) -> None:
-        key = event.sym
+        
+        if self.show_evaluation:
+            key = event.sym
 
-        if key == tcod.event.K_ESCAPE:
-            self.on_quit()
-        elif key == tcod.event.K_UP and self.text_scroll > 0:
-            self.text_scroll -= 1
-        elif key == tcod.event.K_DOWN and self.text_scroll < len(self.text) - self.console_height:
-            self.text_scroll += 1
+            if key == tcod.event.K_ESCAPE:
+                self.on_quit()
+            elif key == tcod.event.K_UP and self.text_scroll > 0:
+                self.text_scroll -= 1
+            elif key == tcod.event.K_DOWN and self.text_scroll < len(self.text) - self.console_height:
+                self.text_scroll += 1
+        else:
+            self.show_evaluation = True
 
     def on_render(self, console: tcod.Console) -> None:
 
-        half_width = console.width//2
+        if self.show_evaluation:
+            half_width = console.width//2
 
-        console.print_frame(
-            x=2, 
-            y=2, 
-            width=console.width-4, 
-            height=self.console_height, 
-            string="Y O U   H A V E   F A L L E N", 
-        bg_blend=tcod.BKGND_MULTIPLY)
+            console.print_frame(
+                x=2, 
+                y=2, 
+                width=console.width-4, 
+                height=self.console_height, 
+                string="Y O U   H A V E   F A L L E N", 
+            bg_blend=tcod.BKGND_MULTIPLY)
 
-        console.print_rect(
-            x=3, 
-            y=3, 
-            width=console.width-6,
-            height=self.console_height-2,
-            string=self.ending_text)
+            console.print_rect(
+                x=3, 
+                y=3, 
+                width=console.width-6,
+                height=self.console_height-2,
+                string=self.ending_text)
 
-        #for i, e in enumerate(self.ending_text, self.text_scroll):
-        
-        console.print(x=10, y=40, string="Press ESC to quit")
+            #for i, e in enumerate(self.ending_text, self.text_scroll):
+            
+            console.print(x=10, y=40, string="Press ESC to quit")
+        else:
+            print_subsector(console, self.engine.game_data)
+            print_mega_sector(console, self.engine.game_data)
+            render_own_ship_info(console, self.engine.game_data)
+
+            render_other_ship_info(console, self.engine.game_data, self.engine.game_data.selected_ship_or_planet)
+
+            print_message_log(console, self.engine.game_data)
+            render_position(console, self.engine.game_data)

@@ -3,6 +3,7 @@ from math import ceil
 from typing import Dict, Final
 from collections.abc import Mapping
 
+from data_globals import string_or_int
 from coords import Coords
 
 class FrozenDict(Mapping):
@@ -13,13 +14,16 @@ class FrozenDict(Mapping):
 class ConfigObject:
 
     def __init__(self) -> None:
-        d:Dict[str,int] = {}
+        d:Dict[str,string_or_int] = {}
         with open("config.ini", "r") as f:
             lines = f.readlines()
         for line in lines:
             if ":" in line and line[0] != "#":
                 k ,v = line.split(":")
-                d[k] = int(v)
+                try:
+                    d[k] = int(v)
+                except ValueError:
+                    d[k] = v
         f.close()
 
         self.screen_width = d['screen_width']
@@ -59,6 +63,8 @@ class ConfigObject:
         self.position_info_end_x = d['position_info_end_x']
         self.position_info_y = d['position_info_y']
         self.position_info_end_y = d['position_info_end_y']
+        
+        self.auto_destruct_code = d['auto_destruct_code']
 
         c1:Coords = Coords(x=0, y=0)
 
