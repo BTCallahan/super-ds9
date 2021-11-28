@@ -7,7 +7,7 @@ from itertools import accumulate
 from functools import lru_cache
 
 from global_functions import headingToDirection
-from nation import Nation
+from nation import Nation, all_nations
 from space_objects import SubSector
 from torpedo import Torpedo, TorpedoType, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
@@ -189,7 +189,7 @@ class ShipData:
         torp_tubes:int=0,
         max_weap_energy:int, warp_breach_dist:int=2, weapon_name:str, 
         nameGenerator:Callable[[], str],
-        nation:Nation
+        nation_code:str
     ):
         self.ship_type = ship_type
         self.symbol = symbol
@@ -202,7 +202,7 @@ class ShipData:
         self.max_energy = max_energy
 
         self.damage_control = damage_control
-        self.nation = nation
+        self.nation_code = nation_code
         """
         if len(torp_types) == 0:
             print('torp_types List has zero lenght')
@@ -232,8 +232,12 @@ class ShipData:
             beam_weapon_name=self.weapon_namePlural
         )
 
+    @property
+    def nation(self):
+        return all_nations[self.nation_code]
+
     def create_name(self):
-        return self.nation.ship_name(self.shipNameGenerator())
+        return choice(self.nation.ship_names)
 
     @property
     @lru_cache

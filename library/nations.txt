@@ -1,0 +1,146 @@
+# NATION
+# COLOR: - this should be three intigers no larger then 255 seperated by commas
+# NAME_LONG
+# NAME_SHORT: - Optional - if not present, then the NAME_LONG will be used
+# NAME_POSSESIVE: - optional - if not present, then the NAME_LONG or the NAME_SHORT will be used depending on if the NAME_SHORT is present
+# ENERGY_WEAPON_NAME:
+# SHIP_PREFIX: optional e.g. U.S.S., I.K.S.
+# CONGRATULATIONS_TEXT:
+# CAPTAIN_RANK_NAME
+# ADMIRAL_RANK_NAME
+# SHIP_NAMES: - optional a list of ship names seperated by commas. If not present, an randomly generaed number will be used
+# NATIONEND
+
+# feds have akira, Ambassador
+
+
+NATION:FEDERATION
+COLOR:50,45,235
+NAME_LONG:United Federation of Planets
+NAME_SHORT:Federation
+ENERGY_WEAPON_NAME:Phaser
+SHIP_PREFIX:U.S.S.
+CONGRATULATIONS_TEXT:Well done!
+CAPTAIN_RANK_NAME:Captain
+ADMIRAL_RANK_NAME:Admiral
+SHIP_NAMES:Akira,Thunderchild,
+Ambassador,Excalibur,Horatio,Yamaguchi,Zhukov,
+California,Alhambra,Cerritos,Merced,Rubidoux,Solvang,
+Cardenas,Yeager,Buran,
+Cheyenne,Ahwahnee,
+Constellation,Hathaway,Stargazer,Victory,
+Constitution,Ahwahnee,Defiant,Eagle,Emden,Endeavour,Enterprise,Exeter,Hood,Korolev,Lexington,Potemkin,
+Crossfield,Glenn,Discovery,
+Daedalus,Essex,Horizon,
+Defiant,Sao Paulo,Valiant,
+Engle,T'Plana-Hath,Earhart,
+Excelsior,Berlin,Cairo,Charleston,Crazy Horse,Farragut,Fearless,Fredrickson,Gorkon,Hood,Lakota,Malinche,Melbourne,Potemkin,Repulse,Valley,
+Hoover,Dana,De Milo,Edison,
+Inquiry,Zheng He,
+Intrepid,Bellerophon,Voyager,
+Luna,Titan,
+Magee,Cabot,Shran,
+Malachowski,Clarke,Sioux,
+Merced,Trieste,
+Miranda,Antares,Brattain,Lantree,Majestic,Nautilus,Reliant,Saratoga,ShirKahr,Sitak,Tian An Men,Trial,
+Nebula,Bellerophon,Bonchune,Farragut,Honshu,Leeds,Lexington,Merrimac,Monitor,Phoenix,Prometheus,Sutherland,T'Kumbra,
+New Orleans,Kyushu,Thomas Paine,
+Niagara,Princeton,
+Nimitz,Europa,
+Norway,Budapest,
+Nova,Equinox,Rhode Island,
+Obena,Archimedes,
+Oberth,Biko,Bonestell,Cochrane,Copernicus,Grissom,Pegasus,Tsiolkovsky,Vico,Yosemite,
+Parliament,Vancouver,
+Prometheus,
+Saber,Yeager,
+Shepard,Gagarin,Kerala,Ride,
+Sovereign,
+Soyuz,Bozeman,
+Springfield,
+Steamrunner,Appalachia,
+Sydney,Jenolan,Nash,
+Walker,Shenzhou,
+Wallenberg,Nightingale,
+Bonaventure,Bradbury,
+Ticonderoga,Angelou,Centaur,Challenger
+SHIP_NAMES_END
+NATIONEND
+
+
+NATION:KLINGON
+COLOR:231,50,12
+NAME_LONG:Klingon Empire
+NAME_SHORT:Empire
+NAME_POSSESIVE:Klingon
+ENERGY_WEAPON_NAME:Disruptor
+SHIP_PREFIX:I.K.S.
+CONGRATULATIONS_TEXT:Qapah!
+CAPTAIN_RANK_NAME:Captain
+ADMIRAL_RANK_NAME:General
+K'Vort,B'rel,Buruk,Che'ta'Ch'Tang,Hegh'ta,Ki'tang,Koraga,Korinar,M'Char,Malpara,Ning'tao,Orantho,Pagh,Rotarran,Slivin,Vorn,Y'tem,
+Bortas,
+Devisor,Gr'oth,Klothos,
+K't'inga,Amar,B'Moth,T'Ong,
+K'toch,
+Negh'Var,
+Par'tok,
+Qugh,
+Raptor, Somraw,
+Vor'cha,Bortas,Drovana,Maht-H'a,Qu'Vat,Toh'Kaht,Vor'nak
+SHIP_NAMES_END
+NATIONEND
+
+NATION:ROMULAN
+COLOR:10,10,240
+NAME_LONG:Romulan Star Empire
+NAME_SHORT:Empire
+NAME_POSSESIVE:Romulan
+ENERGY_WEAPON_NAME:Disruptor
+CONGRATULATIONS_TEXT:Well done!
+CAPTAIN_RANK_NAME:Commander
+ADMIRAL_RANK_NAME:Admiral
+SHIP_PREFIX:I.R.W
+SHIP_NAMES:D'deridex,Belak,Decius,Devoras,Haakona,Khazara,Makar,T'Met,Terix,
+Scimitar,
+Pi,
+Snipe,
+Valdore
+SHIP_NAMES_END
+NATIONEND
+
+# CU has all galor and hidiki class names from memory beta
+
+NATION:CARDASSIAN
+COLOR:237,227,16
+NAME_LONG:Cardassian Union
+NAME_SHORT:Union
+NAME_POSSESIVE:Cardassian
+ENERGY_WEAPON_NAME:Compresser
+CONGRATULATIONS_TEXT:Excellent.
+CAPTAIN_RANK_NAME:Gul
+ADMIRAL_RANK_NAME:Legate
+SHIP_NAMES:Agiadon,Aldara,Arrestor,Bak'rikan,Borad,Bok'Nor,Braine,Bralek,Bremmo,Datthaelius,Derell,Dognaineun,Erant,Etrace,Falleins,Gadacz,Galause,Galor,Galvar,Gianour,Gonniane,Grenadier,Groumall,Hararthun,Hondis,Kaliv,Karsu,Kenzha,Kercedius,Klakar,Kovat,Kraxon,Kyria,Lynius,Mabones,Moddan,Mourlin,Nawade,Parn,Pinia,Prakesh,Praxeth,Rajan,Reklar,Rekleen,Rugg'l,Serron,Soukara,Tavracet,Terak,Thidri,Trager,Turron,Vandir,Velain,Vetar,Vexon,Vindicator,
+Carorthad,Drakamair,Cond,Corarg,Cothaldrorn,Heril,Herthorn,Imgadrane,Irarthorn,Irathrane,Karaldrorn,Mahangren,Marirmane,Marirmarg,Mongrorn,Orkalay,Orkonil,Otheon,Tarirmarg,Thishugren,Thorkrand,Thrarim,Togard,Toralay,Torhne,Vormorn
+SHIP_NAMES_END
+NATIONEND
+
+NATION:DOMINION
+COLOR:210,25,227
+NAME_LONG:Dominion
+ENERGY_WEAPON_NAME:Phased Poleron
+CONGRATULATIONS_TEXT:Victory is life!
+CAPTAIN_RANK_NAME:Founder
+ADMIRAL_RANK_NAME:First
+NATIONEND
+
+NATION:BORG
+COLOR:45,40,243
+NAME_LONG:Borg Collective
+NAME_SHORT:Collective
+NAME_POSSESIVE:Borg
+ENERGY_WEAPON_NAME:Plasma
+CONGRATULATIONS_TEXT:Efficent.
+CAPTAIN_RANK_NAME:Locutus
+ADMIRAL_RANK_NAME:Queen
+NATIONEND
