@@ -6,6 +6,8 @@ from data_globals import SECTOR_ENERGY_COST, PlanetHabitation
 
 from order import MoveOrder, Order, EnergyWeaponOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
 
+from starship import ShipStatus
+
 if TYPE_CHECKING:
     from starship import Starship
     from space_objects import SubSector
@@ -188,3 +190,44 @@ class HostileEnemy(BaseAi):
             """
             
         order.perform()
+
+    
+
+    def reactivateDerelict(self):
+        player_present = self.game_data.player.sectorCoords == self.entity.sectorCoords
+        
+        weight = 0
+        
+        if not player_present:
+            
+            all_derelicts = [ship for ship in self.game_data.all_enemy_ships if ship.ship_status == ShipStatus.DERLICT]
+            
+            if all_derelicts:
+                
+                weight = self.entity.ableCrew
+                
+                derelicts = [ship for ship in all_derelicts if ship.sectorCoords == self.entity.sectorCoords]
+                
+                if derelicts:
+                    
+                    derelicts.sort(key=lambda ship: ship.localCoords.distance(self.entity.localCoords), reverse=True)
+                    
+                    adjacent = [ship for ship in derelicts if ship.localCoords.is_adjacent(self.entity.localCoords)]
+                
+                    if adjacent:
+                        
+                        adjacent.sor(
+                            key=lambda ship: ship.shipData.maxCrew, reverse=True
+                        )
+                        
+                        weight -= adjacent[0].shipData.maxCrew
+                        
+                    else:
+                
+                        weight -= self.entity.localCoords.distance(derelicts[0].localCoords)
+                
+                else:
+                    
+                    all_derelicts.sort(key=lambda ship: ship.sectorCoords.distance(self.entity.sectorCoords), reverse=True)
+                    
+                    weight -= self.entity.sectorCoords.distance(derelicts[0].sectorCoords) * 10

@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable, Dict, Iterable, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
+from enum import Enum, auto
 from random import choice, uniform, random, randint
 from math import ceil, inf
 from itertools import accumulate
@@ -512,6 +513,14 @@ class Starship:
     @property
     def crew_readyness(self):
         return (self.able_crew / self.ship_data.max_crew) + (self.injured_crew / self.ship_data.max_crew) * 0.25
+
+    @property
+    def able_crew_percent(self):
+        return self.ableCrew / self.shipData.maxCrew
+    
+    @property
+    def injured_crew_percent(self):
+        return self.injuredCrew / self.shipData.maxCrew
 
     @property
     def get_total_torpedos(self):

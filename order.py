@@ -30,6 +30,7 @@ class OrderWarning(Enum):
     SHIP_WILL_COLLIDE_WITH_STAR = auto()
     SHIP_COULD_COLLIDE_WITH_SHIP = auto()
     NOT_ENOUGHT_ENERGY = auto()
+    NOT_ENOUGHT_CREW = auto()
     OUT_OF_RANGE = auto()
     NO_TARGET = auto()
     NO_TARGETS = auto()
@@ -603,7 +604,7 @@ class ReactivateDerlict(Order):
     def raise_warning(self):
 
         if self.crew >= self.entity.ableCrew:
-            return OrderWarning.NOT_ENOUGHT_ENERGY
+            return OrderWarning.NOT_ENOUGHT_CREW
 
         if self.target.sectorCoords != self.entity.sectorCoords:
             return OrderWarning.NO_TARGET
@@ -623,48 +624,6 @@ class ReactivateDerlict(Order):
         self.target.ableCrew += crew_to_send_over
 
         
-
-    def reactivateDerelict(self, limit=1):
-        if limit > 0:
-
-            enemyShipsAviliable = list(filter(lambda e: e.crewReadyness > 0.5 and e.order.command == 'REPAIR'
-                                                and e.sectorCoords != self.player.sectorCoords, self.enemyShipsInAction))
-
-            derelicts = list(filter(lambda e: e.isDerelect and e.sectorCoords != self.player.sectorCoords, self.enemyShipsInAction))
-
-            if len(enemyShipsAviliable) > 0 and len(derelicts) > 0:
-                for s in enemyShipsAviliable:
-                    if limit < 1:
-                        break
-                    recrewedDereliect = None
-                    for d in derelicts:
-                        if s.sectorCoords.distance(coords=d.sectorCoords) == 0:
-                            crewToBeam = min(d.shipData.maxCrew, round(s.ableCrew * 0.5))
-                            d.ableCrew = crewToBeam
-                            s.ableCrew-= crewToBeam
-                            limit-=1
-                            recrewedDereliect = d
-                            break
-
-                    if recrewedDereliect:
-                        derelicts.remove(recrewedDereliect)
-
-                if limit > 1:
-                    for s in enemyShipsAviliable:
-                        if limit < 1:
-                            break
-                        recrewedDereliect = None
-                        for d in derelicts:
-                            if s.checkIfCanReachLocation(self, d.sectorCoords.x, d.sectorCoords.y, True):
-                                s.order.Warp(d.sectorCoords.x, d.sectorCoords.y)
-                                recrewedDereliect = d
-                                limit-=1
-                                break
-
-                        if recrewedDereliect:
-                            derelicts.remove(recrewedDereliect)
-
-
 
 
 '''
