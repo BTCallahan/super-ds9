@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 from coords import Coords
-from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST
+from data_globals import ENERGY_REGEN_PER_TURN, LOCAL_ENERGY_COST, REPAIR_MULTIPLIER, SECTOR_ENERGY_COST
 from engine import config_object
 from typing import TYPE_CHECKING, List, Optional, Union
 from global_functions import headingToCoords
@@ -78,6 +78,7 @@ class EventHandler(BaseEventHandler):
         except exceptions.Impossible as exc:
             self.engine.message_log.add_message(exc.args[0], colors.impossible)
             return False  # Skip enemy turn on exceptions.
+        self.engine.player.energy += ENERGY_REGEN_PER_TURN * (REPAIR_MULTIPLIER if self.engine.player.turnRepairing else 1)
 
         self.engine.handle_enemy_turns()
         game_data = self.engine.game_data

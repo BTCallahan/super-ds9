@@ -1,5 +1,6 @@
 from coords import Coords, AnyCoords
 from typing import Dict, Tuple
+from data_globals import ENERGY_REGEN_PER_TURN, REPAIR_MULTIPLIER
 from message_log import MessageLog
 from game_data import GameData
 from starship import Starship
@@ -47,6 +48,7 @@ class Engine:
 
             if entity.sectorCoords == self.player.sectorCoords and entity.ai and entity.isAlive and not entity.isDerelict:
                 entity.ai.perform()
+                entity.energy += ENERGY_REGEN_PER_TURN * (REPAIR_MULTIPLIER if entity.turnRepairing else 1)
                 
         self.game_data.set_condition()
 

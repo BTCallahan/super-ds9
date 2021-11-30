@@ -57,3 +57,8 @@ def getBeamChar(x, y):
     m = atan2(x / y) * 4 / pi
     return beam_chars[floor(m)]
 
+def safe_division(n:IntOrFloat, d:IntOrFloat, return_number:IntOrFloat=0.0):
+    if d == 0.0:
+        return return_number
+    return n / d
+    

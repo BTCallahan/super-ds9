@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from collections import defaultdict
-from typing import Union
+from typing import Union, TypeVar
 import colors
 
 string_or_int = Union[int,str]
@@ -43,3 +43,10 @@ PLANET_TYPES = (PlanetHabitation.PLANET_BARREN, PlanetHabitation.PLANET_HOSTILE,
 
 LOCAL_ENERGY_COST = 100
 SECTOR_ENERGY_COST = 500
+ENERGY_REGEN_PER_TURN = 100
+REPAIR_MULTIPLIER = 3
+
+DAMAGE_VARATION_BEAM = 0.025
+DAMAGE_VARATION_CANNOM = 0.075
+DAMAGE_VARATION_TORPEDO = 0.1
+DAMAGE_VARATION_EXPLOSION = 0.25

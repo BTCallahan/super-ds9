@@ -76,6 +76,9 @@ class Order:
 
         raise NotImplementedError()
     
+    def __hash__(self) -> int:
+        return hash((self.entity))
+    
     @property
     def game_data(self):
         return self.entity.game_data
@@ -96,6 +99,9 @@ class WarpOrder(Order):
 
         self.x, self.y = x,y
         # TODO: Implement warp speed
+    
+    def __hash__(self):
+        return hash((self.entity, self.heading, self.distance, self.x, self.y))
     
     @classmethod
     def from_coords(cls, entity:Starship, x:int, y:int):
@@ -183,6 +189,9 @@ class MoveOrder(Order):
         self.coord_list = tuple([Coords(co.x, co.y) for co in self.game_data.engine.get_lookup_table(direction_x=x_, direction_y=y_)][:ceil(distance)])
 
         self.ships = {ship.localCoords.create_coords() : ship for ship in self.entity.game_data.grapShipsInSameSubSector(self.entity) if ship.localCoords in self.coord_list}
+    
+    def __hash__(self):
+        return hash((self.entity, self.heading, self.distance, self.x, self.y, self.x_aim, self.y_aim))
     
     @classmethod
     def from_coords(cls, entity:Starship, x:int, y:int):
@@ -303,7 +312,10 @@ class PhaserOrder(Order):
         super().__init__(entity)
         self.amount = min(entity.energy, amount, entity.shipData.maxWeapEnergy)
         self.target = target
-        self.targets = targets
+        self.targets = targets if targets else ()
+    
+    def __hash__(self):
+        return hash((self.entity, self.amount, self.target, self.targets))
     
     @classmethod
     def single_target(cls, entity:Starship, amount:int, target:Starship):
@@ -315,7 +327,7 @@ class PhaserOrder(Order):
 
     @property
     def multi_targets(self):
-        return self.targets is not None
+        return not self.targets
     
     def perform(self) -> None:
 
@@ -357,6 +369,9 @@ class TorpedoOrder(Order):
         self.coord_list = tuple([Coords(co.x+entity.localCoords.x, co.y+entity.localCoords.y) for co in self.game_data.engine.get_lookup_table(direction_x=x_aim, direction_y=y_aim, normalise_direction=False)])
 
         self.ships = {ship.localCoords.create_coords() : ship for ship in self.entity.game_data.grapShipsInSameSubSector(self.entity) if ship.localCoords in self.coord_list and ship.isAlive}
+    
+    def __hash__(self):
+        return hash((self.entity, self.heading, self.amount, self.x, self.y, self.x_aim, self.y_aim, self.coord_list))
     
     @classmethod
     def from_coords(cls, entity:Starship, amount:int, x:int, y:int):
@@ -430,6 +445,9 @@ class DockOrder(Order):
         self.undock = not entity.docked
         self.ships = self.entity.game_data.grapShipsInSameSubSector(self.entity)
     
+    def __hash__(self) -> int:
+        return hash((self.planet, self.undock, self.ships))
+    
     def can_be_carried_out(self) -> bool:
         if self.undock:
             return True
@@ -456,6 +474,9 @@ class RechargeOrder(Order):
     def __init__(self, entity:Starship, amount:int) -> None:
         super().__init__(entity)
         self.amount = amount
+    
+    def __hash__(self) -> int:
+        return hash((self.entity, self.amount))
     
     def perform(self) -> None:
 
@@ -489,6 +510,9 @@ class RepairOrder(Order):
     def __init__(self, entity:Starship, amount:int) -> None:
         super().__init__(entity)
         self.amount = amount
+        
+    def __hash__(self) -> int:
+        return hash((self.entity, self.amount, True))
     
     def perform(self) -> None:
         self.entity.repair(self.amount)
@@ -500,6 +524,9 @@ class SelfDestructOrder(Order):
     def __init__(self, entity: Starship) -> None:
         super().__init__(entity)
         self.ships = self.game_data.grapShipsInSameSubSector(self.entity)
+
+    def __hash__(self) -> int:
+        return hash((self.entity, self.ships))
 
     def perform(self) -> None:
         if self.entity.isControllable:

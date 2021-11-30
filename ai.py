@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import Counter, OrderedDict
 from random import choice, choices
 from typing import TYPE_CHECKING, List, Optional, Tuple
-from data_globals import PlanetHabitation
+from data_globals import SECTOR_ENERGY_COST, PlanetHabitation
 
 from order import MoveOrder, Order, PhaserOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
 
@@ -43,6 +43,9 @@ class HostileEnemy(BaseAi):
         if not self.target:
             self.target = self.game_data.player
         
+        
+        order_dict = Counter([])
+        
         if not self.target.isAlive:
             return
         order:Optional[Order] = None
@@ -63,43 +66,49 @@ class HostileEnemy(BaseAi):
             
             player_is_present = self.target is self.game_data.player
             
-            not_empty = self.entity.energy > 0
+            has_energy = self.entity.energy > 0
             
             if player_is_present:
             
-                ship, shield_damage, hull_damage, killed = self.entity.calcSelfDestructDamage(self.target)
+                averaged_shield, averaged_hull, averaged_shield_damage, averaged_hull_damage, kill = self.entity.calcSelfDestructDamage(self.target, scan=scan)
                 
-                self_destruct = (hull_damage + (1000 if killed else 0)) * (1 - self.entity.hull_percentage)
+                
+                
+                self_destruct_damage = (averaged_hull_damage + (1000 if kill else 0)) * (1 - self.entity.hull_percentage)
+            
+                self_destruct = SelfDestructOrder(self.entity)
+                
+                order_dict[self_destruct] = self_destruct_damage
             
                 if self.entity.ship_can_fire_torps and self.entity.checkTorpedoLOS(self.entity.game_data.player):
 
-                    fireTorp = self.entity.simulateTorpedoHit(self.target)
+                    averaged_shields, averaged_hull, shield_damage, hull_damage, kill = self.entity.simulateTorpedoHit(self.target, 10)
 
-                    extraDamChance = 1.0 - min(scan["shields"] * 2.0 / self.target.shipData.maxShields, 1.0)
-
-                    #to hit: (4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
-
-                    #assume that:
-                    #player has 1000 max shields and 350 shields
-                    #attacker has 80% trop system
-                    #attacker has 60% sensor system
-                    #player has 85% impulsive system
-                    #distance is 5.75 units
-
-                    #1000 / 350 + 0.8 + 0.6 - 0.85 + (5.75 * 0.25)
-                    #2.857142857142857 + 1.4 - 0.85 + 1.4375
-                    #4.257142857142857 - 2.2875
-                if not_empty:
+                    torpedo = TorpedoOrder.from_coords(
+                        self.entity, min(self.entity.torps[self.entity.getMostPowerfulTorpAvaliable], self.entity.shipData.maxTorps), self.target.localCoords.x, self.target.localCoords.y
+                    )
+                    
+                    order_dict[torpedo] = 100 * round(shield_damage + hull_damage + (1000 if kill else 0))
+                    
+                if has_energy:
                     if self.entity.sysEnergyWep.isOpperational:
-                        firePhaser = self.entity.simulatePhaserHit(self.target, 10)
+                        energy_to_use = min(self.entity.shipData.maxWeapEnergy, self.entity.energy)
+                        averaged_shields, averaged_hull, shield_damage, hull_damage, kill = self.entity.simulatePhaserHit(self.target, 10, energy_to_use)
                         #firePhaser = (s.sysEnergyWeap.getEffectiveValue + s.sysSensors.getEffectiveValue - scan[5]) * 10
                         #assume that:
                         #attacker has
-                    if self.entity.sysImpulse.isOpperational:
+                        energy_weapon = PhaserOrder(self.entity, energy_to_use, target=self.target)
+                        
+                        order_dict[energy_weapon] = 100 * round(shield_damage + hull_damage + (1000 if kill else 0))
+                        
+                    if self.entity.sysImpulse.isOpperational and self.entity.localCoords.distance(coords=self.target.localCoords) * 100 * self.entity.sysImpulse.affect_cost_multiplier <= self.entity.energy:
                         hull_percentage = scan["hull"] / self.target.shipData.maxHull
                         shields_percentage = scan["shields"] / self.target.hull_percentage
                         
-                        ram = (self.entity.sysImpulse.getEffectiveValue / (self.entity.hull_percentage + self.entity.shields_percentage) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
+                        ram_damage = round(self.entity.sysImpulse.getEffectiveValue / (self.entity.hull_percentage + self.entity.shields_percentage) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
+                        
+                        ram = MoveOrder.from_coords(self.entity, self.target.localCoords.x, self.target.localCoords.y)
+                        order_dict[ram] = ram_damage
             else:
                 
                 ships_in_same_system = self.game_data.grapShipsInSameSubSector(self.entity)
@@ -109,13 +118,20 @@ class HostileEnemy(BaseAi):
                 
                 if allied_ships_in_same_system or system.friendlyPlanets == 0:
                 
-                    unopressed_planets = tuple(find_unopressed_planets(self.entity.game_data, self.entity))
+                    unopressed_planets = tuple(planet for planet in find_unopressed_planets(self.entity.game_data, self.entity) if self.entity.sectorCoords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sysWarp.affect_cost_multiplier <= self.entity.energy)
 
                     number_of_unoppressed_planets = len(unopressed_planets)
                     
                     if number_of_unoppressed_planets == 1:
                         
-                        opress = self.entity.sectorCoords.distance(unopressed_planets[0])
+                        planet = unopressed_planets[0]
+                        
+                        energy_cost = self.entity.sectorCoords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sysWarp.affect_cost_multiplier
+                            
+                        warp_to = WarpOrder.from_coords(self.entity, planet.x, planet.y)
+                        
+                        order_dict[warp_to] = self.entity.energy - energy_cost
+                        
                     elif number_of_unoppressed_planets > 1:
 
                         planet_counter = Counter(unopressed_planets)
@@ -126,20 +142,30 @@ class HostileEnemy(BaseAi):
                             k for k,v in planet_counter.items() if v == highest
                         ]
                         
-                        most_common.sort(key=lambda coords: coords.distance(self.entity.sectorCoords), reverse=True)
+                        most_common.sort(key=lambda coords: coords.distance(coords=self.entity.sectorCoords), reverse=True)
 
-                        opress =  self.entity.sectorCoords.distance(most_common[0])
+                        planet = most_common[0]
+                        
+                        warp_to = WarpOrder.from_coords(self.entity, planet.x, planet.y)
+                        
+                        energy_cost = self.entity.sectorCoords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sysWarp.affect_cost_multiplier
+                        
+                        order_dict[warp_to] = self.entity.energy - energy_cost
                     
-            if not_empty and self.entity.sysShield.isOpperational:
-                    
-                recharge = (self.entity.get_max_shields - self.entity.shields)
+            if has_energy and self.entity.sysShield.isOpperational:
+                
+                recharge_amount = self.entity.get_max_shields - self.entity.shields
+                
+                recharge= RechargeOrder(self.entity, recharge_amount)
+                                
+                order_dict[recharge] = recharge_amount * 10
                 
             #total = fireTorp + firePhaser + recharge + repair
 
             #if self.entity.game_data.player.sectorCoords != self.entity.sectorCoords:
-
             
             
+            """
             order_dict = {
                 TorpedoOrder : round(fireTorp * 100),
                 PhaserOrder : round(firePhaser * 100),
@@ -149,6 +175,7 @@ class HostileEnemy(BaseAi):
                 MoveOrder : round(ram),
                 SelfDestructOrder : round(self_destruct)
             }
+            """
             
             hightest = max(order_dict.values())
             
@@ -158,13 +185,9 @@ class HostileEnemy(BaseAi):
                 }
             )
             
-            ch = choices(tuple(order_counter.keys()), weights=tuple(order_counter.values()))[0]
-            
+            order = choices(tuple(order_counter.keys()), weights=tuple(order_counter.values()))[0]
+            """
             if ch is TorpedoOrder:
-
-                """
-                ktValue = max((1, round(0, (scan["shields"] + scan["hull"]) / torpedo_types[self.entity.torpedoLoaded].damage)))
-                """
                 
                 order = TorpedoOrder.from_coords(self.entity, amount=self.entity.shipData.torpTubes, x=self.target.localCoords.x, y=self.target.localCoords.y)
                 #finsih this later
@@ -182,5 +205,6 @@ class HostileEnemy(BaseAi):
                 co = planet_counter.most_common(1)[0][0]
 
                 order = WarpOrder(self.entity, co.x, co.y)
+            """
             
         order.perform()

@@ -274,8 +274,11 @@ def print_ship_info(
     
     for n, k, i in zip(names, keys, range(len(keys))):
 
+        scanned = scan[k]
         #k = keys[i-(s+3)]
-        console.print(x=x+2, y=y+i+end, string=f"{n:>16}{scan[k]:7.2%}")
+        n__n = f"{n:>16}"
+        s__s = f"{scanned:7.2%}"
+        console.print(x=x+2, y=y+i+end, string=f"{n__n}{s__s}")
 
     '''
     info = {
