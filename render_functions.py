@@ -15,29 +15,12 @@ if TYPE_CHECKING:
     from tcod import Console
     from game_data import GameData
 
-
-
-class Condition(Enum):
-
-    GREEN = auto()
-    YELLOW = auto()
-    BLUE = auto()
-    RED = auto()
-
-conditions: Dict[Condition,Tuple[str, Tuple[int,int,int]]] = {
-    Condition.GREEN : ("CONDITION GREEN", colors.alert_green),
-    Condition.YELLOW : ("CONDITION YELLOW", colors.alert_yellow),
-    Condition.BLUE : ("CONDITION BLUE", colors.alert_blue),
-    Condition.RED : ("CONDITION RED", colors.alert_red)
-}
-
-def get_condition(gamedata:GameData):
-
-    return conditions[gamedata.condition]
-
 planet_color_dict = {
     PlanetHabitation.PLANET_BARREN : colors.planet_barren,
+    PlanetHabitation.PLANET_BOMBED_OUT : colors.planet_barren,
     PlanetHabitation.PLANET_HOSTILE : colors.planet_hostile,
+    PlanetHabitation.PLANET_ANGERED : colors.planet_hostile,
+    PlanetHabitation.PLANET_PREWARP : colors.planet_hostile,
     PlanetHabitation.PLANET_FRIENDLY : colors.planet_allied
 }
 
@@ -48,7 +31,18 @@ def print_subsector(console:Console, gamedata:GameData):
     width = config_object.subsector_width
     heigth = config_object.subsector_height
 
-    condition, condition_color = conditions[gamedata.condition]
+    condition, condition_color = gamedata.condition_str, gamedata.condition_color
+
+    player = gamedata.player
+    
+    console.draw_frame(
+        x=x + (player.local_coords.x * 2),
+        y=y + (player.local_coords.y * 2),
+        width=3,
+        height=3,
+        fg=colors.yellow,
+        clear=False
+    )
 
     console.draw_frame(
         x=x,
@@ -60,8 +54,6 @@ def print_subsector(console:Console, gamedata:GameData):
         bg=colors.black
         )
 
-    player = gamedata.player
-
     sector:SubSector = player.get_sub_sector
 
     for c, star in sector.stars_dict.items():
@@ -70,7 +62,7 @@ def print_subsector(console:Console, gamedata:GameData):
             x=x + (c.x * 2) + 1, 
             y=y + (c.y * 2) + 1, 
             string="*", 
-        fg=colors.star_yellow
+        fg=star.color
         )
 
     ships = gamedata.ships_in_same_sub_sector_as_player
@@ -98,16 +90,16 @@ def print_subsector(console:Console, gamedata:GameData):
     for s in ships:
 
         console.print(
-            x=x + (s.localCoords.x * 2) + 1, 
-            y=y + (s.localCoords.y * 2) + 1, 
-            string=s.shipData.symbol, 
+            x=x + (s.local_coords.x * 2) + 1, 
+            y=y + (s.local_coords.y * 2) + 1, 
+            string=s.ship_data.symbol, 
             fg=colors.red)
-
+    
     console.print(
-        x=x + (player.localCoords.x * 2) + 1, 
-        y=y + (player.localCoords.y * 2) + 1, 
-        string=player.shipData.symbol, fg=colors.lime)
-
+        x=x + (player.local_coords.x * 2) + 1, 
+        y=y + (player.local_coords.y * 2) + 1, 
+        string=player.ship_data.symbol, fg=colors.lime)
+    
 def print_mega_sector(console:Console, gamedata:GameData):
     """
 *--------------
@@ -124,7 +116,7 @@ def print_mega_sector(console:Console, gamedata:GameData):
     sector_width=config_object.sector_width
     sector_height=config_object.sector_height
 
-    player_coords = gamedata.player.sectorCoords
+    player_coords = gamedata.player.sector_coords
 
     console.draw_frame(x=x, y=y, width=1+sector_width*5, height=1+sector_height*4, title="Sub-Sectors", clear=False)
 
@@ -155,7 +147,7 @@ def print_mega_sector(console:Console, gamedata:GameData):
 
             console.print(
                 x=x+j2+2, y=y+i2,
-                string=f"*{sector_x.number_of_stars}", fg=colors.yellow
+                string=f"*{sector_x.total_stars}", fg=colors.yellow
             )
 
             big_ships = sector_x.bigShips
@@ -204,7 +196,7 @@ def print_ship_info(
     scan:Dict[str,Any],
     precision:int):
 
-    scan = self.scan_this_ship(precision)
+    #scan = self.scan_this_ship(precision)
 
     #info = OrderedDict()
 
@@ -215,19 +207,12 @@ def print_ship_info(
         width=width, height=height, 
         title=self.name
     )
-    """
-    f"{scan['shields']: =4}/{self.shipData.maxShields: =4}",
-            f"{scan['hull']: =4}/{self.shipData.maxHull: =4}",
-            f"{scan['energy']: =4}/{self.shipData.maxEnergy: =4}",
-            f"{scan['able_crew']: =4}/{self.shipData.maxCrew: =4}",
-            f"{scan['injured_crew']: =4}/{self.shipData.maxCrew: =4}",
-    """
 
     y_plus = 2
 
     console.print(
         x=x+2, y=y+2,
-        string=f"Position: {self.localCoords.x}, {self.localCoords.y}" 
+        string=f"Position: {self.local_coords.x}, {self.local_coords.y}" 
     )
 
     for i, n, d, m in zip(
@@ -243,34 +228,34 @@ def print_ship_info(
             scan['injured_crew']
         ),
         (
-            self.shipData.maxShields,
-            self.shipData.maxHull,
-            self.shipData.maxEnergy, 
-            self.shipData.maxCrew,
-            self.shipData.maxCrew
+            self.ship_data.max_shields,
+            self.ship_data.max_hull,
+            self.ship_data.max_energy, 
+            self.ship_data.max_crew,
+            self.ship_data.max_crew
         )
     ):
         console.print(x=x+2, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
 
-    from torpedo import torpedo_types
+    from torpedo import ALL_TORPEDO_TYPES
 
     s = 11
 
-    if self.shipData.shipTypeCanFireTorps:
-        max_torps = self.shipData.maxTorps 
-        console.print(x=x+2, y=y+s, string=f"Torpedo Tubes: {self.shipData.torpTubes}" )
+    if self.ship_data.ship_type_can_fire_torps:
+        max_torps = self.ship_data.max_torpedos 
+        console.print(x=x+2, y=y+s, string=f"Torpedo Tubes: {self.ship_data.torp_tubes}" )
         console.print(x=x+2, y=y+s+1, string=f"Max Torps: {max_torps: =2}")
         s+=2
-        for i, t in enumerate(self.shipData.torpTypes):
-            console.print(x=x+2, y=y+s, string=f"{torpedo_types[t].capName + ':':>16}{self.torps[t]: =2}"
+        for i, t in enumerate(self.ship_data.torp_types):
+            console.print(x=x+2, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].capName + ':':>16}{self.torps[t]: =2}"
             )
             s+=1
     
-    names, keys = self.shipData.system_names, self.shipData.system_keys
+    names, keys = self.ship_data.system_names, self.ship_data.system_keys
 
-    end = s+6
+    end = s+2
 
-    console.print(x=x+2, y=y+end-1, string="Systems")
+    console.print(x=x+2, y=y+end-1, string="-- Systems --")
     
     for n, k, i in zip(names, keys, range(len(keys))):
 
@@ -279,32 +264,7 @@ def print_ship_info(
         n__n = f"{n:>16}"
         s__s = f"{scanned:7.2%}"
         console.print(x=x+2, y=y+i+end, string=f"{n__n}{s__s}")
-
-    '''
-    info = {
-        "name" : self.name,
-        "shields" : f"{scan['shields']: =4}/{self.shipData.maxShields: =4}",
-        "hull" : f"{scan['hull']: =4}/{self.shipData.maxHull: =4}",
-        "energy" : f"{scan['energy']: =4}/{self.shipData.maxEnergy: =4}",
-        "able_crew" : f"{scan['able_crew']: =4}/{self.shipData.maxCrew: =4}",
-        "injured_crew" : f"{scan['injured_crew']: =4}/{self.shipData.maxCrew: =4}",
-        "sys_warp" : f"{scan['sys_warp']:7.2%}",
-        "sys_impulse" : f"{scan['sys_impulse']:7.2%}",
-        "sys_sensors" : f"{scan['sys_sensors']:7.2%}",
-        "sys_energy_weapon" : f"{scan['sys_energy_weapon']:7.2%}",
-        "sys_shield" : f"{scan['sys_shield']:7.2%}",
-    }
     
-    if self.shipTypeCanFireTorps:
-        torps = scan['number_of_torps']
-        for t, n in torps:
-            info[t] = f"{n: =2}/{self.shipData.maxTorps: =4}"
-        
-        info["sys_torpedo"] = f"{scan['sys_torpedo']}"
-
-    return info
-    '''
-
 def render_own_ship_info(console: Console, gamedata:GameData):
 
     start_x = config_object.your_ship_display_x
@@ -329,11 +289,11 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
     width = config_object.other_ship_display_end_x - config_object.other_ship_display_x
     height = config_object.other_ship_display_end_y - config_object.other_ship_display_y
     
-    ship_or_planet = gamedata.selected_ship_or_planet
+    ship_planet_or_star = gamedata.selected_ship_planet_or_star
 
-    if ship_or_planet:
+    if ship_planet_or_star:
 
-        if isinstance(ship_or_planet, Starship):
+        if isinstance(ship_planet_or_star, Starship):
 
             print_ship_info(
                 console=console,
@@ -341,12 +301,12 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 y=start_y,
                 width=width,
                 height=height,
-                self=ship_or_planet, 
+                self=ship_planet_or_star, 
                 scan=gamedata.ship_scan,
-                precision=gamedata.player.determinPrecision
+                precision=gamedata.player.determin_precision
             )
 
-        elif isinstance(ship_or_planet, Planet):
+        elif isinstance(ship_planet_or_star, Planet):
 
             console.draw_frame(
                 x=start_x,
@@ -359,30 +319,30 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
             console.print(
                 x=start_x+3,
                 y=start_y+4,
-                string=f"Planet at {ship_or_planet.localCoords.x}, {ship_or_planet.localCoords.y}"
+                string=f"Planet at {ship_planet_or_star.local_coords.x}, {ship_planet_or_star.local_coords.y}"
             )
 
             planet_status = ""
 
-            if ship_or_planet.infastructure == 0.0:
+            if ship_planet_or_star.infastructure == 0.0:
 
                 planet_status = "Uninhabited"
 
 
-            elif ship_or_planet.planet_habbitation == PlanetHabitation.PLANET_PREWARP:
+            elif ship_planet_or_star.planet_habbitation == PlanetHabitation.PLANET_PREWARP:
 
                 planet_status = "Pre-Warp"
 
             else:
 
-                planet_status = "Hostile" if ship_or_planet.planet_habbitation in {PlanetHabitation.PLANET_ANGERED, PlanetHabitation.PLANET_HOSTILE} else "Friendly"
+                planet_status = "Hostile" if ship_planet_or_star.planet_habbitation in {PlanetHabitation.PLANET_ANGERED, PlanetHabitation.PLANET_HOSTILE} else "Friendly"
 
             console.print(
                 x=start_x+3,
                 y=start_y+6,
                 string=f"Planet status: {planet_status}"
             )
-        elif isinstance(ship_or_planet, Star):
+        elif isinstance(ship_planet_or_star, Star):
 
             console.draw_frame(
                 x=start_x,
@@ -392,10 +352,12 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 title="Star"
             )
 
-            console.print(
+            console.print_rect(
                 x=start_x+3,
                 y=start_y+4,
-                string=f"Star at {ship_or_planet.localCoords.x}, {ship_or_planet.localCoords.y}"
+                string=f"{ship_planet_or_star.name} star at {ship_planet_or_star.local_coords.x}, {ship_planet_or_star.local_coords.y}",
+                height=4,
+                width=width - (3 + 2)
             )
 
     else:
@@ -438,12 +400,12 @@ def render_position(console: Console, gameData:GameData):
     console.print(
         x=config_object.position_info_x+1,
         y=config_object.position_info_y+1,
-        string= f"Local pos: {gameData.player.localCoords}"
+        string= f"Local pos: {gameData.player.local_coords}"
     )
     console.print(
         x=config_object.position_info_x+1,
         y=config_object.position_info_y+2,
-        string= f"Sector pos: {gameData.player.sectorCoords}"
+        string= f"Sector pos: {gameData.player.sector_coords}"
     )
 
     pass
@@ -466,23 +428,23 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
             try:
                 planet = subsector.planets_dict[co]
 
-                game_data.selected_ship_or_planet = planet
+                game_data.selected_ship_planet_or_star = planet
 
                 return True
             except KeyError:
                 try:
                     star = subsector.stars_dict[co]
-                    game_data.selected_ship_or_planet = star
+                    game_data.selected_ship_planet_or_star = star
                     return True
                 except KeyError:
                     
-                    ships_in_same_sector = game_data.grapShipsInSameSubSector(game_data.player)
+                    ships_in_same_sector = game_data.grab_ships_in_same_sub_sector(game_data.player)
 
                     for ship in ships_in_same_sector:
-                        if ship.localCoords.x == x_ajusted and ship.localCoords.y == y_ajusted:
-                            if game_data.selected_ship_or_planet is not ship:
-                                game_data.selected_ship_or_planet = ship
-                                game_data.ship_scan = ship.scan_this_ship(game_data.player.determinPrecision)
+                        if ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted:
+                            if game_data.selected_ship_planet_or_star is not ship:
+                                game_data.selected_ship_planet_or_star = ship
+                                game_data.ship_scan = ship.scan_this_ship(game_data.player.determin_precision)
                             #self.engine.game_data.selectedEnemyShip = ship
                             return True
         return False
@@ -524,7 +486,6 @@ def select_sector_space(event: "tcod.event.MouseButtonDown"):
         print(f"{tile.x} {tile.y} {x_ajusted} {y_ajusted}")
         return x_ajusted, y_ajusted
     return False, False
-
 
 def is_click_within_bounds(event: "tcod.event.MouseButtonDown", *, x:int, y:int, height:int, width:int):
 

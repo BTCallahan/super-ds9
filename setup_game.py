@@ -105,21 +105,21 @@ def setUpGame(
     #global GRID, PLAYER, TOTAL_STARSHIPS
 
     gameDataGlobal = GameData(
-        subsecsX=config_object.sector_width,
-        subsecsY=config_object.sector_height,
-        subsecSizeX=config_object.subsector_width,
-        subsecSizeY=config_object.subsector_height,
-        easyAim=easy_aim,
-        easyMove=easy_move,
+        subsecs_x=config_object.sector_width,
+        subsecs_y=config_object.sector_height,
+        subsec_size_x=config_object.subsector_width,
+        subsec_size_y=config_object.subsector_height,
+        easy_aim=easy_aim,
+        easy_move=easy_move,
         two_d_movment=two_d_movment,
-        easyWarp=easy_warp,
+        easy_warp=easy_warp,
         torpedo_warning=torpedo_warning,
         crash_warning=crash_warning,
         noOfAdFighters=10,
         noOfFighters=12,
         noOfCruisers=5,
         noOfBattleships=3,
-        turnsLeft=80,
+        turns_left=80,
         auto_destruct_code=config_object.auto_destruct_code
     )
 

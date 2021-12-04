@@ -44,11 +44,11 @@ class Engine:
 
     def handle_enemy_turns(self):
 
-        for entity in self.game_data.enemyShipsInAction:
+        for entity in self.game_data.all_enemy_ships:
 
-            if entity.sectorCoords == self.player.sectorCoords and entity.ai and entity.isAlive and not entity.isDerelict:
+            if entity.sector_coords == self.player.sector_coords and entity.ai and entity.is_alive and not entity.is_derelict:
                 entity.ai.perform()
-                entity.energy += ENERGY_REGEN_PER_TURN * (REPAIR_MULTIPLIER if entity.turnRepairing else 1)
+                entity.repair()
                 
         self.game_data.set_condition()
 

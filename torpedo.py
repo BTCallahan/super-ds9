@@ -47,7 +47,7 @@ TORP_TYPE_PHOTON = Torpedo('photon', 75, 0.5)
 TORP_TYPE_QUANTUM = Torpedo('quantum', 100, 0.75)
 """
 
-torpedo_types: Dict[TorpedoType,Torpedo] = {
+ALL_TORPEDO_TYPES: Dict[TorpedoType,Torpedo] = {
     TorpedoType.TORP_TYPE_NONE : Torpedo('', 0, 0.0),
     TorpedoType.TORP_TYPE_POLARON : Torpedo('polaron', 240, 0.35),
     TorpedoType.TORP_TYPE_PHOTON : Torpedo('photon', 300, 0.5), 
@@ -60,7 +60,7 @@ def find_most_powerful_torpedo(iter_torpedo_type:Iterable[TorpedoType]):
     damage = 0
 
     for t in iter_torpedo_type:
-        torp = torpedo_types[t]
+        torp = ALL_TORPEDO_TYPES[t]
         if torp.damage > damage:
             torp_type = t
             damage = torp.damage
