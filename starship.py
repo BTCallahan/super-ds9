@@ -234,10 +234,14 @@ class ShipData:
 
     @property
     def nation(self):
+        if self.nation_code not in all_nations:
+            raise KeyError(f"The nation code {self.nation_code} was not found in the dictionary of nations. Valid code are: {all_nations.keys()}")
+    
         return all_nations[self.nation_code]
+        
 
     def create_name(self):
-        return choice(self.nation.ship_names)
+        return self.nation.generate_ship_name()
 
     @property
     @lru_cache
@@ -257,6 +261,7 @@ class ShipData:
 
 
 DEFIANT_CLASS = ShipData(
+    nation_code="FEDERATION",
     ship_type=ShipTypes.TYPE_ALLIED, 
     symbol=SYM_PLAYER, 
     max_shields=2700, 
@@ -274,6 +279,7 @@ DEFIANT_CLASS = ShipData(
     nameGenerator=genNameDefiant)
 
 RESUPPLY = ShipData(
+    nation_code="FEDERATION",
     ship_type=ShipTypes.TYPE_ALLIED, 
     symbol=SYM_RESUPPLY, 
     max_shields=1200, 
@@ -287,6 +293,7 @@ RESUPPLY = ShipData(
     nameGenerator=genNameResupply)
 
 K_VORT_CLASS = ShipData(
+    nation_code="DOMINION",
     ship_type=ShipTypes.TYPE_ALLIED, 
     symbol=SYM_PLAYER, 
     max_shields=1900, 
@@ -304,6 +311,7 @@ K_VORT_CLASS = ShipData(
     nameGenerator=genNameKVort)
 
 ATTACK_FIGHTER = ShipData(
+    nation_code="DOMINION",
     ship_type=ShipTypes.TYPE_ENEMY_SMALL, 
     symbol=SYM_FIGHTER, 
     max_shields=900,
@@ -317,6 +325,7 @@ ATTACK_FIGHTER = ShipData(
     nameGenerator=genNameAttackFighter)
 
 ADVANCED_FIGHTER = ShipData(
+    nation_code="DOMINION",
     ship_type=ShipTypes.TYPE_ENEMY_SMALL, 
     symbol=SYM_AD_FIGHTER, 
     max_shields=1000,
@@ -333,6 +342,7 @@ ADVANCED_FIGHTER = ShipData(
     nameGenerator=genNameAdvancedFighter)
 
 CRUISER = ShipData(
+    nation_code="DOMINION",
     ship_type=ShipTypes.TYPE_ENEMY_LARGE, 
     symbol=SYM_CRUISER, 
     max_shields=3000, 
@@ -349,6 +359,7 @@ CRUISER = ShipData(
     nameGenerator=genNameCruiser)
 
 BATTLESHIP = ShipData(
+    nation_code="DOMINION",
     ship_type=ShipTypes.TYPE_ENEMY_LARGE, 
     symbol=SYM_BATTLESHIP, 
     max_shields=5500, 
@@ -365,6 +376,7 @@ BATTLESHIP = ShipData(
     nameGenerator=genNameBattleship)
 
 HIDEKI = ShipData(
+    nation_code="CARDASSIAN",
     ship_type=ShipTypes.TYPE_ENEMY_SMALL,
     symbol=SYM_AD_FIGHTER,
     max_shields=1500,
@@ -396,7 +408,9 @@ class Starship:
     ship_data:ShipData, 
     ai_cls: Type[BaseAi],
     xCo, yCo, 
-    secXCo, secYCo
+    secXCo, secYCo,
+    *,
+    name:Optional[str]=None
     ):
         def set_torps(torpedo_types_:Iterable[TorpedoType], max_torps:int):
             tDict: Dict[TorpedoType, int] = {}
@@ -431,7 +445,7 @@ class Starship:
         self.sys_sensors = StarshipSystem('Sensors:')
         self.sys_warp_core = StarshipSystem('Warp Core:')
 
-        self.name = self.ship_data.nation.ship_name(self.shipData.shipNameGenerator()) 
+        self.name = name if name else self.ship_data.nation.generate_ship_name()
 
         self.docked = False
 

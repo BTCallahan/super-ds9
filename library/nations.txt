@@ -10,9 +10,7 @@
 # ADMIRAL_RANK_NAME
 # SHIP_NAMES: - optional a list of ship names seperated by commas. If not present, an randomly generaed number will be used
 # NATIONEND
-
 # feds have akira, Ambassador
-
 
 NATION:FEDERATION
 COLOR:50,45,235
@@ -39,7 +37,7 @@ Hoover,Dana,De Milo,Edison,
 Inquiry,Zheng He,
 Intrepid,Bellerophon,Voyager,
 Luna,Titan,
-Magee,Cabot,Shran,
+Magee,Sabot,Shran,
 Malachowski,Clarke,Sioux,
 Merced,Trieste,
 Miranda,Antares,Brattain,Lantree,Majestic,Nautilus,Reliant,Saratoga,ShirKahr,Sitak,Tian An Men,Trial,
@@ -67,6 +65,7 @@ Ticonderoga,Angelou,Centaur,Challenger
 SHIP_NAMES_END
 NATIONEND
 
+# Always put a '#' between nations
 
 NATION:KLINGON
 COLOR:231,50,12
@@ -78,7 +77,7 @@ SHIP_PREFIX:I.K.S.
 CONGRATULATIONS_TEXT:Qapah!
 CAPTAIN_RANK_NAME:Captain
 ADMIRAL_RANK_NAME:General
-K'Vort,B'rel,Buruk,Che'ta'Ch'Tang,Hegh'ta,Ki'tang,Koraga,Korinar,M'Char,Malpara,Ning'tao,Orantho,Pagh,Rotarran,Slivin,Vorn,Y'tem,
+SHIP_NAMES:K'Vort,B'rel,Buruk,Che'ta'Ch'Tang,Hegh'ta,Ki'tang,Koraga,Korinar,M'Char,Malpara,Ning'tao,Orantho,Pagh,Rotarran,Slivin,Vorn,Y'tem,
 Bortas,
 Devisor,Gr'oth,Klothos,
 K't'inga,Amar,B'Moth,T'Ong,
@@ -86,11 +85,11 @@ K'toch,
 Negh'Var,
 Par'tok,
 Qugh,
-Raptor, Somraw,
+Raptor,Somraw,
 Vor'cha,Bortas,Drovana,Maht-H'a,Qu'Vat,Toh'Kaht,Vor'nak
 SHIP_NAMES_END
 NATIONEND
-
+#
 NATION:ROMULAN
 COLOR:10,10,240
 NAME_LONG:Romulan Star Empire
@@ -108,9 +107,7 @@ Snipe,
 Valdore
 SHIP_NAMES_END
 NATIONEND
-
-# CU has all galor and hidiki class names from memory beta
-
+#
 NATION:CARDASSIAN
 COLOR:237,227,16
 NAME_LONG:Cardassian Union
@@ -124,7 +121,7 @@ SHIP_NAMES:Agiadon,Aldara,Arrestor,Bak'rikan,Borad,Bok'Nor,Braine,Bralek,Bremmo,
 Carorthad,Drakamair,Cond,Corarg,Cothaldrorn,Heril,Herthorn,Imgadrane,Irarthorn,Irathrane,Karaldrorn,Mahangren,Marirmane,Marirmarg,Mongrorn,Orkalay,Orkonil,Otheon,Tarirmarg,Thishugren,Thorkrand,Thrarim,Togard,Toralay,Torhne,Vormorn
 SHIP_NAMES_END
 NATIONEND
-
+#
 NATION:DOMINION
 COLOR:210,25,227
 NAME_LONG:Dominion
@@ -132,8 +129,10 @@ ENERGY_WEAPON_NAME:Phased Poleron
 CONGRATULATIONS_TEXT:Victory is life!
 CAPTAIN_RANK_NAME:Founder
 ADMIRAL_RANK_NAME:First
+SHIP_NAMES:NONE
+SHIP_NAMES_END
 NATIONEND
-
+#
 NATION:BORG
 COLOR:45,40,243
 NAME_LONG:Borg Collective
@@ -143,4 +142,9 @@ ENERGY_WEAPON_NAME:Plasma
 CONGRATULATIONS_TEXT:Efficent.
 CAPTAIN_RANK_NAME:Locutus
 ADMIRAL_RANK_NAME:Queen
+SHIP_NAMES:NONE
+SHIP_NAMES_END
 NATIONEND
+#
+#
+# 
