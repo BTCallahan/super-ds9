@@ -144,7 +144,7 @@ class HostileEnemy(BaseAi):
                 
                 system = self.entity.get_sub_sector
                 
-                if allied_ships_in_same_system or system.friendlyPlanets == 0:
+                if allied_ships_in_same_system or system.friendly_planets == 0:
                 
                     unopressed_planets = tuple(planet for planet in find_unopressed_planets(self.entity.game_data, self.entity) if self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier <= self.entity.energy)
 

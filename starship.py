@@ -187,8 +187,7 @@ class ShipData:
         ship_type:ShipTypes, symbol:str, max_shields:int, max_armor:int=0, max_hull:int, max_torps:int=0, 
         max_crew:int, max_energy:int, damage_control:float, torp_types:Optional[Iterable[TorpedoType]]=None, 
         torp_tubes:int=0,
-        max_weap_energy:int, warp_breach_dist:int=2, weapon_name:str, 
-        nameGenerator:Callable[[], str],
+        max_weap_energy:int, warp_breach_dist:int=2, 
         nation_code:str
     ):
         self.ship_type = ship_type
@@ -223,13 +222,10 @@ class ShipData:
         self.torp_tubes = torp_tubes
         self.max_weap_energy = max_weap_energy
         self.warp_breach_dist = warp_breach_dist
-        self.weapon_name = weapon_name
-        self.weapon_namePlural = self.weapon_name + 's'
-        self.shipNameGenerator = nameGenerator
 
         self.system_names, self.system_keys = get_system_names(
             has_torpedo_launchers= max_torps > 0 and torp_tubes > 0,
-            beam_weapon_name=self.weapon_namePlural
+            beam_weapon_name=self.nation.energy_weapon_beam_name_plural
         )
 
     @property
@@ -275,8 +271,7 @@ DEFIANT_CLASS = ShipData(
     torp_tubes=2, 
     max_weap_energy=800, 
     warp_breach_dist=2, 
-    weapon_name='Phaser', 
-    nameGenerator=genNameDefiant)
+    )
 
 RESUPPLY = ShipData(
     nation_code="FEDERATION",
@@ -289,8 +284,7 @@ RESUPPLY = ShipData(
     damage_control=0.2,
     max_weap_energy=200, 
     warp_breach_dist=5, 
-    weapon_name='Phaser', 
-    nameGenerator=genNameResupply)
+    )
 
 K_VORT_CLASS = ShipData(
     nation_code="DOMINION",
@@ -306,9 +300,8 @@ K_VORT_CLASS = ShipData(
     torp_tubes=1, 
     max_weap_energy=750, 
     warp_breach_dist=2, 
-    weapon_name='Disruptor', 
     #cloak_strength=0.875,
-    nameGenerator=genNameKVort)
+    )
 
 ATTACK_FIGHTER = ShipData(
     nation_code="DOMINION",
@@ -321,8 +314,7 @@ ATTACK_FIGHTER = ShipData(
     damage_control=0.15,
     max_weap_energy=600, 
     warp_breach_dist=2, 
-    weapon_name='Poleron', 
-    nameGenerator=genNameAttackFighter)
+    )
 
 ADVANCED_FIGHTER = ShipData(
     nation_code="DOMINION",
@@ -338,8 +330,7 @@ ADVANCED_FIGHTER = ShipData(
     torp_tubes=1, 
     max_weap_energy=650, 
     warp_breach_dist=2, 
-    weapon_name='Poleron', 
-    nameGenerator=genNameAdvancedFighter)
+    )
 
 CRUISER = ShipData(
     nation_code="DOMINION",
@@ -355,8 +346,7 @@ CRUISER = ShipData(
     torp_tubes=2, 
     max_weap_energy=875, 
     warp_breach_dist=3, 
-    weapon_name='Poleron', 
-    nameGenerator=genNameCruiser)
+    )
 
 BATTLESHIP = ShipData(
     nation_code="DOMINION",
@@ -372,8 +362,7 @@ BATTLESHIP = ShipData(
     torp_tubes=6, 
     max_weap_energy=950, 
     warp_breach_dist=5, 
-    weapon_name='Poleron', 
-    nameGenerator=genNameBattleship)
+    )
 
 HIDEKI = ShipData(
     nation_code="CARDASSIAN",
@@ -386,8 +375,6 @@ HIDEKI = ShipData(
     damage_control=0.2,
     max_weap_energy=700,
     warp_breach_dist=2,
-    weapon_name="Compresser",
-    nameGenerator=gen_name_cardassian
 )
 
 #refrence - DEFIANT_CLASS ATTACK_FIGHTER ADVANCED_FIGHTER CRUISER BATTLESHIP
@@ -440,12 +427,14 @@ class Starship:
         self.sys_warp_drive = StarshipSystem('Warp Dri:')
         self.sys_torpedos = StarshipSystem('Tubes:')
         self.sys_impulse = StarshipSystem('Impulse:')
-        self.sys_energy_weapon = StarshipSystem(self.ship_data.weapon_namePlural + ':')
+        self.sys_energy_weapon = StarshipSystem(f'{self.ship_data.nation.energy_weapon_beam_name_plural}:')
         self.sys_shield_generator = StarshipSystem('Shield:')
         self.sys_sensors = StarshipSystem('Sensors:')
         self.sys_warp_core = StarshipSystem('Warp Core:')
 
         self.name = name if name else self.ship_data.nation.generate_ship_name()
+        
+        self.proper_name = f"{self.ship_data.nation.ship_prefix} {name}" if self.ship_data.nation.ship_prefix else name
 
         self.docked = False
 
@@ -861,7 +850,7 @@ class Starship:
         random_varation = damage_type.damage_variation
         
         if random_varation > 0.0:
-            amount = round(amount * uniform(0.0, 1.0 - random_varation))
+            amount = round(amount * uniform(1.0 - random_varation, 1.0))
         
         old_scan = scan_dict if scan_dict else self.scan_this_ship(precision)
         
@@ -983,6 +972,8 @@ class Starship:
         message_log = gd.engine.message_log
         
         old_ship_status = self.ship_status
+        
+        ship_originaly_destroyed = old_ship_status in {STATUS_HULK, STATUS_OBLITERATED}
         
         new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage = self.calculate_damage(amount, damage_type=damage_type)
         
@@ -1164,7 +1155,7 @@ class Starship:
                     message_log.add_message('Warp drive damaged.')
                     
                 if energy_weapons_sys_damage > 0:
-                    message_log.add_message(f'{self.ship_data.weapon_name} emitters damaged.')
+                    message_log.add_message(f'{self.ship_data.nation.energy_weapon_beam_name} emitters damaged.')
                     
                 if sensors_sys_damage > 0:
                     message_log.add_message('Sensors damaged.')
@@ -1178,7 +1169,7 @@ class Starship:
                 if self.ship_type_can_fire_torps and torpedo_sys_damage > 0:
                     message_log.add_message('Torpedo launcher damaged.')
                 
-        else:
+        elif not ship_originaly_destroyed:
             wc_breach = (old_ship_status.is_active and new_ship_status is STATUS_OBLITERATED) or (random() > 0.85 and random() > self.sys_warp_drive.get_effective_value and random() > self.sys_warp_drive.integrety)
             
             if ship_is_player:
@@ -1193,6 +1184,11 @@ class Starship:
                 message_log.add_message(f"The {self.name} {'suffers a warp core breach' if wc_breach else 'is destroyed'}!")
                 
             self.destroy(text, warp_core_breach=wc_breach)
+        elif old_ship_status == STATUS_HULK and not ship_is_player:
+            
+            message_log.add_message(
+                "The remains of the ship disintrate under the onslaght!" if new_ship_status == STATUS_OBLITERATED else f"Peices of the {self.proper_name} break off."
+            )
         
     def repair(self):
         """This method handles repairing the ship after each turn. Here's how it works:
@@ -1277,7 +1273,6 @@ class Starship:
                 damage_type=damage_type
             )
             
-
             if hit:
                 
                 target_name = "We're" if target_is_player else f'The {enemy.name} is'
@@ -1287,7 +1282,7 @@ class Starship:
                     f"{target_name} hit!", fg=colors.orange
                 )
 
-                enemy.take_damage(amount * self.sys_energy_weapon.get_effective_value, f'Destroyed by a {self.ship_data.weapon_name} hit from the {self.name}.', damage_type=damage_type)
+                enemy.take_damage(amount * self.sys_energy_weapon.get_effective_value, f'Destroyed by a {self.ship_data.nation.energy_weapon_name} hit from the {self.name}.', damage_type=damage_type)
                 return True
             else:
                 gd.engine.message_log.add_message(

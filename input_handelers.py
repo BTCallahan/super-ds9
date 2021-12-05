@@ -152,7 +152,7 @@ class CommandEventHandler(MainGameEventHandler):
             text="(R)epair",
         )
         
-        p = self.engine.player.ship_data.weapon_namePlural
+        p = self.engine.player.ship_data.nation.energy_weapon_beam_name_plural
 
         self.phasers_button = ButtonBox(
             x=2+config_object.command_display_x,
@@ -187,54 +187,54 @@ class CommandEventHandler(MainGameEventHandler):
         )
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
-        
+        captain = self.engine.player.ship_data.nation.captain_rank_name
         if not select_ship_planet_star(self.engine.game_data, event):
             if self.warp_button.cursor_overlap(event):
                 self.warned_once = False
                 if not self.engine.player.sys_warp_drive.is_opperational:
-                    self.engine.message_log.add_message("Error: Warp engines are inoperative, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
 
                 elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
                 elif self.engine.player.docked:
-                    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
                 else:
                     return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
             
             elif self.move_button.cursor_overlap(event):
                 self.warned_once = False
                 if not self.engine.player.sys_impulse.is_opperational:
-                    self.engine.message_log.add_message("Error: Impulse systems are inoperative, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red)
 
                 elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
                 elif self.engine.player.docked:
-                    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
                 else:
                     return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
             
             elif self.shields_button.cursor_overlap(event):
                 self.warned_once = False
                 if not self.engine.player.sys_shield_generator.is_opperational:
-                    self.engine.message_log.add_message("Error: Shield systems are inoperative, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
 
                 elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
                 #elif self.engine.player.docked:
-                #    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
                 else:
                     return ShieldsHandler(self.engine)
                 
             elif self.phasers_button.cursor_overlap(event):
                 self.warned_once = False
                 if not self.engine.player.sys_energy_weapon.is_opperational:
-                    p = self.engine.player.ship_data.weapon_name
-                    self.engine.message_log.add_message(f"Error: {p} systems are inoperative, Captain", fg=colors.red)
+                    p = self.engine.player.ship_data.nation.energy_weapon_beam_name
+                    self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
                 elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
                 elif self.engine.player.docked:
-                    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
                 else:
                     return EnergyWeaponHandler(self.engine)
 
@@ -242,9 +242,9 @@ class CommandEventHandler(MainGameEventHandler):
                 planet = self.engine.game_data.selected_ship_planet_or_star
 
                 if not planet and not isinstance(planet, Planet):
-                    self.engine.message_log.add_message("Error: No planet selected, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: No planet selected, {captain}.", fg=colors.red)
                 #elif self.engine.player.docked:
-                #    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
 
                 else:
                     self.warned_once = False
@@ -281,48 +281,48 @@ class CommandEventHandler(MainGameEventHandler):
                 self.warned_once = False
                 if not self.engine.player.ship_can_fire_torps:
                     self.engine.message_log.add_message(
-                        text="Error: Torpedo systems are inoperative, Captain" if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has no remaining torpedos, Captain", fg=colors.red
+                        text="Error: Torpedo systems are inoperative, {captain}." if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has no remaining torpedos, {captain}.", fg=colors.red
                     )
                 elif self.engine.player.docked:
-                    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
                 else:
                     return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
             elif self.auto_destruct_button.cursor_overlap(event):
                 return SelfDestructHandler(self.engine)
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
-
+        captain = self.engine.player.ship_data.nation.captain_rank_name
         if event.sym == tcod.event.K_w:
             self.warned_once = False
             if not self.engine.player.sys_warp_drive.is_opperational:
-                self.engine.message_log.add_message("Error: Warp engines are inoperative, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
-                self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             elif self.engine.player.docked:
-                self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
         elif event.sym == tcod.event.K_m:
             self.warned_once = False
             if not self.engine.player.sys_impulse.is_opperational:
-                self.engine.message_log.add_message("Error: Impulse systems are inoperative, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
-                self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             elif self.engine.player.docked:
-                self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
         elif event.sym == tcod.event.K_s:
             self.warned_once = False
             if not self.engine.player.sys_shield_generator.is_opperational:
-                self.engine.message_log.add_message("Error: Shield systems are inoperative, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
-                self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             #elif self.engine.player.docked:
-            #    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+            #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return ShieldsHandler(self.engine)
             
@@ -343,13 +343,13 @@ class CommandEventHandler(MainGameEventHandler):
         elif event.sym == tcod.event.K_f:
             self.warned_once = False
             if not self.engine.player.sys_energy_weapon.is_opperational:
-                p = self.engine.player.ship_data.weapon_name
-                self.engine.message_log.add_message(f"Error: {p} systems are inoperative, Captain", fg=colors.red)
+                p = self.engine.player.ship_data.nation.energy_weapon_beam_name
+                self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
-                self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             elif self.engine.player.docked:
-                self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return EnergyWeaponHandler(self.engine)
         if event.sym == tcod.event.K_d:
@@ -357,7 +357,7 @@ class CommandEventHandler(MainGameEventHandler):
             planet = self.engine.game_data.selected_ship_planet_or_star
 
             if not planet and not isinstance(planet, Planet):
-                self.engine.message_log.add_message("Error: No planet selected, Captain.", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: No planet selected, {captain}.", fg=colors.red)
             else:
                 dock_order = DockOrder(self.engine.player, planet)
                 self.warned_once = False
@@ -377,10 +377,10 @@ class CommandEventHandler(MainGameEventHandler):
             self.warned_once = False
             if not self.engine.player.ship_can_fire_torps:
                 self.engine.message_log.add_message(
-                    text="Error: Torpedo systems are inoperative, Captain" if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has not remaining torpedos, Captain", fg=colors.red
+                    text="Error: Torpedo systems are inoperative, {captain}." if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has not remaining torpedos, {captain}.", fg=colors.red
                 )
             elif self.engine.player.docked:
-                self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
         elif event.sym == tcod.event.K_a:
@@ -392,7 +392,7 @@ class CommandEventHandler(MainGameEventHandler):
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Your orders, captain?"
+            title=f"Your orders, {self.engine.game_data.captain_name}?"
             )
         
         self.warp_button.render(console)
@@ -1897,7 +1897,7 @@ class SelfDestructHandler(MainGameEventHandler):
 
                 return SelfDestructOrder(self.engine.player)
             else:
-                self.engine.message_log.add_message("Error: The code for the self destruct is not correct.")
+                self.engine.message_log.add_message(f"Error: The code for the self destruct is not correct.")
         else:
         
             self.code_handler.handle_key(event)
@@ -1912,7 +1912,7 @@ class SelfDestructHandler(MainGameEventHandler):
 
                 return SelfDestructOrder(self.engine.player)
             else:
-                self.engine.message_log.add_message("Error: The code for the self destruct is not correct.")
+                self.engine.message_log.add_message(f"Error: The code for the self destruct is not correct.")
                 
 class GameOverEventHandler(EventHandler):
 

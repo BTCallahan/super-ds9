@@ -75,22 +75,22 @@ class SubSector:
     """
 
     @staticmethod
-    def __grab_random_and_remove(randList:List[Tuple[int,int]]):
-        r = choice(randList)
-        randList.remove(r)
+    def __grab_random_and_remove(rand_list:List[Tuple[int,int]]):
+        r = choice(rand_list)
+        rand_list.remove(r)
         return r
 
     @staticmethod
-    def __gen_safe_spot_list(xRange, yRange):
+    def __gen_safe_spot_list(x_range, y_range):
 
-        for y in yRange:
-            for x in xRange:
+        for y in y_range:
+            for x in x_range:
                 yield Coords(x=x,y=y)
 
     def __init__(self, gd:GameData, x:int, y:int):
 
         #self.astroObjects = [Sector.__buildSlice(gd.subsec_size_x) for s in gd.subsec_size_range_y]
-        self.safeSpots = list(SubSector.__gen_safe_spot_list(gd.subsec_size_range_x, gd.subsec_size_range_y))
+        self.safe_spots = list(SubSector.__gen_safe_spot_list(gd.subsec_size_range_x, gd.subsec_size_range_y))
         self.coords = Coords(x=x,y=y)
         #self.x = x
         #self.y = y
@@ -103,21 +103,21 @@ class SubSector:
         
         #self.planets = []
         self.planets_dict:Dict[Coords, Planet] = {}
-        self.friendlyPlanets = 0
-        self.unfriendlyPlanets = 0
+        self.friendly_planets = 0
+        self.unfriendly_planets = 0
         self.barren_planets = 0
     
         
-        self.bigShips = 0
-        self.smallShips = 0
-        self.playerPresent = False
+        self.big_ships = 0
+        self.small_ships = 0
+        self.player_present = False
 
     def random_setup(self):
 
         stars = choices(range(star_number_weights_len), cum_weights=star_number_weights)[0]
 
         for i in range(stars):
-            x, y = SubSector.__grab_random_and_remove(self.safeSpots)
+            x, y = SubSector.__grab_random_and_remove(self.safe_spots)
 
             xy = Coords(x=x,y=y)
 
@@ -129,7 +129,7 @@ class SubSector:
             
         if self.number_of_stars > 0:
             for p in range(randint(0, 5)):
-                x,y = SubSector.__grab_random_and_remove(self.safeSpots)
+                x,y = SubSector.__grab_random_and_remove(self.safe_spots)
 
                 local_coords = Coords(x=x, y=y)
 
@@ -141,14 +141,14 @@ class SubSector:
                 self.planets_dict[local_coords] = p
                 
                 if p.planet_habbitation == PlanetHabitation.PLANET_FRIENDLY:
-                    self.friendlyPlanets+=1
+                    self.friendly_planets+=1
                 elif p.planet_habbitation == PlanetHabitation.PLANET_HOSTILE:
-                    self.unfriendlyPlanets += 1
+                    self.unfriendly_planets += 1
                 else:
                     self.barren_planets += 1
                 
     @property
-    def number_ofPlanets(self):
+    def number_of_planets(self):
         return len(self.planets_dict)
     
     @property
@@ -159,19 +159,19 @@ class SubSector:
         return self.astroObjects[y][x] == '.'
     """
 
-    def find_random_safe_spot(self, shipList:Optional[Iterable[Starship]]=None):
-        if shipList:
-            ship_positions = [ship.local_coords for ship in shipList if ship.sector_coords.x == self.x and ship.sector_coords.y == self.y]
-            okay_spots = [c for c in self.safeSpots if c not in ship_positions]
+    def find_random_safe_spot(self, ship_list:Optional[Iterable[Starship]]=None):
+        if ship_list:
+            ship_positions = [ship.local_coords for ship in ship_list if ship.sector_coords.x == self.x and ship.sector_coords.y == self.y]
+            okay_spots = [c for c in self.safe_spots if c not in ship_positions]
             return choice(okay_spots)
-        return choice(self.safeSpots)
+        return choice(self.safe_spots)
 
-    def find_random_safe_spots(self, how_many:int, shipList:Optional[Iterable[Starship]]=None):
-        if shipList:
-            ship_positions = [ship.local_coords for ship in shipList if ship.sector_coords.x == self.x and ship.sector_coords.y == self.y]
-            okay_spots = [c for c in self.safeSpots if c not in ship_positions]
+    def find_random_safe_spots(self, how_many:int, ship_list:Optional[Iterable[Starship]]=None):
+        if ship_list:
+            ship_positions = [ship.local_coords for ship in ship_list if ship.sector_coords.x == self.x and ship.sector_coords.y == self.y]
+            okay_spots = [c for c in self.safe_spots if c not in ship_positions]
             return choices(okay_spots, k=how_many)
-        return choices(self.safeSpots, k=how_many)
+        return choices(self.safe_spots, k=how_many)
     """
     def getSetOfSafeSpots(self, shipList=[]):
 
@@ -204,19 +204,19 @@ class SubSector:
 
     def add_ship_to_sec(self, ship:Starship):
         if ship.ship_data.ship_type is ShipTypes.TYPE_ALLIED:
-            self.playerPresent = True
+            self.player_present = True
         elif ship.ship_data.ship_type is ShipTypes.TYPE_ENEMY_SMALL:
-            self.smallShips+= 1
+            self.small_ships+= 1
         else:
-            self.bigShips+= 1
+            self.big_ships+= 1
 
     def remove_ship_from_sec(self, ship:Starship):
         if ship.ship_data.ship_type is ShipTypes.TYPE_ALLIED:
-            self.playerPresent = False
+            self.player_present = False
         elif ship.ship_data.ship_type is ShipTypes.TYPE_ENEMY_SMALL:
-            self.smallShips-= 1
+            self.small_ships-= 1
         else:
-            self.bigShips-= 1
+            self.big_ships-= 1
 
 class Planet(InterstellerObject):
 
@@ -238,16 +238,15 @@ class Planet(InterstellerObject):
 
     def canSupplyPlayer(self, player:Starship):
         return self.planet_habbitation is PlanetHabitation.PLANET_FRIENDLY and self.sector_coords == player.sector_coords and \
-            self.local_coords.isAdjacent(player.local_coords) and len(player.game_data.grab_ships_in_same_sub_sector(player)) < 1            
+            self.local_coords.is_adjacent(player.local_coords) and len(player.game_data.grab_ships_in_same_sub_sector(player)) < 1            
 
     def hit_by_torpedo(self, is_player:bool, game_data:GameData, torpedo:Torpedo):
-        """Somebody did a bad, bad, thing.
+        """Somebody did a bad, bad, thing (and it was probably you).
 
         Args:
             is_player (bool): Did the player fire a torpedo? Or was it someone else?
             game_data (GameData): [description]
-            message_log (MessageLog): [description]
-            damage (int, optional): The amount of damage to do to the planet. Defaults to 40.
+            torpedo (Torpedo): The torpedo object. This contains the amount of damage to do to the planet.
         """
         
         message_log = game_data.engine.message_log

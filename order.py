@@ -144,7 +144,7 @@ class WarpOrder(Order):
 
         subsector: SubSector = self.entity.game_data.grid[self.y][self.x]
 
-        safe_spots = subsector.safeSpots.copy()
+        safe_spots = subsector.safe_spots.copy()
 
         for ship in ships:
 

@@ -125,16 +125,16 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     string=f"+{sector_x.barren_planets}", fg=colors.planet_barren
                 )
 
-            if sector_x.friendlyPlanets > 0:
+            if sector_x.friendly_planets > 0:
                 console.print(
                     x=x+j2, y=y+i2+1,
-                    string=f"+{sector_x.friendlyPlanets}", fg=colors.planet_allied
+                    string=f"+{sector_x.friendly_planets}", fg=colors.planet_allied
                 )
 
-            if sector_x.unfriendlyPlanets > 0:
+            if sector_x.unfriendly_planets > 0:
                 console.print(
                     x=x+j2, y=y+i2+2,
-                    string=f"+{sector_x.unfriendlyPlanets}", fg=colors.planet_hostile
+                    string=f"+{sector_x.unfriendly_planets}", fg=colors.planet_hostile
                 )
 
             console.print(
@@ -142,7 +142,7 @@ def print_mega_sector(console:Console, gamedata:GameData):
                 string=f"*{sector_x.total_stars}", fg=colors.yellow
             )
 
-            big_ships = sector_x.bigShips
+            big_ships = sector_x.big_ships
             
             if big_ships > 0:
                 console.print(
@@ -150,7 +150,7 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     string=f"C{big_ships}", fg=colors.red if big_ships > 0 else colors.cyan
                 )
 
-            small_ships = sector_x.smallShips
+            small_ships = sector_x.small_ships
 
             if small_ships > 0:
                 console.print(
@@ -201,7 +201,7 @@ def print_ship_info(
     console.draw_frame(
         x=x, y=y, 
         width=width, height=height, 
-        title=self.name
+        title=self.proper_name
     )
 
     y_plus = 2
@@ -218,7 +218,7 @@ def print_ship_info(
             x+2, y=y+3,
             width=width - 4,
             height=4,
-            string=f"Remains of the {self.name}"
+            string=f"Remains of the {self.proper_name}"
         )
     
     else:

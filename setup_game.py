@@ -98,9 +98,10 @@ def load_game(filename: str) -> Engine:
     assert isinstance(engine, Engine)
     return engine
 
-def setUpGame(
+def set_up_game(
         *,
-        easy_aim:bool, easy_move:bool, easy_warp:bool, torpedo_warning:bool, crash_warning:bool, two_d_movment:bool
+        easy_aim:bool, easy_move:bool, easy_warp:bool, torpedo_warning:bool, crash_warning:bool, two_d_movment:bool,
+        ship_name:str, captain_name:str
     ):
     #print('beginning setup')
     #global GRID, PLAYER, TOTAL_STARSHIPS
@@ -138,7 +139,7 @@ def setUpGame(
 
     gameDataGlobal.engine = engine
 
-    gameDataGlobal.setUpGame()
+    gameDataGlobal.set_up_game(ship_name, captain_name)
     return engine
 
 class StartupScreen(input_handelers.BaseEventHandler):
@@ -551,13 +552,15 @@ class NewGame(input_handelers.BaseEventHandler):
             return MainMenu()
 
         if self.new_game_button.cursor_overlap(event):
-            return input_handelers.CommandEventHandler(setUpGame(
+            return input_handelers.CommandEventHandler(set_up_game(
                 easy_aim=self.easy_aim,
                 easy_move=self.easy_navigation,
                 easy_warp=self.easy_warp,
                 torpedo_warning=self.torpedo_warning,
                 crash_warning=self.crash_warning,
-                two_d_movment=self.two_d_movement
+                two_d_movment=self.two_d_movement,
+                ship_name=self.ship_name.send(),
+                captain_name=self.captain_name.send()
             ))
 
         if self.captain_name_button.cursor_overlap(event):
@@ -590,7 +593,7 @@ class NewGame(input_handelers.BaseEventHandler):
             return MainMenu()
         if event.sym in confirm:
 
-            return input_handelers.CommandEventHandler(setUpGame(
+            return input_handelers.CommandEventHandler(set_up_game(
                 easy_aim=self.easy_aim,
                 easy_move=self.easy_navigation,
                 easy_warp=self.easy_warp,

@@ -73,7 +73,7 @@ class GameData:
         self.ships_in_same_sub_sector_as_player:List[Starship] = []
 
         self.auto_destruct_code = auto_destruct_code
-
+        self.captain_name = ""
         self.player_record = {
             "planets_angered" : 0,
             "planets_depopulated" : 0,
@@ -116,7 +116,8 @@ class GameData:
         if isinstance(self.selected_ship_planet_or_star, Starship):
             self.ship_scan = self.selected_ship_planet_or_star.scan_this_ship(player.determin_precision)
 
-    def setUpGame(self):
+    def set_up_game(self, ship_name:str, captain_name:str):
+        self.captain_name = captain_name
 
         self.grid = [[SubSector(self, x, y) for x in self.subsecs_range_x] for y in self.subsecs_range_y]
         
@@ -160,9 +161,9 @@ class GameData:
                     starship.game_data = self
                     
                     if ship.ship_type == ShipTypes.TYPE_ENEMY_SMALL:
-                        sub_sector.smallShips+=1
+                        sub_sector.small_ships+=1
                     elif ship.ship_type == ShipTypes.TYPE_ENEMY_LARGE:
-                        sub_sector.bigShips+=1
+                        sub_sector.big_ships+=1
 
                     yield starship
                 
@@ -181,9 +182,9 @@ class GameData:
                         starship.game_data = self
 
                         if ship.ship_type == ShipTypes.TYPE_ENEMY_SMALL:
-                            sub_sector.smallShips+=1
+                            sub_sector.small_ships+=1
                         elif ship.ship_type == ShipTypes.TYPE_ENEMY_LARGE:
-                            sub_sector.bigShips+=1
+                            sub_sector.big_ships+=1
 
                         yield starship
 
@@ -199,7 +200,7 @@ class GameData:
 
         locPos = self.grid[randYsec][randXsec].find_random_safe_spot()
 
-        self.player = Starship(DEFIANT_CLASS, BaseAi, locPos.x, locPos.y, randXsec, randYsec)
+        self.player = Starship(DEFIANT_CLASS, BaseAi, locPos.x, locPos.y, randXsec, randYsec, name=ship_name)
         self.player.game_data = self
         self.engine.player = self.player
 
@@ -208,6 +209,10 @@ class GameData:
         self.ships_in_same_sub_sector_as_player = self.grab_ships_in_same_sub_sector(self.player)
 
         self.set_condition()
+        
+        self.engine.message_log.add_message(
+            f"Welcome aboard, {self.player.ship_data.nation.captain_rank_name} {self.captain_name}."
+        )
 
     @classmethod
     def newGame(cls):
@@ -276,8 +281,8 @@ class GameData:
                 
                 subsec = self.grid[y][x]
                 
-                subsec.bigShips = 0
-                subsec.smallShips = 0
+                subsec.big_ships = 0
+                subsec.small_ships = 0
                 
         for ship in self.all_enemy_ships:
             
@@ -286,9 +291,9 @@ class GameData:
                 subsec:SubSector = self.grid[y][x]
                 
                 if ship.ship_data.ship_type == ShipTypes.TYPE_ENEMY_LARGE:
-                    subsec.bigShips += 1
+                    subsec.big_ships += 1
                 elif ship.ship_data.ship_type == ShipTypes.TYPE_ENEMY_SMALL:
-                    subsec.smallShips += 1
+                    subsec.small_ships += 1
 
     def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:TorpedoType, ships_in_area:Dict[Coords, Starship]):
         #global PLAYER
