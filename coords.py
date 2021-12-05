@@ -128,7 +128,7 @@ class MutableCoords:
             return self.x in {x-1, x, x+1} and self.y in {y-1, y, y+1}
         return self.x in {other.x-1, other.x, other.x+1} and self.y in {other.y-1, other.y, other.y+1}
     
-    def distance(self, *, coords:Optional[AnyCoords]=None, x:Optional[IntOrFloat]=None, y:Optional[IntOrFloat]=None):
+    def distance(self, *, coords:Optional[AnyCoords]=None, x:Optional[IntOrFloat]=None, y:Optional[IntOrFloat]=None) -> float:
         if x is not None and y is not None:
             return pow((pow(self.x - x, 2) + pow(self.y - y, 2)), 0.5)
         if coords is not None:

@@ -1,3 +1,4 @@
+from random import randint
 from engine import Engine
 from get_config import config_object
 from game_data import GameData
@@ -115,10 +116,10 @@ def setUpGame(
         easy_warp=easy_warp,
         torpedo_warning=torpedo_warning,
         crash_warning=crash_warning,
-        noOfAdFighters=10,
-        noOfFighters=12,
-        noOfCruisers=5,
-        noOfBattleships=3,
+        noOfAdFighters=randint(8, 12),
+        noOfFighters=randint(10, 15),
+        noOfCruisers=1,
+        noOfBattleships=0,
         turns_left=80,
         auto_destruct_code=config_object.auto_destruct_code
     )

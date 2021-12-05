@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from collections import defaultdict, namedtuple
-from typing import Dict, Tuple, Union, TypeVar
+from typing import Dict, Optional, Tuple, Union, TypeVar
 import colors
 
 string_or_int = Union[int,str]
@@ -26,7 +26,7 @@ class PlanetHabitation(Enum):
     PLANET_ANGERED = auto()
     PLANET_BOMBED_OUT = auto()
 
-planet_habitation_color_dict = {
+PLANET_HABITATION_COLOR_DICT = {
     PlanetHabitation.PLANET_ANGERED : colors.planet_hostile,
     PlanetHabitation.PLANET_BARREN : colors.planet_barren,
     PlanetHabitation.PLANET_BOMBED_OUT : colors.planet_barren,
@@ -72,7 +72,7 @@ class DamageType:
     
     __slots__ = ("damage_vs_shields_multiplier", "damage_vs_hull_multiplier", "damage_vs_no_shield_multiplier", "damage_vs_systems_multiplier", "damage_chance_vs_systems_multiplier", "damage_variation", "chance_to_damage_system", "accuracy_loss_per_distance_unit", "flat_accuracy_loss")
     
-    def __init__(self, *, damage_vs_shields_multiplier:float=1.0, damage_vs_hull_multiplier:float=1.0, damage_vs_no_shield_multiplier:float=1.0, damage_vs_systems_multiplier:float=0.12, damage_chance_vs_systems_multiplier:float=1.5, damage_variation:float=1.0, chance_to_damage_system:float=1.75, accuracy_loss_per_distance_unit:float=0.0, flat_accuracy_loss:float=0.0):
+    def __init__(self, *, damage_vs_shields_multiplier:float=1.0, damage_vs_hull_multiplier:float=1.0, damage_vs_no_shield_multiplier:float=1.0, damage_vs_systems_multiplier:float=0.12, damage_chance_vs_systems_multiplier:float=1.5, damage_variation:float=0.0, chance_to_damage_system:float=1.75, accuracy_loss_per_distance_unit:float=0.0, flat_accuracy_loss:float=0.0):
         
         self.damage_vs_shields_multiplier = damage_vs_shields_multiplier
         self.damage_vs_hull_multiplier = damage_vs_hull_multiplier
@@ -112,13 +112,23 @@ DAMAGE_CANNON = DamageType(
 )
 DAMAGE_TORPEDO = DamageType(
     damage_vs_shields_multiplier=0.75, 
-    damage_vs_hull_multiplier=1.05, 
-    damage_vs_no_shield_multiplier=1.75, 
+    damage_vs_hull_multiplier=1.15, 
+    damage_vs_no_shield_multiplier=1.75,
+    flat_accuracy_loss=0.12,
     damage_variation=0.1
 )
 DAMAGE_EXPLOSION = DamageType(
-    damage_vs_no_shield_multiplier=1.1, 
+    damage_vs_no_shield_multiplier=1.05, 
     damage_variation=0.25
+)
+
+DAMAGE_RAMMING = DamageType(
+    damage_vs_shields_multiplier=1.05,
+    damage_vs_hull_multiplier=1.2,
+    damage_vs_no_shield_multiplier=1.35,
+    damage_variation=0.05,
+    accuracy_loss_per_distance_unit=0.005,
+    flat_accuracy_loss=0.08,
 )
 
 class RepairStatus:
@@ -158,3 +168,43 @@ REPAIR_DOCKED = RepairStatus(
     energy_regeration=750,
     repair_permanent_hull_damage=True
 )
+
+class ShipStatus:
+    """Psudo-Enum of the four ship statuses.
+
+    ACTIVE: The ship is intact and crewed.
+    DERLICT: The ship is intact but has no living crew.
+    HULK: The ship is wrecked but mostly intact. Think battle of Wolf 359
+    OBLITERATED: The ship has been reduced to space dust.
+    
+    Args:
+            is_active (bool, optional): If this is True, the ship will be able to take action. Defaults to False.
+            is_visible (bool, optional): If this is True, this ship will be visible on the main screen. Defaults to True.
+            is_recrewable (bool, optional): If this is True, other ships will be able recrew/capture it. Defaults to False.
+            is_collidable (bool, optional): If this is True, other ships/torpedos may collide with this ship. Defaults to True.
+            override_color (Optional[Tuple[int,int,int]], optional): This color will be displayed instead of the ships default color. Defaults to None.
+    """
+    
+    __slots__ = ("is_active", "is_visible", "is_recrewable", "is_collidable", "do_shields_work", "override_color")
+    
+    def __init__(self, *, is_active:bool=False, is_visible:bool=True, is_recrewable:bool=False, is_collidable:bool=True, do_shields_work:bool=False, override_color:Optional[Tuple[int,int,int]]=None) -> None:
+        self.is_active = is_active
+        self.is_visible = is_visible
+        self.is_recrewable = is_recrewable
+        self.is_collidable = is_collidable
+        self.do_shields_work = do_shields_work
+        self.override_color = override_color
+    
+    def __hash__(self) -> int:
+        return hash((self.is_active, self.is_visible, self.is_recrewable, self.is_collidable, self.override_color))
+
+    def __eq__(self, o: "ShipStatus") -> bool:
+        try:
+            return self.is_active == o.is_active and self.is_visible == o.is_visible and self.is_recrewable == o.is_recrewable and self.is_collidable == o.is_collidable and self.override_color == o.override_color
+        except AttributeError:
+            return False
+    
+STATUS_ACTIVE = ShipStatus(is_active=True, do_shields_work=True)
+STATUS_DERLICT = ShipStatus(is_recrewable=True, override_color=colors.white)
+STATUS_HULK = ShipStatus(override_color=colors.grey)
+STATUS_OBLITERATED = ShipStatus(is_visible=False, is_collidable=False)

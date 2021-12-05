@@ -1,12 +1,11 @@
 from __future__ import annotations
 import os
-from data_globals import ENERGY_REGEN_PER_TURN, LOCAL_ENERGY_COST, REPAIR_MULTIPLIER, SECTOR_ENERGY_COST
+from data_globals import ENERGY_REGEN_PER_TURN, LOCAL_ENERGY_COST, REPAIR_MULTIPLIER, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
 from engine import config_object
 from typing import TYPE_CHECKING, List, Optional, Union
-from order import SelfDestructOrder, blocks_action, torpedo_warnings, collision_warnings, \
+from order import SelfDestructOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
     Order, DockOrder, OrderWarning, EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from space_objects import Planet
-from starship import ShipStatus
 from ui_related import ButtonBox, NumberHandeler, TextHandeler, confirm
 import tcod
 import tcod.event
@@ -92,10 +91,10 @@ class EventHandler(BaseEventHandler):
         if isinstance(action_or_state, BaseEventHandler):
             return action_or_state
         if self.handle_action(action_or_state):
-            if not self.engine.player.ship_status == ShipStatus.ACTIVE:
+            if not self.engine.player.ship_status.is_active:
                 # The player was killed sometime during or after the action.
                 return GameOverEventHandler(self.engine)
-        if not self.engine.player.ship_status == ShipStatus.ACTIVE:
+        if not self.engine.player.ship_status.is_active:
             pass
         return self
 
@@ -191,7 +190,7 @@ class CommandEventHandler(MainGameEventHandler):
         
         if not select_ship_planet_star(self.engine.game_data, event):
             if self.warp_button.cursor_overlap(event):
-                
+                self.warned_once = False
                 if not self.engine.player.sys_warp_drive.is_opperational:
                     self.engine.message_log.add_message("Error: Warp engines are inoperative, Captain", fg=colors.red)
 
@@ -203,6 +202,7 @@ class CommandEventHandler(MainGameEventHandler):
                     return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
             
             elif self.move_button.cursor_overlap(event):
+                self.warned_once = False
                 if not self.engine.player.sys_impulse.is_opperational:
                     self.engine.message_log.add_message("Error: Impulse systems are inoperative, Captain", fg=colors.red)
 
@@ -214,17 +214,19 @@ class CommandEventHandler(MainGameEventHandler):
                     return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
             
             elif self.shields_button.cursor_overlap(event):
+                self.warned_once = False
                 if not self.engine.player.sys_shield_generator.is_opperational:
                     self.engine.message_log.add_message("Error: Shield systems are inoperative, Captain", fg=colors.red)
 
                 elif self.engine.player.energy <= 0:
                     self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
-                elif self.engine.player.docked:
-                    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                #elif self.engine.player.docked:
+                #    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
                 else:
                     return ShieldsHandler(self.engine)
                 
             elif self.phasers_button.cursor_overlap(event):
+                self.warned_once = False
                 if not self.engine.player.sys_energy_weapon.is_opperational:
                     p = self.engine.player.ship_data.weapon_name
                     self.engine.message_log.add_message(f"Error: {p} systems are inoperative, Captain", fg=colors.red)
@@ -241,11 +243,11 @@ class CommandEventHandler(MainGameEventHandler):
 
                 if not planet and not isinstance(planet, Planet):
                     self.engine.message_log.add_message("Error: No planet selected, Captain", fg=colors.red)
-                elif self.engine.player.docked:
-                    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+                #elif self.engine.player.docked:
+                #    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
 
                 else:
-
+                    self.warned_once = False
                     dock_order = DockOrder(self.engine.player, planet)
 
                     warning = dock_order.raise_warning()
@@ -256,15 +258,27 @@ class CommandEventHandler(MainGameEventHandler):
                         #if self.warned_once:
                         #return dock_order
                         self.engine.message_log.add_message("Warning: There are hostile ships nearby", fg=colors.orange)
-                        self.warned_once = True
+                        
                     else:
                         self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
 
             elif self.repair_button.cursor_overlap(event):
-                return RepairOrder(self.engine.player, 1)
+                repair = RepairOrder(self.engine.player, 1)
+                warning = repair.raise_warning()
+                
+                if self.warned_once:
+                    return repair
+                
+                try:
+                    
+                    self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
+                    self.warned_once = True
+                except KeyError:
+                    
+                    return repair
 
             elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
-
+                self.warned_once = False
                 if not self.engine.player.ship_can_fire_torps:
                     self.engine.message_log.add_message(
                         text="Error: Torpedo systems are inoperative, Captain" if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has no remaining torpedos, Captain", fg=colors.red
@@ -279,6 +293,7 @@ class CommandEventHandler(MainGameEventHandler):
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_w:
+            self.warned_once = False
             if not self.engine.player.sys_warp_drive.is_opperational:
                 self.engine.message_log.add_message("Error: Warp engines are inoperative, Captain", fg=colors.red)
 
@@ -289,6 +304,7 @@ class CommandEventHandler(MainGameEventHandler):
             else:
                 return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
         elif event.sym == tcod.event.K_m:
+            self.warned_once = False
             if not self.engine.player.sys_impulse.is_opperational:
                 self.engine.message_log.add_message("Error: Impulse systems are inoperative, Captain", fg=colors.red)
 
@@ -299,19 +315,33 @@ class CommandEventHandler(MainGameEventHandler):
             else:
                 return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
         elif event.sym == tcod.event.K_s:
+            self.warned_once = False
             if not self.engine.player.sys_shield_generator.is_opperational:
                 self.engine.message_log.add_message("Error: Shield systems are inoperative, Captain", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
                 self.engine.message_log.add_message("Error: Insufficent energy reserves, Captain", fg=colors.red)
-            elif self.engine.player.docked:
-                self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
+            #elif self.engine.player.docked:
+            #    self.engine.message_log.add_message("Error: We undock first, Captain", fg=colors.red)
             else:
                 return ShieldsHandler(self.engine)
             
         elif event.sym == tcod.event.K_r:
-            pass
+            repair = RepairOrder(self.engine.player, 1)
+            warning = repair.raise_warning()
+            
+            if self.warned_once:
+                return repair
+            
+            try:
+                
+                self.engine.message_log(misc_warnings[warning], fg=colors.orange)
+                self.warned_once = True
+            except KeyError:
+                
+                return repair
         elif event.sym == tcod.event.K_f:
+            self.warned_once = False
             if not self.engine.player.sys_energy_weapon.is_opperational:
                 p = self.engine.player.ship_data.weapon_name
                 self.engine.message_log.add_message(f"Error: {p} systems are inoperative, Captain", fg=colors.red)
@@ -330,20 +360,21 @@ class CommandEventHandler(MainGameEventHandler):
                 self.engine.message_log.add_message("Error: No planet selected, Captain.", fg=colors.red)
             else:
                 dock_order = DockOrder(self.engine.player, planet)
-
+                self.warned_once = False
                 warning = dock_order.raise_warning()
 
                 if warning == OrderWarning.SAFE:
                     return dock_order
                 if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
-                    if self.warned_once:
-                        return dock_order
+                    #if self.warned_once:
+                    #    return dock_order
                     self.engine.message_log.add_message("Warning: There are hostile ships nearby", fg=colors.orange)
-                    self.warned_once = True
+                    
                 else:
                     self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             
         if event.sym == tcod.event.K_t and self.engine.player.ship_type_can_fire_torps:
+            self.warned_once = False
             if not self.engine.player.ship_can_fire_torps:
                 self.engine.message_log.add_message(
                     text="Error: Torpedo systems are inoperative, Captain" if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has not remaining torpedos, Captain", fg=colors.red
@@ -1141,7 +1172,8 @@ class ShieldsHandler(MainGameEventHandler):
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
         player = self.engine.player
-        self.amount = NumberHandeler(limit=4, max_value=player.get_max_effective_shields - player.shields, min_value=0, starting_value=player.shields)
+        
+        self.amount = NumberHandeler(limit=4, max_value=min(player.shields + player.energy, player.get_max_effective_shields), min_value=0, starting_value=player.shields)
 
         self.amount_button = ButtonBox(
             x=3+config_object.command_display_x,
@@ -1200,7 +1232,12 @@ class ShieldsHandler(MainGameEventHandler):
             if warning == OrderWarning.SAFE:
                 return recharge_order
             
-            self.engine.message_log.add_message(blocks_action[warning], colors.red)
+            try:
+                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+            except KeyError:
+                
+                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+            
         elif self.cancel_button.cursor_overlap(event):
 
             return CommandEventHandler(self.engine)
@@ -1217,7 +1254,11 @@ class ShieldsHandler(MainGameEventHandler):
             if warning == OrderWarning.SAFE:
                 return recharge_order
             
-            self.engine.message_log.add_message(blocks_action[warning], colors.red)
+            try:
+                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+            except KeyError:
+                
+                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
         else:
             self.amount.handle_key(event)
 
@@ -1309,7 +1350,10 @@ class EnergyWeaponHandler(MainGameEventHandler):
             fire_order = EnergyWeaponOrder.multiple_targets(
                 self.engine.player,
                 self.amount.add_up(),
-                self.engine.game_data.grab_ships_in_same_sub_sector(self.engine.player)
+                self.engine.game_data.grab_ships_in_same_sub_sector(
+                    self.engine.player,
+                    accptable_ship_statuses={STATUS_ACTIVE}
+                    )
             )
 
             warning = fire_order.raise_warning()
@@ -1736,15 +1780,27 @@ class SelfDestructHandler(MainGameEventHandler):
         
         player = engine.player
         
-        nearbye_foes = [ship for ship in engine.game_data.grab_ships_in_same_sub_sector(player) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_data.warp_breach_dist]
+        nearbye_ships = [ship for ship in engine.game_data.grab_ships_in_same_sub_sector(player, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_data.warp_breach_dist]
         
-        nearbye_foes.sort(key=lambda ship: ship.local_coords.distance(coords=player.local_coords), reverse=True)
+        nearbye_ships.sort(key=lambda ship: ship.local_coords.distance(coords=player.local_coords), reverse=True)
         
-        self.nearbye_foes = tuple(
-            (player.calc_self_destruct_damage(ship)) for ship in nearbye_foes
+        self.all_nearbye_ships = tuple(nearbye_ships)
+        
+        nearbye_active_foes = [ship for ship in nearbye_ships if ship.ship_status.is_active]
+        
+        self.nearbye_active_foes = tuple(
+            (player.calc_self_destruct_damage(ship)) for ship in nearbye_active_foes
         )
         
-        self.any_ships_nearby = len(self.nearbye_foes) > 0
+        nearbye_derlicts = [ship for ship in nearbye_ships if ship.ship_status.is_recrewable]
+        
+        self.nearbye_derlicts = tuple(
+            (player.calc_self_destruct_damage(ship)) for ship in nearbye_derlicts
+        )
+        
+        self.any_foes_nearby = len(self.nearbye_active_foes) > 0
+
+        self.any_derlicts_nearbye = len(self.nearbye_derlicts) > 0
 
         self.code_handler = TextHandeler(
             12
@@ -1802,7 +1858,7 @@ class SelfDestructHandler(MainGameEventHandler):
             string=f"Code: {config_object.auto_destruct_code}"
         )
         
-        if self.any_ships_nearby:
+        if self.any_foes_nearby:
             console.print(
                 x=2+config_object.command_display_x,
                 y=16+config_object.command_display_y,
@@ -1814,7 +1870,7 @@ class SelfDestructHandler(MainGameEventHandler):
                 y=17+config_object.command_display_y,
                 string="Name    S. Dam.  H. Dam.  Kill"
             )
-            for i, ship_info in enumerate(self.nearbye_foes):
+            for i, ship_info in enumerate(self.nearbye_active_foes):
                 ship, shield_dam, hull_dam, kill = ship_info
                 console.print(
                     x=2+config_object.command_display_x,
@@ -1889,7 +1945,7 @@ class GameOverEventHandler(EventHandler):
             if not s.is_controllable:
                 startingEnemyFleetValue+= s.ship_data.max_hull
                 currentEnemyFleetValue+= s.get_ship_value
-                if s.ship_status == ShipStatus.DERLICT:
+                if s.ship_status.is_recrewable:
                     derlict_ships += 1
 
         destructionPercent = 1.0 - currentEnemyFleetValue / startingEnemyFleetValue
@@ -1899,7 +1955,7 @@ class GameOverEventHandler(EventHandler):
 
         all_enemy_ships_destroyed = remaining_ships == 0
 
-        if gameDataGlobal.player.is_alive:
+        if gameDataGlobal.player.ship_status.is_active:
 
             if all_enemy_ships_destroyed:
 

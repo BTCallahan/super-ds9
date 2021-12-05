@@ -6,23 +6,14 @@ import tcod
 
 from coords import Coords
 from space_objects import Planet, Star, SubSector
-from starship import ShipStatus, Starship
-from data_globals import PlanetHabitation, planet_habitation_color_dict
+from starship import Starship
+from data_globals import STATUS_HULK, STATUS_OBLITERATED, PlanetHabitation, PLANET_HABITATION_COLOR_DICT
 import colors
 from get_config import config_object
 
 if TYPE_CHECKING:
     from tcod import Console
     from game_data import GameData
-
-planet_color_dict = {
-    PlanetHabitation.PLANET_BARREN : colors.planet_barren,
-    PlanetHabitation.PLANET_BOMBED_OUT : colors.planet_barren,
-    PlanetHabitation.PLANET_HOSTILE : colors.planet_hostile,
-    PlanetHabitation.PLANET_ANGERED : colors.planet_hostile,
-    PlanetHabitation.PLANET_PREWARP : colors.planet_hostile,
-    PlanetHabitation.PLANET_FRIENDLY : colors.planet_allied
-}
 
 def print_subsector(console:Console, gamedata:GameData):
 
@@ -84,16 +75,17 @@ def print_subsector(console:Console, gamedata:GameData):
             x=x + (c.x * 2) + 1, 
             y=y + (c.y * 2) + 1, 
             string="#", 
-            fg=planet_habitation_color_dict[planet.planet_habbitation]
+            fg=PLANET_HABITATION_COLOR_DICT[planet.planet_habbitation]
         )
 
     for s in ships:
-
-        console.print(
-            x=x + (s.local_coords.x * 2) + 1, 
-            y=y + (s.local_coords.y * 2) + 1, 
-            string=s.ship_data.symbol, 
-            fg=colors.red if s.ship_status == ShipStatus.ACTIVE else colors.grey)
+        if s.ship_status.is_visible:
+            console.print(
+                x=x + (s.local_coords.x * 2) + 1, 
+                y=y + (s.local_coords.y * 2) + 1, 
+                string=s.ship_data.symbol, 
+                fg=s.ship_status.override_color if s.ship_status.override_color else colors.red
+            )
     
     console.print(
         x=x + (player.local_coords.x * 2) + 1, 
@@ -201,7 +193,11 @@ def print_ship_info(
     #info = OrderedDict()
 
     #info["shields"]
-
+    
+    ship_status = self.ship_status
+    
+    #assert ship_status.is_visible
+    
     console.draw_frame(
         x=x, y=y, 
         width=width, height=height, 
@@ -214,56 +210,70 @@ def print_ship_info(
         x=x+2, y=y+2,
         string=f"Position: {self.local_coords.x}, {self.local_coords.y}" 
     )
-
-    for i, n, d, m in zip(
-        range(4, 4+5), 
-        (
-            "Shields:", "Hull:", "Energy:", "Able Crew:", "Injured Crew:"
-        ),
-        (
-            scan['shields'],
-            scan['hull'],
-            scan['energy'],
-            scan['able_crew'],
-            scan['injured_crew']
-        ),
-        (
-            self.ship_data.max_shields,
-            self.ship_data.max_hull,
-            self.ship_data.max_energy, 
-            self.ship_data.max_crew,
-            self.ship_data.max_crew
+    
+    
+    if ship_status == STATUS_HULK:
+        
+        console.print_box(
+            x+2, y=y+3,
+            width=width - 4,
+            height=4,
+            string=f"Remains of the {self.name}"
         )
-    ):
-        console.print(x=x+2, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
-
-    from torpedo import ALL_TORPEDO_TYPES
-
-    s = 11
-
-    if self.ship_data.ship_type_can_fire_torps:
-        max_torps = self.ship_data.max_torpedos 
-        console.print(x=x+2, y=y+s, string=f"Torpedo Tubes: {self.ship_data.torp_tubes}" )
-        console.print(x=x+2, y=y+s+1, string=f"Max Torps: {max_torps: =2}")
-        s+=2
-        for i, t in enumerate(self.ship_data.torp_types):
-            console.print(x=x+2, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].capName + ':':>16}{self.torps[t]: =2}"
+    
+    else:
+            
+        for i, n, d, m in zip(
+            range(4, 4+5), 
+            (
+                "Shields:", "Hull:", "Energy:", "Able Crew:", "Injured Crew:"
+            ),
+            (
+                scan['shields'],
+                scan['hull'],
+                scan['energy'],
+                scan['able_crew'],
+                scan['injured_crew']
+            ),
+            (
+                self.ship_data.max_shields,
+                self.ship_data.max_hull,
+                self.ship_data.max_energy, 
+                self.ship_data.max_crew,
+                self.ship_data.max_crew
             )
-            s+=1
-    
-    names, keys = self.ship_data.system_names, self.ship_data.system_keys
+        ):
+            console.print(x=x+2, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
 
-    end = s+2
+        from torpedo import ALL_TORPEDO_TYPES
 
-    console.print(x=x+2, y=y+end-1, string="-- Systems --")
-    
-    for n, k, i in zip(names, keys, range(len(keys))):
+        s = 10
 
-        scanned = scan[k]
-        #k = keys[i-(s+3)]
-        n__n = f"{n:>16}"
-        s__s = f"{scanned:7.2%}"
-        console.print(x=x+2, y=y+i+end, string=f"{n__n}{s__s}")
+        if self.ship_data.ship_type_can_fire_torps:
+            max_torps = self.ship_data.max_torpedos 
+            console.print(x=x+2, y=y+s, string=f"Torpedo Tubes:{self.ship_data.torp_tubes: =2}" )
+            console.print(x=x+2, y=y+s+1, string=f"Max Torpedos:{max_torps: =2}")
+            s+=2
+            for i, t in enumerate(self.ship_data.torp_types):
+                console.print(x=x+2, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].capName + ':':>16}{self.torps[t]: =2}"
+                )
+                s+=1
+        
+        names, keys = self.ship_data.system_names, self.ship_data.system_keys
+
+        end = s+2
+        
+        sys_x_position = (width - 2) // 2
+
+        console.print(x=x+sys_x_position, y=y+end-1, string="-- Systems --", alignment=tcod.CENTER)
+        
+        for n, k, i in zip(names, keys, range(len(keys))):
+
+            scanned = scan[k]
+            #k = keys[i-(s+3)]
+            n__n = f"{n:>16}"
+            s__s = f"{scanned:7.2%}"
+            console.print(x=x+2, y=y+i+end, string=f"{n__n}{s__s}")
     
 def render_own_ship_info(console: Console, gamedata:GameData):
 
@@ -328,7 +338,6 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
 
                 planet_status = "Uninhabited"
 
-
             elif ship_planet_or_star.planet_habbitation == PlanetHabitation.PLANET_PREWARP:
 
                 planet_status = "Pre-Warp"
@@ -341,6 +350,11 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 x=start_x+3,
                 y=start_y+6,
                 string=f"Planet status: {planet_status}"
+            )
+            console.print(
+                x=start_x+1,
+                y=start_y+8,
+                string=f"Planet development: {ship_planet_or_star.infastructure:.2}"
             )
         elif isinstance(ship_planet_or_star, Star):
 
@@ -438,10 +452,10 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
                     return True
                 except KeyError:
                     
-                    ships_in_same_sector = game_data.grab_ships_in_same_sub_sector(game_data.player)
+                    #ships_in_same_sector = game_data.grab_ships_in_same_sub_sector(game_data.player)
 
-                    for ship in ships_in_same_sector:
-                        if ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted:
+                    for ship in game_data.ships_in_same_sub_sector_as_player:
+                        if ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted and ship.ship_status.is_visible:
                             if game_data.selected_ship_planet_or_star is not ship:
                                 game_data.selected_ship_planet_or_star = ship
                                 game_data.ship_scan = ship.scan_this_ship(game_data.player.determin_precision)

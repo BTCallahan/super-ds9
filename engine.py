@@ -3,7 +3,7 @@ from typing import Dict, Tuple
 from data_globals import ENERGY_REGEN_PER_TURN, REPAIR_MULTIPLIER
 from message_log import MessageLog
 from game_data import GameData
-from starship import ShipStatus, Starship
+from starship import Starship
 from get_config import config_object
 import lzma, pickle
 
@@ -46,13 +46,14 @@ class Engine:
 
         for entity in self.game_data.all_enemy_ships:
 
-            if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status is ShipStatus.ACTIVE:
+            if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status.is_active:
                 entity.ai.perform()
                 entity.repair()
                 
         self.game_data.set_condition()
+        self.game_data.update_mega_sector_display()
 
-    def get_lookup_table(self, *, direction_x, direction_y, normalise_direction:bool=True):
+    def get_lookup_table(self, *, direction_x:float, direction_y:float, normalise_direction:bool=True):
 
         origin_tuple = Coords(direction_x, direction_y)
 
@@ -68,7 +69,9 @@ class Engine:
 
                 for r in range(config_object.max_move_distance):
 
-                    yield Coords(round(old_x), round(old_y))
+                    c:Coords = Coords(round(old_x), round(old_y))
+
+                    yield c
 
                     old_x += new_coords_x
                     old_y += new_coords_y

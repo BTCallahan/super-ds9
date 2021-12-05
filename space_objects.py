@@ -240,7 +240,7 @@ class Planet(InterstellerObject):
         return self.planet_habbitation is PlanetHabitation.PLANET_FRIENDLY and self.sector_coords == player.sector_coords and \
             self.local_coords.isAdjacent(player.local_coords) and len(player.game_data.grab_ships_in_same_sub_sector(player)) < 1            
 
-    def hit_by_torpedo(self, is_player:bool, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
+    def hit_by_torpedo(self, is_player:bool, game_data:GameData, torpedo:Torpedo):
         """Somebody did a bad, bad, thing.
 
         Args:
@@ -249,6 +249,8 @@ class Planet(InterstellerObject):
             message_log (MessageLog): [description]
             damage (int, optional): The amount of damage to do to the planet. Defaults to 40.
         """
+        
+        message_log = game_data.engine.message_log
 
         if self.planet_habbitation in {PlanetHabitation.PLANET_BARREN, PlanetHabitation.PLANET_BOMBED_OUT}:
             message_log.add_message('The torpedo struck the planet. ')
@@ -257,7 +259,7 @@ class Planet(InterstellerObject):
                 if self.planet_habbitation is PlanetHabitation.PLANET_BOMBED_OUT:
                     message_log.add_message('Now you are just being petty. ')
         else:
-            infrustructure_damage = uniform(torpedo.infrastructure * 0.5, torpedo.infrastructure) * 0.1 * self.infastructure
+            infrustructure_damage = uniform(torpedo.infrastructure * 0.5, torpedo.infrastructure) * 10 * self.infastructure
 
             game_data.player_record["deathtoll"] += infrustructure_damage
 

@@ -5,10 +5,8 @@ from random import choice
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Iterable, Optional
 from global_functions import to_rads, headingToCoords, headingToDirection
-from data_globals import DAMAGE_BEAM, LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, DamageType, PlanetHabitation
+from data_globals import DAMAGE_BEAM, DAMAGE_RAMMING, LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, PlanetHabitation
 from space_objects import Planet, SubSector
-from starship import ShipStatus
-from torpedo import ALL_TORPEDO_TYPES
 from get_config import config_object
 
 if TYPE_CHECKING:
@@ -21,6 +19,7 @@ class OrderWarning(Enum):
     NO_CHANGE_IN_POSITION = auto()
     NO_CHANGE_IN_SHIELD_ENERGY = auto()
     ENEMY_SHIPS_NEARBY = auto()
+    ENEMY_SHIPS_NEARBY_WARN = auto()
     NO_ENEMY_SHIPS_NEARBY = auto()
     TORPEDO_WILL_HIT_PLANET = auto()
     TORPEDO_COULD_HIT_PLANET = auto()
@@ -39,6 +38,7 @@ class OrderWarning(Enum):
     PLANET_TOO_PRIMITIVE = auto()
     PLANET_UNFRIENDLY = auto()
     PLANET_AFRAID = auto()
+    NO_REPAIRS_NEEDED = auto()
     
 blocks_action = {
     OrderWarning.NOT_ENOUGHT_ENERGY : "Error: We possess insufficent energy reserves",
@@ -69,7 +69,9 @@ collision_warnings = {
 }
 
 misc_warnings = {
-    OrderWarning.NO_ENEMY_SHIPS_NEARBY : "Warning: There are no enemy ships nearbye."
+    OrderWarning.NO_ENEMY_SHIPS_NEARBY : "Warning: There are no enemy ships nearbye.",
+    OrderWarning.ENEMY_SHIPS_NEARBY_WARN : "Warning: There are no enemy ships nearbye.",
+    OrderWarning.NO_REPAIRS_NEEDED : "Warning: No repairs are needed right now."
 }
 
 class Order:
@@ -101,12 +103,12 @@ class WarpOrder(Order):
         super().__init__(entity)
         self.heading = heading
         self.distance = distance
-
+        self.cost = ceil(self.distance * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier)
         self.x, self.y = x,y
         # TODO: Implement warp speed
     
     def __hash__(self):
-        return hash((self.entity, self.heading, self.distance, self.x, self.y))
+        return hash((self.entity, self.heading, self.distance, self.cost, self.x, self.y))
     
     @classmethod
     def from_coords(cls, entity:Starship, x:int, y:int):
@@ -153,7 +155,7 @@ class WarpOrder(Order):
         self.entity.local_coords.x = spot.x
         self.entity.local_coords.y = spot.y
         
-        energy_cost = self.distance * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier
+        energy_cost = self.cost
 
         self.entity.energy -= energy_cost
 
@@ -181,9 +183,9 @@ class WarpOrder(Order):
         if not (0 <= self.x < config_object.sector_width and 0 <= self.y < config_object.subsector_height):
             return OrderWarning.OUT_OF_RANGE
         
-        distance_to_destination = self.entity.sector_coords.distance(x=self.x, y=self.y)
+        #distance_to_destination = self.entity.sector_coords.distance(x=self.x, y=self.y)
         
-        return OrderWarning.NOT_ENOUGHT_ENERGY if distance_to_destination * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier > self.entity.energy else OrderWarning.SAFE
+        return OrderWarning.NOT_ENOUGHT_ENERGY if self.cost > self.entity.energy else OrderWarning.SAFE
 
 class MoveOrder(Order):
 
@@ -191,7 +193,7 @@ class MoveOrder(Order):
         super().__init__(entity)
         self.heading = heading
         self.distance = distance
-
+        self.cost = ceil(distance * self.entity.sys_impulse.affect_cost_multiplier * LOCAL_ENERGY_COST)
         self.x, self.y = x,y
         self.x_aim, self.y_aim = x_aim, y_aim
 
@@ -201,27 +203,27 @@ class MoveOrder(Order):
 
         x_, y_ = c.normalize()
 
-        self.coord_list = tuple([Coords(co.x, co.y) for co in self.game_data.engine.get_lookup_table(direction_x=x_, direction_y=y_)][:ceil(distance)])
+        self.coord_list = tuple([Coords(co.x + self.entity.local_coords.x, co.y + self.entity.local_coords.y) for co in self.game_data.engine.get_lookup_table(direction_x=x_, direction_y=y_, normalise_direction=False)][:ceil(distance)])
 
         self.ships = {ship.local_coords.create_coords() : ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(self.entity) if ship.local_coords in self.coord_list}
     
     def __hash__(self):
-        return hash((self.entity, self.heading, self.distance, self.x, self.y, self.x_aim, self.y_aim))
+        return hash((self.entity, self.heading, self.distance, self.cost, self.x, self.y, self.x_aim, self.y_aim))
     
     @classmethod
     def from_coords(cls, entity:Starship, x:int, y:int):
 
-        distance = entity.sector_coords.distance(x=x,y=y)
+        distance = entity.local_coords.distance(x=x,y=y)
 
-        rel_x = x - entity.sector_coords.x
-        rel_y = y - entity.sector_coords.y
+        rel_x = x - entity.local_coords.x
+        rel_y = y - entity.local_coords.y
 
         c:Coords = Coords(rel_x, rel_y)
         x_, y_ = c.normalize()
 
         heading = atan2(y_, x_) / to_rads
 
-        return cls(entity, distance=ceil(distance), heading=heading, x=x, y=y, x_aim=x_, y_aim=y_)
+        return cls(entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_, y_aim=y_)
     
     @classmethod
     def from_heading(cls, entity:Starship, heading:int, distance:int):
@@ -229,7 +231,7 @@ class MoveOrder(Order):
         x_aim, y_aim = headingToDirection(heading)
         x, y = headingToCoords(
             heading, config_object.max_move_distance, 
-            entity.sector_coords.x, entity.sector_coords.y,
+            entity.local_coords.x, entity.local_coords.y,
             config_object.subsector_width, config_object.subsector_height
         )
 
@@ -259,7 +261,7 @@ class MoveOrder(Order):
 
         #self.entity.move()
         
-        energy_cost = self.distance * self.entity.sys_impulse.affect_cost_multiplier * LOCAL_ENERGY_COST
+        energy_cost = self.cost
 
         self.entity.energy -= energy_cost
 
@@ -281,6 +283,14 @@ class MoveOrder(Order):
 
                     try:
                         ship = self.ships[co]
+                        hit = self.entity.roll_to_hit(
+                            ship, 
+                            systems_used_for_accuray=(
+                                self.entity.sys_impulse.get_effective_value,
+                                self.entity.sys_sensors.get_effective_value
+                            ),
+                            damage_type=DAMAGE_RAMMING
+                        )
                         self.entity.ram(ship)
 
                     except KeyError:
@@ -304,7 +314,7 @@ class MoveOrder(Order):
         if last_coord.x not in range(config_object.subsector_width) and last_coord.y not in range(config_object.subsector_height):
             return OrderWarning.OUT_OF_RANGE
         
-        if self.entity.energy < self.distance * self.entity.sys_impulse.affect_cost_multiplier * LOCAL_ENERGY_COST:
+        if self.entity.energy < self.cost:
             return OrderWarning.NOT_ENOUGHT_ENERGY
 
         sub_sector:SubSector = self.entity.game_data.grid[self.entity.sector_coords.y][self.entity.sector_coords.x]
@@ -401,9 +411,11 @@ class TorpedoOrder(Order):
         self.x, self.y = x,y
         self.x_aim, self.y_aim = x_aim, y_aim
         
-        self.coord_list = tuple([Coords(co.x+entity.local_coords.x, co.y+entity.local_coords.y) for co in self.game_data.engine.get_lookup_table(direction_x=x_aim, direction_y=y_aim, normalise_direction=False)])
+        torp_coords = self.game_data.engine.get_lookup_table(direction_x=x_aim, direction_y=y_aim, normalise_direction=False)
+        
+        self.coord_list = tuple(Coords(co.x+entity.local_coords.x, co.y+entity.local_coords.y) for co in torp_coords)
 
-        self.ships = {ship.local_coords.create_coords() : ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(self.entity) if ship.local_coords in self.coord_list and ship.ship_status == ShipStatus.ACTIVE}
+        self.ships = {ship.local_coords.create_coords() : ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if ship.local_coords in self.coord_list and ship.ship_status.is_active}
     
     def __hash__(self):
         return hash((self.entity, self.heading, self.amount, self.x, self.y, self.x_aim, self.y_aim, self.coord_list))
@@ -425,6 +437,11 @@ class TorpedoOrder(Order):
         #m=max(config_object.max_move_distance, config_object.max_warp_distance)
 
         x_aim, y_aim = headingToDirection(heading)
+        
+        c:Coords = Coords(x_aim,y_aim)
+        
+        x_aim, y_aim = c.normalize()
+        
         x, y = headingToCoords(heading, config_object.max_move_distance, 
         entity.sector_coords.x, entity.sector_coords.y,
         config_object.subsector_width, config_object.subsector_height
@@ -436,7 +453,9 @@ class TorpedoOrder(Order):
 
         #torpedo = torpedo_types[self.entity.torpedo_loaded]
 
-        self.entity.game_data.handleTorpedo(self.entity, self.amount, self.coord_list, self.entity.torpedo_loaded, self.ships)
+        self.entity.game_data.handle_torpedo(
+            shipThatFired=self.entity,torpsFired=self.amount, coords=self.coord_list, torpedo_type=self.entity.torpedo_loaded, ships_in_area=self.ships, heading=self.heading
+        )
         
         self.entity.turn_repairing = 0
         
@@ -484,23 +503,34 @@ class DockOrder(Order):
         super().__init__(entity)
         self.planet = planet
         self.undock = not entity.docked
-        self.ships = self.entity.game_data.grab_ships_in_same_sub_sector(self.entity)
+        self.ships = self.entity.game_data.grab_ships_in_same_sub_sector(
+            self.entity, accptable_ship_statuses={STATUS_ACTIVE}
+        )
     
     def __hash__(self) -> int:
         return hash((self.planet, self.undock, self.ships))
     
+    def perform(self) -> None:
+        self.entity.docked = self.undock
+        if self.entity.is_controllable:
+            self.game_data.engine.message_log.add_message(
+                "Docking procedures complete, captain." if self.entity.docked else "Undocking procedures complete, captain."
+            )
+    
+    """
     def can_be_carried_out(self) -> bool:
         if self.undock:
             return True
 
         return self.planet.canSupplyPlayer(self.entity)
+    """
     
     def raise_warning(self):
 
         if self.undock and self.ships:
             return OrderWarning.ENEMY_SHIPS_NEARBY
 
-        if not self.planet.local_coords.is_adjacent(self.entity.local_coords):
+        if not self.planet.local_coords.is_adjacent(other=self.entity.local_coords):
             return OrderWarning.PLANET_TOO_DISTANT
         
         planet_habbitation = self.planet.planet_habbitation
@@ -514,26 +544,28 @@ class RechargeOrder(Order):
 
     def __init__(self, entity:Starship, amount:int) -> None:
         super().__init__(entity)
+        
+        self.cost = amount - self.entity.shields
+        if amount >= self.entity.shields:
+            
+            amount = floor(amount * self.entity.sys_shield_generator.get_effective_value)
+
+        else:
+            self.cost =  ceil(self.cost * self.entity.sys_shield_generator.get_effective_value)
+            
         self.amount = amount
+        
     
     def __hash__(self) -> int:
-        return hash((self.entity, self.amount))
+        return hash((self.entity, self.cost, self.amount))
     
     def perform(self) -> None:
 
         amount = self.amount
         
-        energy_cost = amount - self.entity.shields
+        energy_cost = self.cost
         
         self.entity.energy -= energy_cost
-
-        if amount >= self.entity.shields:
-            
-            amount*= self.entity.sys_shield_generator.get_effective_value
-
-        else:
-                        
-            energy_cost *= self.entity.sys_shield_generator.get_effective_value
                         
         self.entity.shields = amount
         
@@ -543,27 +575,54 @@ class RechargeOrder(Order):
     def raise_warning(self):
         if self.amount == self.entity.shields:
             return OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY
-        return OrderWarning.NOT_ENOUGHT_ENERGY if self.amount > self.entity.energy else OrderWarning.SAFE
+        return OrderWarning.NOT_ENOUGHT_ENERGY if self.cost > self.entity.energy else OrderWarning.SAFE
 
 class RepairOrder(Order):
 
     def __init__(self, entity:Starship, amount:int) -> None:
         super().__init__(entity)
         self.amount = amount
+        self.ships = tuple(self.entity.game_data.grab_ships_in_same_sub_sector(
+            self.entity, accptable_ship_statuses={STATUS_ACTIVE}
+        ))
+        self.number = len(self.ships)
         
     def __hash__(self) -> int:
-        return hash((self.entity, self.amount, True))
+        return hash((self.entity, self.amount, self.ships, self.number))
     
     def perform(self) -> None:
         self.entity.repair()
         
         self.entity.turn_repairing += 1
+        
+    def raise_warning(self):
+        
+        if self.number:
+            return OrderWarning.ENEMY_SHIPS_NEARBY_WARN
+        
+        if any(
+            (
+                self.entity.sys_energy_weapon.integrety == 1.0,
+                self.entity.sys_impulse.integrety == 1.0,
+                self.entity.sys_sensors.integrety == 1.0,
+                self.entity.sys_shield_generator.integrety == 1.0,
+                self.entity.sys_torpedos.integrety == 1.0,
+                self.entity.sys_warp_core.integrety == 1.0,
+                self.entity.sys_warp_drive.integrety == 1.0,
+                self.entity.hull_percentage == 1.0,
+                self.entity.shields_percentage == 1.0,
+                self.entity.energy == self.entity.ship_data.max_energy
+            )
+        ):
+            return OrderWarning.NO_REPAIRS_NEEDED
+        
+        return OrderWarning.SAFE
 
 class SelfDestructOrder(Order):
 
-    def __init__(self, entity: Starship) -> None:
+    def __init__(self, entity: Starship, nearbye_ships:Iterable[Starship]) -> None:
         super().__init__(entity)
-        self.ships = tuple(self.game_data.grab_ships_in_same_sub_sector(self.entity))
+        self.ships = nearbye_ships
 
     def __hash__(self) -> int:
         return hash((self.entity, self.ships))
@@ -594,34 +653,34 @@ class ReactivateDerlict(Order):
         self.target = target
         self.crew = crew
 
-        self.delrict_ships = [ship for ship in self.entity.game_data.enemyShipsInAction if ship.ableCrew + ship.injuredCrew < 1]
+        self.delrict_ships = [ship for ship in self.entity.game_data.enemyShipsInAction if ship.able_crew + ship.injuredCrew < 1]
 
         if self.delrict_ships:
-            self.delrict_ships.sort(lambda ship: ship.sectorCoords.distance(self.entity.sectorCoords))
+            self.delrict_ships.sort(lambda ship: ship.sector_coords.distance(self.entity.sector_coords))
         
         self.ships_in_same_system = self.entity.game_data.grapShipsInSameSubSector(self.entity)
 
     def raise_warning(self):
 
-        if self.crew >= self.entity.ableCrew:
+        if self.crew >= self.entity.able_crew:
             return OrderWarning.NOT_ENOUGHT_CREW
 
-        if self.target.sectorCoords != self.entity.sectorCoords:
+        if self.target.sector_coords != self.entity.sector_coords:
             return OrderWarning.NO_TARGET
         
-        if not self.entity.localCoords.is_adjacent(self.target.localCoords):
+        if not self.entity.local_coords.is_adjacent(self.target.local_coords):
             return OrderWarning.OUT_OF_RANGE
 
-        return super().raise_warning()
+        return OrderWarning.SAFE
 
     def perform(self) -> None:
 
-        max_crew = self.target.shipData.maxCrew
+        max_crew = self.target.ship_data.max_crew
 
         crew_to_send_over = min(max_crew, self.crew)
 
-        self.entity.ableCrew -= crew_to_send_over
-        self.target.ableCrew += crew_to_send_over
+        self.entity.able_crew -= crew_to_send_over
+        self.target.able_crew += crew_to_send_over
 
         
 

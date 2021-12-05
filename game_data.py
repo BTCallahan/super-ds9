@@ -2,12 +2,12 @@ from __future__ import annotations
 from collections import Counter
 from ai import BaseAi, HostileEnemy
 from coords import Coords
-from data_globals import DAMAGE_TORPEDO, ShipTypes, CONDITIONS, Condition
+from data_globals import DAMAGE_TORPEDO, STATUS_ACTIVE, ShipStatus, ShipTypes, CONDITIONS, Condition
 from random import choice, randrange
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set
 from get_config import config_object
-from starship import ADVANCED_FIGHTER, ATTACK_FIGHTER, BATTLESHIP, CRUISER, DEFIANT_CLASS, ShipStatus, Starship
-from space_objects import InterstellerObject, SubSector, Planet
+from starship import ADVANCED_FIGHTER, ATTACK_FIGHTER, BATTLESHIP, CRUISER, DEFIANT_CLASS, Starship
+from space_objects import InterstellerObject, Star, SubSector, Planet
 
 import numpy as np
 
@@ -57,7 +57,7 @@ class GameData:
         
         self.secInfo = []
 
-        self.selected_ship_planet_or_star:Optional[Union[Starship, InterstellerObject]] = None
+        self.selected_ship_planet_or_star:Optional[Union[Starship, Star, Planet]] = None
 
         self.player:Optional[Starship] = None
 
@@ -99,14 +99,20 @@ class GameData:
         
         else:
 
-            other_ships = self.grab_ships_in_same_sub_sector(player)
+            other_ships = self.grab_ships_in_same_sub_sector(
+                player,
+                accptable_ship_statuses={STATUS_ACTIVE}
+                )
 
             self.condition = Condition.RED if len(other_ships) > 0 else (Condition.YELLOW if player.shields > 0 else Condition.GREEN) 
         
         self.player_scan = player.scan_this_ship(1)
         
         self.condition_str, self.condition_color = CONDITIONS[self.condition]
-                
+        
+        if self.selected_ship_planet_or_star is not None and self.selected_ship_planet_or_star.sector_coords != self.player.sector_coords:
+            self.selected_ship_planet_or_star = None
+            
         if isinstance(self.selected_ship_planet_or_star, Starship):
             self.ship_scan = self.selected_ship_planet_or_star.scan_this_ship(player.determin_precision)
 
@@ -210,6 +216,7 @@ class GameData:
                    100, False, False)
 
     #-----Gameplay related------
+    """
     def checkForSelectableShips(self):
 
         player = self.player
@@ -232,25 +239,58 @@ class GameData:
                 else:
 
                     self.selected_ship_planet_or_star = None
-
-    def grab_ships_in_same_sub_sector(self, ship:Starship, include_self_in_ships_to_grab:bool=False):
+    """
+    def grab_ships_in_same_sub_sector(self, ship:Starship, *, include_self_in_ships_to_grab:bool=False, accptable_ship_statuses:Optional[Set[ShipStatus]]=None):
+        
+        if accptable_ship_statuses:
+            return (
+                [s for s in self.total_starships if s.sector_coords == ship.sector_coords and s.ship_status in accptable_ship_statuses] if include_self_in_ships_to_grab else 
+                [s for s in self.total_starships if s.sector_coords == ship.sector_coords and s.ship_status in accptable_ship_statuses and s is not ship]
+            )
 
         return (
-            [s for s in self.total_starships if s.ship_status == ShipStatus.ACTIVE and s.sector_coords == ship.sector_coords] 
+            [s for s in self.total_starships if s.sector_coords == ship.sector_coords] 
             if include_self_in_ships_to_grab else 
-            [s for s in self.total_starships if s.is_alive and s.sector_coords == ship.sector_coords and s is not ship]
+            [s for s in self.total_starships if s.sector_coords == ship.sector_coords and s is not ship]
         )
 
-        #return list(filter(lambda s: s.is_alive and s is not ship and
-        #                   s.sector_coords == ship.sector_coords, self.totalStarships))
+    def _check_ship(self, ship:Starship, visibility_status:Optional[bool]=None, activity_status:Optional[bool]=None):
+        
+        status = ship.ship_status
+        
+        if visibility_status is not None:
+            if visibility_status != status.is_visible:
+                return False
+        
+        if activity_status is not None:
+            if activity_status != status.is_active:
+                return False
+        
+        return True
+    
+    def update_mega_sector_display(self):
+        
+        for y in self.subsec_size_range_y:
+            
+            for x in self.subsec_size_range_x:
+                
+                subsec = self.grid[y][x]
+                
+                subsec.bigShips = 0
+                subsec.smallShips = 0
+                
+        for ship in self.all_enemy_ships:
+            
+            if ship.ship_status.is_active:
+                x,y = ship.sector_coords.x, ship.sector_coords.y
+                subsec:SubSector = self.grid[y][x]
+                
+                if ship.ship_data.ship_type == ShipTypes.TYPE_ENEMY_LARGE:
+                    subsec.bigShips += 1
+                elif ship.ship_data.ship_type == ShipTypes.TYPE_ENEMY_SMALL:
+                    subsec.smallShips += 1
 
-    """
-    def select_ship_or_planet(self, ship_or_planet:Union[Starship, Planet]):
-
-        self.selected_planet, self.selectedEnemyShip = (None, ship_or_planet) if isinstance(ship_or_planet, Starship) else (ship_or_planet, None)
-    """
-
-    def handleTorpedo(self, shipThatFired:Starship, torpsFired:int, coords:Tuple[Coords], torpedo_type:TorpedoType, ships_in_area:Dict[Coords, Starship]):
+    def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:TorpedoType, ships_in_area:Dict[Coords, Starship]):
         #global PLAYER
         #headingToDirection
         torpedo = ALL_TORPEDO_TYPES[torpedo_type]
@@ -263,8 +303,11 @@ class GameData:
 
         dirX, dirY = math.sin(atan2xy), math.cos(atan2xy)
         """
+        descriptive_number = "a" if torpsFired == 1 else f"{torpsFired}"
+        plural = "torpedo" if torpsFired == 1 else "torpedos"
+        
         self.engine.message_log.add_message(
-            f"Firing {torpedo.name} torpedo..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired a {torpedo.name} torpedo..."
+            f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading}..."
         )
 
         g: SubSector = self.grid[shipThatFired.sector_coords.y][shipThatFired.sector_coords.x]
@@ -300,21 +343,28 @@ class GameData:
 
                     try:
                         planet = g.planets_dict[co]
-                        planet.hit_by_torpedo(shipThatFired.is_controllable, self, self.engine.message_log, torpedo.damage)
+                        planet.hit_by_torpedo(shipThatFired.is_controllable, self, torpedo)
                         hitSomething=True
                     except KeyError:
                         try:
                             ship = shipsInArea[co]
                             #hitSomething = shipThatFired.attack_torpedo(self, ship, torpedo)
                             
-                            hitSomething = shipThatFired.roll_to_hit(ship, damage_type=DAMAGE_TORPEDO)
+                            hitSomething = shipThatFired.roll_to_hit(
+                                ship, 
+                                damage_type=DAMAGE_TORPEDO,
+                                systems_used_for_accuray=(
+                                    shipThatFired.sys_sensors.get_effective_value,
+                                    shipThatFired.sys_torpedos.get_effective_value
+                                )
+                            )
                             
                             if hitSomething:
                                 #chance to hit:
                                 #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
                                 self.engine.message_log.add_message(f'{ship.name} was hit by a {torpedo.name} torpedo from {shipThatFired.name}. ')
 
-                                ship.take_damage(torpedo.damage, f'Destroyed by a {torpedo.name} torpedo hit from the {shipThatFired.name}', isTorp=True, damage_type=DAMAGE_TORPEDO)
+                                ship.take_damage(torpedo.damage, f'Destroyed by a {torpedo.name} torpedo hit from the {shipThatFired.name}', damage_type=DAMAGE_TORPEDO)
                             else:
                                 self.engine.message_log.add_message(f'A {torpedo.name} torpedo from {shipThatFired.name} missed {ship.name}. ')
                                 missed_the_target = True
