@@ -152,7 +152,7 @@ class CommandEventHandler(MainGameEventHandler):
             text="(R)epair",
         )
         
-        p = self.engine.player.ship_data.nation.energy_weapon_beam_name_plural
+        p = self.engine.player.ship_class.nation.energy_weapon_beam_name_plural
 
         self.phasers_button = ButtonBox(
             x=2+config_object.command_display_x,
@@ -187,7 +187,7 @@ class CommandEventHandler(MainGameEventHandler):
         )
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
-        captain = self.engine.player.ship_data.nation.captain_rank_name
+        captain = self.engine.player.ship_class.nation.captain_rank_name
         if not select_ship_planet_star(self.engine.game_data, event):
             if self.warp_button.cursor_overlap(event):
                 self.warned_once = False
@@ -228,7 +228,7 @@ class CommandEventHandler(MainGameEventHandler):
             elif self.phasers_button.cursor_overlap(event):
                 self.warned_once = False
                 if not self.engine.player.sys_energy_weapon.is_opperational:
-                    p = self.engine.player.ship_data.nation.energy_weapon_beam_name
+                    p = self.engine.player.ship_class.nation.energy_weapon_beam_name
                     self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
                 elif self.engine.player.energy <= 0:
@@ -291,7 +291,7 @@ class CommandEventHandler(MainGameEventHandler):
                 return SelfDestructHandler(self.engine)
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
-        captain = self.engine.player.ship_data.nation.captain_rank_name
+        captain = self.engine.player.ship_class.nation.captain_rank_name
         if event.sym == tcod.event.K_w:
             self.warned_once = False
             if not self.engine.player.sys_warp_drive.is_opperational:
@@ -343,7 +343,7 @@ class CommandEventHandler(MainGameEventHandler):
         elif event.sym == tcod.event.K_f:
             self.warned_once = False
             if not self.engine.player.sys_energy_weapon.is_opperational:
-                p = self.engine.player.ship_data.nation.energy_weapon_beam_name
+                p = self.engine.player.ship_class.nation.energy_weapon_beam_name
                 self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
@@ -1397,7 +1397,7 @@ class TorpedoHandler(MainGameEventHandler):
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
         self.heading = NumberHandeler(limit=3, max_value=360, min_value=0, wrap_around=True)
-        self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_data.torp_tubes, min_value=1)
+        self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1)
 
         self.selected_handeler = self.heading
 
@@ -1630,7 +1630,7 @@ class TorpedoHandlerEasy(MainGameEventHandler):
         self.x = NumberHandeler(limit=2, max_value=config_object.subsector_width, min_value=0, wrap_around=True, starting_value=local_coords.x)
         self.y = NumberHandeler(limit=2, max_value=config_object.subsector_height, min_value=0, wrap_around=True, starting_value=local_coords.y)
 
-        self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_data.torp_tubes, min_value=1)
+        self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1)
 
         self.selected_handeler = self.x
 
@@ -1780,7 +1780,7 @@ class SelfDestructHandler(MainGameEventHandler):
         
         player = engine.player
         
-        nearbye_ships = [ship for ship in engine.game_data.grab_ships_in_same_sub_sector(player, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_data.warp_breach_dist]
+        nearbye_ships = [ship for ship in engine.game_data.grab_ships_in_same_sub_sector(player, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_class.warp_breach_dist]
         
         nearbye_ships.sort(key=lambda ship: ship.local_coords.distance(coords=player.local_coords), reverse=True)
         
@@ -1943,7 +1943,7 @@ class GameOverEventHandler(EventHandler):
 
         for s in gameDataGlobal.total_starships:
             if not s.is_controllable:
-                startingEnemyFleetValue+= s.ship_data.max_hull
+                startingEnemyFleetValue+= s.ship_class.max_hull
                 currentEnemyFleetValue+= s.get_ship_value
                 if s.ship_status.is_recrewable:
                     derlict_ships += 1

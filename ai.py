@@ -64,7 +64,7 @@ class HostileEnemy(BaseAi):
             
             if player_is_present:
                 
-                nearbye_ships = [ship for ship in self.game_data.grab_ships_in_same_sub_sector(self.target, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if self.target.local_coords.distance(coords=ship.local_coords) <= self.target.ship_data.warp_breach_dist]
+                nearbye_ships = [ship for ship in self.game_data.grab_ships_in_same_sub_sector(self.target, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if self.target.local_coords.distance(coords=ship.local_coords) <= self.target.ship_class.warp_breach_dist]
             
                 if len(nearbye_ships) > 0:
                     
@@ -100,7 +100,7 @@ class HostileEnemy(BaseAi):
                             
                         averaged_shields, averaged_hull, shield_damage, hull_damage, kill = self.entity.simulate_torpedo_hit(self.target, 10)
                         
-                        torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_data.torp_tubes)
+                        torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes)
 
                         torpedo = TorpedoOrder.from_coords(
                             self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
@@ -112,7 +112,7 @@ class HostileEnemy(BaseAi):
                     
                 if has_energy:
                     if self.entity.sys_energy_weapon.is_opperational:
-                        energy_to_use = min(self.entity.ship_data.max_weap_energy, self.entity.energy)
+                        energy_to_use = min(self.entity.ship_class.max_weap_energy, self.entity.energy)
                         averaged_shields, averaged_hull, shield_damage, hull_damage, kill = self.entity.simulate_energy_hit(self.target, 10, energy_to_use)
                         
                         if shield_damage + hull_damage > 0:
@@ -124,7 +124,7 @@ class HostileEnemy(BaseAi):
                             order_dict_size+=1
                         
                     if self.entity.sys_impulse.is_opperational and self.entity.local_coords.distance(coords=self.target.local_coords) * 100 * self.entity.sys_impulse.affect_cost_multiplier <= self.entity.energy:
-                        hull_percentage = scan["hull"] / self.target.ship_data.max_hull
+                        hull_percentage = scan["hull"] / self.target.ship_class.max_hull
                         shields_percentage = scan["shields"] / self.target.hull_percentage
                         
                         ram_damage = round(self.entity.sys_impulse.get_effective_value / (self.entity.hull_percentage + self.entity.shields_percentage) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
@@ -255,10 +255,10 @@ class HostileEnemy(BaseAi):
                     if adjacent:
                         
                         adjacent.sor(
-                            key=lambda ship: ship.ship_data.max_crew, reverse=True
+                            key=lambda ship: ship.ship_class.max_crew, reverse=True
                         )
                         
-                        weight -= adjacent[0].ship_data.max_crew
+                        weight -= adjacent[0].ship_class.max_crew
                         
                     else:
                 

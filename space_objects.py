@@ -203,17 +203,17 @@ class SubSector:
     """
 
     def add_ship_to_sec(self, ship:Starship):
-        if ship.ship_data.ship_type is ShipTypes.TYPE_ALLIED:
+        if ship.ship_class.nation_code == "FEDERATION":
             self.player_present = True
-        elif ship.ship_data.ship_type is ShipTypes.TYPE_ENEMY_SMALL:
+        elif ship.ship_class.ship_type == "ESCORT":
             self.small_ships+= 1
         else:
             self.big_ships+= 1
 
     def remove_ship_from_sec(self, ship:Starship):
-        if ship.ship_data.ship_type is ShipTypes.TYPE_ALLIED:
+        if ship.ship_class.nation_code == "FEDERATION":
             self.player_present = False
-        elif ship.ship_data.ship_type is ShipTypes.TYPE_ENEMY_SMALL:
+        elif ship.ship_class.ship_type == "ESCORT":
             self.small_ships-= 1
         else:
             self.big_ships-= 1

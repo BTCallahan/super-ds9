@@ -344,7 +344,7 @@ class EnergyWeaponOrder(Order):
 
     def __init__(self, entity:Starship, amount:int, *, target:Optional[Starship]=None, targets:Optional[Iterable[Starship]]=None) -> None:
         super().__init__(entity)
-        self.amount = min(entity.energy, amount, entity.ship_data.max_weap_energy)
+        self.amount = min(entity.energy, amount, entity.ship_class.max_weap_energy)
         self.target = target
         self.targets = targets
     
@@ -611,7 +611,7 @@ class RepairOrder(Order):
                 self.entity.sys_warp_drive.integrety == 1.0,
                 self.entity.hull_percentage == 1.0,
                 self.entity.shields_percentage == 1.0,
-                self.entity.energy == self.entity.ship_data.max_energy
+                self.entity.energy == self.entity.ship_class.max_energy
             )
         ):
             return OrderWarning.NO_REPAIRS_NEEDED
@@ -630,7 +630,7 @@ class SelfDestructOrder(Order):
     def perform(self) -> None:
         if self.entity.is_controllable:
             self.game_data.engine.message_log.add_message("Captain, it has been an honor...")
-        self.entity.hull = -self.entity.ship_data.max_hull
+        self.entity.hull = -self.entity.ship_class.max_hull
         self.entity.warp_core_breach(True)
         
     def raise_warning(self):
@@ -641,7 +641,7 @@ class SelfDestructOrder(Order):
             return OrderWarning.NO_ENEMY_SHIPS_NEARBY
         
         ships_in_range = [
-            ship for ship in sector_ships if self.entity.local_coords.distance(ship.local_coords) <= self.entity.ship_data.warp_breach_dist
+            ship for ship in sector_ships if self.entity.local_coords.distance(ship.local_coords) <= self.entity.ship_class.warp_breach_dist
         ]
 
         return OrderWarning.SAFE if ships_in_range else OrderWarning.NO_ENEMY_SHIPS_NEARBY
@@ -675,7 +675,7 @@ class ReactivateDerlict(Order):
 
     def perform(self) -> None:
 
-        max_crew = self.target.ship_data.max_crew
+        max_crew = self.target.ship_class.max_crew
 
         crew_to_send_over = min(max_crew, self.crew)
 

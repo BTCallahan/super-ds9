@@ -1,6 +1,6 @@
 from math import floor, pi, sin, cos, atan2
-from typing import Final
-
+from typing import Final, Pattern
+import re
 from coords import IntOrFloat
 
 #-----------Gameplay related-----------
@@ -61,4 +61,15 @@ def safe_division(n:IntOrFloat, d:IntOrFloat, return_number:IntOrFloat=0.0):
     if d == 0.0:
         return return_number
     return n / d
+
+def get_first_group_in_pattern(text_to_search:str, pattern:Pattern[str],*, return_aux_if_no_match:bool=False, aux_valute_to_return_if_no_match=None):
     
+    match = pattern.search(text_to_search)
+    
+    if return_aux_if_no_match:
+        try:
+            return match.group(1)
+        except AttributeError:
+            return aux_valute_to_return_if_no_match
+        
+    return match.group(1)

@@ -1,0 +1,29 @@
+# TORPEDO:NONE
+# NAME:none
+# DAMAGE: - this is 
+# REQUIRED: - this is the minmum infrastructure a planet must have in order to resuply you with torpedos of this type
+# PLANET_DAMAGE: - this is the amount of damage inflicted on a planets infrastructure
+# TORPEDOEND
+
+
+#
+TORPEDO:POLARON
+NAME:polaron
+DAMAGE:120
+REQUIRED:0.3
+PLANET_DAMAGE:0.35
+TORPEDOEND
+#
+TORPEDO:PHOTON
+NAME:photon
+DAMAGE:150
+REQUIRED:0.38
+PLANET_DAMAGE:0.5
+TORPEDOEND
+#
+TORPEDO:QUANTIUM
+NAME:quantium
+DAMAGE:200
+REQUIRED:0.6
+PLANET_DAMAGE:0.75
+TORPEDOEND

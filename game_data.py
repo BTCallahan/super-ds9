@@ -6,12 +6,12 @@ from data_globals import DAMAGE_TORPEDO, STATUS_ACTIVE, ShipStatus, ShipTypes, C
 from random import choice, randrange
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set
 from get_config import config_object
-from starship import ADVANCED_FIGHTER, ATTACK_FIGHTER, BATTLESHIP, CRUISER, DEFIANT_CLASS, Starship
-from space_objects import InterstellerObject, Star, SubSector, Planet
+from starship import ALL_SHIP_CLASSES, Starship
+from space_objects import Star, SubSector, Planet
 
 import numpy as np
 
-from torpedo import ALL_TORPEDO_TYPES, TorpedoType
+from torpedo import ALL_TORPEDO_TYPES
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -135,10 +135,10 @@ class GameData:
         def get_ship(ship_count:int):
 
             if ship_count < self.noOfFighters:
-                return ATTACK_FIGHTER
+                return ALL_SHIP_CLASSES["JEM_HADAR_FIGHTER"]
             if ship_count < self.noOfFighters + self.noOfAdFighters:
-                return ADVANCED_FIGHTER
-            return CRUISER if ship_count < self.noOfFighters + self.noOfAdFighters + self.noOfCruisers else BATTLESHIP
+                return ALL_SHIP_CLASSES["ADVANCED_JEM_HADAR_FIGHTER"]
+            return ALL_SHIP_CLASSES["JEM_HADAR_CRUISER"] if ship_count < self.noOfFighters + self.noOfAdFighters + self.noOfCruisers else ALL_SHIP_CLASSES["JEM_HADAR_BATTLESHIP"]
 
         def generate_ships():
 
@@ -160,10 +160,11 @@ class GameData:
 
                     starship.game_data = self
                     
-                    if ship.ship_type == ShipTypes.TYPE_ENEMY_SMALL:
-                        sub_sector.small_ships+=1
-                    elif ship.ship_type == ShipTypes.TYPE_ENEMY_LARGE:
-                        sub_sector.big_ships+=1
+                    if ship.nation_code != "FEDERATION":
+                        if ship.ship_type == "ESCORT":
+                            sub_sector.small_ships+=1
+                        elif ship.ship_type in {"CRUISER", "WARSHIP"}:
+                            sub_sector.big_ships+=1
 
                     yield starship
                 
@@ -181,10 +182,11 @@ class GameData:
 
                         starship.game_data = self
 
-                        if ship.ship_type == ShipTypes.TYPE_ENEMY_SMALL:
-                            sub_sector.small_ships+=1
-                        elif ship.ship_type == ShipTypes.TYPE_ENEMY_LARGE:
-                            sub_sector.big_ships+=1
+                        if ship.nation_code != "FEDERATION":
+                            if ship.ship_type == "ESCORT":
+                                sub_sector.small_ships+=1
+                            elif ship.ship_type in {"CRUISER", "WARSHIP"}:
+                                sub_sector.big_ships+=1
 
                         yield starship
 
@@ -200,7 +202,9 @@ class GameData:
 
         locPos = self.grid[randYsec][randXsec].find_random_safe_spot()
 
-        self.player = Starship(DEFIANT_CLASS, BaseAi, locPos.x, locPos.y, randXsec, randYsec, name=ship_name)
+        deff = ALL_SHIP_CLASSES["DEFIANT"]
+
+        self.player = Starship(deff, BaseAi, locPos.x, locPos.y, randXsec, randYsec, name=ship_name)
         self.player.game_data = self
         self.engine.player = self.player
 
@@ -211,7 +215,7 @@ class GameData:
         self.set_condition()
         
         self.engine.message_log.add_message(
-            f"Welcome aboard, {self.player.ship_data.nation.captain_rank_name} {self.captain_name}."
+            f"Welcome aboard, {self.player.ship_class.nation.captain_rank_name} {self.captain_name}."
         )
 
     @classmethod
@@ -290,12 +294,12 @@ class GameData:
                 x,y = ship.sector_coords.x, ship.sector_coords.y
                 subsec:SubSector = self.grid[y][x]
                 
-                if ship.ship_data.ship_type == ShipTypes.TYPE_ENEMY_LARGE:
+                if ship.ship_class.ship_type in {"CRUISER", "BATTLESHIP"}:
                     subsec.big_ships += 1
-                elif ship.ship_data.ship_type == ShipTypes.TYPE_ENEMY_SMALL:
+                elif ship.ship_class.ship_type == "ESCORT":
                     subsec.small_ships += 1
 
-    def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:TorpedoType, ships_in_area:Dict[Coords, Starship]):
+    def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:str, ships_in_area:Dict[Coords, Starship]):
         #global PLAYER
         #headingToDirection
         torpedo = ALL_TORPEDO_TYPES[torpedo_type]

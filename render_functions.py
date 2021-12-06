@@ -83,14 +83,14 @@ def print_subsector(console:Console, gamedata:GameData):
             console.print(
                 x=x + (s.local_coords.x * 2) + 1, 
                 y=y + (s.local_coords.y * 2) + 1, 
-                string=s.ship_data.symbol, 
+                string=s.ship_class.symbol, 
                 fg=s.ship_status.override_color if s.ship_status.override_color else colors.red
             )
     
     console.print(
         x=x + (player.local_coords.x * 2) + 1, 
         y=y + (player.local_coords.y * 2) + 1, 
-        string=player.ship_data.symbol, fg=colors.lime)
+        string=player.ship_class.symbol, fg=colors.lime)
     
 def print_mega_sector(console:Console, gamedata:GameData):
     """
@@ -236,11 +236,11 @@ def print_ship_info(
                 scan['injured_crew']
             ),
             (
-                self.ship_data.max_shields,
-                self.ship_data.max_hull,
-                self.ship_data.max_energy, 
-                self.ship_data.max_crew,
-                self.ship_data.max_crew
+                self.ship_class.max_shields,
+                self.ship_class.max_hull,
+                self.ship_class.max_energy, 
+                self.ship_class.max_crew,
+                self.ship_class.max_crew
             )
         ):
             console.print(x=x+2, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
@@ -249,17 +249,17 @@ def print_ship_info(
 
         s = 10
 
-        if self.ship_data.ship_type_can_fire_torps:
-            max_torps = self.ship_data.max_torpedos 
-            console.print(x=x+2, y=y+s, string=f"Torpedo Tubes:{self.ship_data.torp_tubes: =2}" )
+        if self.ship_class.ship_type_can_fire_torps:
+            max_torps = self.ship_class.max_torpedos 
+            console.print(x=x+2, y=y+s, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}" )
             console.print(x=x+2, y=y+s+1, string=f"Max Torpedos:{max_torps: =2}")
             s+=2
-            for i, t in enumerate(self.ship_data.torp_types):
-                console.print(x=x+2, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].capName + ':':>16}{self.torps[t]: =2}"
+            for i, t in enumerate(self.ship_class.torp_types):
+                console.print(x=x+2, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}"
                 )
                 s+=1
         
-        names, keys = self.ship_data.system_names, self.ship_data.system_keys
+        names, keys = self.ship_class.system_names, self.ship_class.system_keys
 
         end = s+2
         
