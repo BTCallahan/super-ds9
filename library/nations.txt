@@ -9,13 +9,16 @@
 # CAPTAIN_RANK_NAME
 # ADMIRAL_RANK_NAME
 # SHIP_NAMES: - optional a list of ship names seperated by commas. If not present, an randomly generaed number will be used
-# NATIONEND
+# END_NATION
 # feds have akira, Ambassador
 
 NATION:FEDERATION
 COLOR:50,45,235
 NAME_LONG:United Federation of Planets
 NAME_SHORT:Federation
+COMMAND_NAME:Starfleet Command
+INTELLIGENCE_AGENCY:Starfleet Intelligence
+NAVY_NAME:Starfleet
 ENERGY_WEAPON_NAME:Phaser
 SHIP_PREFIX:U.S.S.
 CONGRATULATIONS_TEXT:Well done!
@@ -63,7 +66,7 @@ Wallenberg,Nightingale,
 Bonaventure,Bradbury,
 Ticonderoga,Angelou,Centaur,Challenger
 SHIP_NAMES_END
-NATIONEND
+END_NATION
 
 # Always put a '#' between nations
 
@@ -72,6 +75,9 @@ COLOR:231,50,12
 NAME_LONG:Klingon Empire
 NAME_SHORT:Empire
 NAME_POSSESIVE:Klingon
+COMMAND_NAME:High Command
+INTELLIGENCE_AGENCY:Klingon Intelligence
+NAVY_NAME:Klingon Defence Force
 ENERGY_WEAPON_NAME:Disruptor
 SHIP_PREFIX:I.K.S.
 CONGRATULATIONS_TEXT:Qapah!
@@ -88,13 +94,16 @@ Qugh,
 Raptor,Somraw,
 Vor'cha,Bortas,Drovana,Maht-H'a,Qu'Vat,Toh'Kaht,Vor'nak
 SHIP_NAMES_END
-NATIONEND
+END_NATION
 #
 NATION:ROMULAN
 COLOR:10,10,240
 NAME_LONG:Romulan Star Empire
 NAME_SHORT:Empire
 NAME_POSSESIVE:Romulan
+COMMAND_NAME:Star Command
+INTELLIGENCE_AGENCY:the Tal Shiar
+NAVY_NAME:Imperial Navy
 ENERGY_WEAPON_NAME:Disruptor
 CONGRATULATIONS_TEXT:Well done!
 CAPTAIN_RANK_NAME:Commander
@@ -106,13 +115,16 @@ Pi,
 Snipe,
 Valdore
 SHIP_NAMES_END
-NATIONEND
+END_NATION
 #
 NATION:CARDASSIAN
 COLOR:237,227,16
 NAME_LONG:Cardassian Union
 NAME_SHORT:Union
 NAME_POSSESIVE:Cardassian
+INTELLIGENCE_AGENCY:the Obsidian Order
+COMMAND_NAME:Central Command
+NAVY_NAME:Cardassian Guard
 ENERGY_WEAPON_NAME:Compresser
 CONGRATULATIONS_TEXT:Excellent.
 CAPTAIN_RANK_NAME:Gul
@@ -120,31 +132,37 @@ ADMIRAL_RANK_NAME:Legate
 SHIP_NAMES:Agiadon,Aldara,Arrestor,Bak'rikan,Borad,Bok'Nor,Braine,Bralek,Bremmo,Datthaelius,Derell,Dognaineun,Erant,Etrace,Falleins,Gadacz,Galause,Galor,Galvar,Gianour,Gonniane,Grenadier,Groumall,Hararthun,Hondis,Kaliv,Karsu,Kenzha,Kercedius,Klakar,Kovat,Kraxon,Kyria,Lynius,Mabones,Moddan,Mourlin,Nawade,Parn,Pinia,Prakesh,Praxeth,Rajan,Reklar,Rekleen,Rugg'l,Serron,Soukara,Tavracet,Terak,Thidri,Trager,Turron,Vandir,Velain,Vetar,Vexon,Vindicator,
 Carorthad,Drakamair,Cond,Corarg,Cothaldrorn,Heril,Herthorn,Imgadrane,Irarthorn,Irathrane,Karaldrorn,Mahangren,Marirmane,Marirmarg,Mongrorn,Orkalay,Orkonil,Otheon,Tarirmarg,Thishugren,Thorkrand,Thrarim,Togard,Toralay,Torhne,Vormorn
 SHIP_NAMES_END
-NATIONEND
+END_NATION
 #
 NATION:DOMINION
 COLOR:210,25,227
 NAME_LONG:Dominion
+COMMAND_NAME:the Founders
+INTELLIGENCE_AGENCY:Dominion Intelligence
+NAVY_NAME:Dominion Navy
 ENERGY_WEAPON_NAME:Pha. Poleron
 CONGRATULATIONS_TEXT:Victory is life!
 CAPTAIN_RANK_NAME:Founder
 ADMIRAL_RANK_NAME:First
 SHIP_NAMES:NONE
 SHIP_NAMES_END
-NATIONEND
+END_NATION
 #
 NATION:BORG
 COLOR:45,40,243
 NAME_LONG:Borg Collective
 NAME_SHORT:Collective
 NAME_POSSESIVE:Borg
+COMMAND_NAME:the Queen
+INTELLIGENCE_AGENCY:Unimatrix Four
+NAVY_NAME:Borg Fleet
 ENERGY_WEAPON_NAME:Plasma
 CONGRATULATIONS_TEXT:Efficent.
 CAPTAIN_RANK_NAME:Locutus
 ADMIRAL_RANK_NAME:Queen
 SHIP_NAMES:NONE
 SHIP_NAMES_END
-NATIONEND
+END_NATION
 #
 #
 # 

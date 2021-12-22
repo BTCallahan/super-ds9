@@ -1,14 +1,20 @@
-from random import randint
+from collections import OrderedDict
+from decimal import Decimal
+from random import choice, randint
 from engine import Engine
 from get_config import config_object
 from game_data import GameData
 from typing import Optional
 import input_handelers
+from nation import ALL_NATIONS
+from scenario import ALL_SCENERIOS, Scenerio
 import tcod, lzma, pickle
 from tcod import constants
 from textwrap import wrap
+from tcod import console
 from ui_related import NumberHandeler, TextHandeler, ButtonBox, confirm
 import colors
+from global_functions import stardate
 
 def set_up_help_text():
 
@@ -100,46 +106,49 @@ def load_game(filename: str) -> Engine:
 
 def set_up_game(
         *,
-        easy_aim:bool, easy_move:bool, easy_warp:bool, torpedo_warning:bool, crash_warning:bool, two_d_movment:bool,
+        easy_aim:bool, easy_move:bool, easy_warp:bool, torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
         ship_name:str, captain_name:str
     ):
     #print('beginning setup')
     #global GRID, PLAYER, TOTAL_STARSHIPS
+    
+    d = ALL_SCENERIOS["DOM_STRIKE"]
+    
+    ships = OrderedDict()
 
-    gameDataGlobal = GameData(
-        subsecs_x=config_object.sector_width,
-        subsecs_y=config_object.sector_height,
-        subsec_size_x=config_object.subsector_width,
-        subsec_size_y=config_object.subsector_height,
-        easy_aim=easy_aim,
-        easy_move=easy_move,
-        two_d_movment=two_d_movment,
-        easy_warp=easy_warp,
-        torpedo_warning=torpedo_warning,
-        crash_warning=crash_warning,
-        noOfAdFighters=randint(8, 12),
-        noOfFighters=randint(10, 15),
-        noOfCruisers=1,
-        noOfBattleships=0,
-        turns_left=80,
-        auto_destruct_code=config_object.auto_destruct_code
+    game_data = GameData(
+        subsecs_x = config_object.sector_width,
+        subsecs_y = config_object.sector_height,
+        subsec_size_x = config_object.subsector_width,
+        subsec_size_y = config_object.subsector_height,
+        easy_aim = easy_aim,
+        easy_move = easy_move,
+        three_d_movment = three_d_movment,
+        easy_warp = easy_warp,
+        torpedo_warning = torpedo_warning,
+        crash_warning = crash_warning,
+        current_datetime = d.create_date_time(),
+        starting_stardate = stardate(d.create_date_time()),
+        ending_stardate = stardate(d.enddate),
+        enemy_ship_dict = d.generate_ship_numbers(),
+        scenerio=d
     )
 
     engine = Engine(
-        filename="",
-        player=gameDataGlobal.player,
-        easy_aim=easy_aim,
-        easy_navigation=easy_move,
-        easy_warp=easy_warp,
-        torpedo_warning=torpedo_warning,
-        crash_warning=crash_warning
+        filename = "",
+        player = game_data.player,
+        easy_aim = easy_aim,
+        easy_navigation = easy_move,
+        easy_warp = easy_warp,
+        torpedo_warning = torpedo_warning,
+        crash_warning = crash_warning
     )
 
-    engine.game_data = gameDataGlobal
+    engine.game_data = game_data
 
-    gameDataGlobal.engine = engine
+    game_data.engine = engine
 
-    gameDataGlobal.set_up_game(ship_name, captain_name)
+    game_data.set_up_game(ship_name, captain_name)
     return engine
 
 class StartupScreen(input_handelers.BaseEventHandler):
@@ -224,6 +233,15 @@ class StartupScreen(input_handelers.BaseEventHandler):
             alignment=constants.RIGHT,
         )
 
+        a = Decimal(12.3 + 45 / 7193)
+
+        s_str = f"{a}\n{a:.4}\n{a:.4g}\n{a:8.4}\n{a:=.4}\n{a:>.4}\n{a:<.4}\n{a:0.4}\n{a:2.4}"
+
+        console.print(
+            x=3*hw,
+            y=2*hw+2,
+            string=s_str
+        )
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[input_handelers.BaseEventHandler]:
         #print("Main menu")
@@ -310,23 +328,100 @@ class Instructions(input_handelers.BaseEventHandler):
             self.index += 10
         
         return super().ev_keydown(event)
+        
+
+class SelectScenerio(input_handelers.BaseEventHandler):
+
+    TITLE = "Select Scenario"
+    
+    def __init__(self) -> None:
+        self.select = 0
+        
+        self.max_select = len(ALL_SCENERIOS)
+        self.keys = tuple(ALL_SCENERIOS.keys())
+        
+        self.cancel_button = ButtonBox(
+            x=30,
+            y=6,
+            text="Cancel",
+            width=8,
+            height=3
+        )
+        
+        self.confirm_button = ButtonBox(
+            x=40,
+            y=6,
+            text="Confirm",
+            width=10,
+            height=3
+        )
+        
+    def on_render(self, console: tcod.Console) -> None:
+        
+        self.cancel_button.render(console)
+        
+        self.confirm_button.render(console)
+        
+        for i,s in enumerate(ALL_SCENERIOS.values()):
+            a = "*" if self.select == i else " "
+            console.print(
+                x=5,
+                y=6+i,
+                string=f"{a} {s.name} {a}"
+            )
+            
+        console.print_box(
+            x=30,
+            y=8,
+            string=ALL_SCENERIOS[self.keys[self.select]].description,
+            width=25,
+            height=8
+        )
+    
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[input_handelers.BaseEventHandler]:
+        
+        if event.sym == tcod.event.K_ESCAPE:
+            return MainMenu()
+        if event.sym in confirm:
+            return NewGame(ALL_SCENERIOS[self.keys[self.select]])
+        if event.sym == tcod.event.K_UP and self.select > 0:
+            self.select -= 1
+        elif event.sym == tcod.event.K_DOWN and self.select < self.max_select:
+            self.select += 1
+
 
 class NewGame(input_handelers.BaseEventHandler):
 
     TITLE = "Options"
 
-    def __init__(self) -> None:
-        self.ship_name = TextHandeler(16, ["D","e","f","i","e","n","t"])
-        self.captain_name = TextHandeler(16,["S","i","s","k","o"])
+    __all_okay = ""
+
+    __please_enter_ship_name = "Please enter a name for your ship"
+    
+    __please_enter_captain_name = "Please enter your name"
+    
+    __please_enter_both_names = "Please enter your name and a name for your ship"
+
+    def __init__(self, scenario:Optional[Scenerio]=None) -> None:
+        
+        d = scenario if scenario else ALL_SCENERIOS["DOM_STRIKE"]
+        
+        self.rand_ship_names = ALL_NATIONS[d.your_nation].ship_names
+        
+        self.ship_name = TextHandeler(16, list(d.default_ship_name))
+        self.captain_name = TextHandeler(16, list(d.default_captain_name))
 
         self.easy_aim = False
         self.easy_warp = True
         self.easy_navigation = True
-        self.two_d_movement = False
+        self.three_d_movement = True
         self.torpedo_warning = True
         self.crash_warning = True
 
         self.text_handeler = None
+        self.warning_text = self.__all_okay
+
+        self.scenario = d
 
         self.ship_name_button = ButtonBox(
             x=10,
@@ -338,7 +433,7 @@ class NewGame(input_handelers.BaseEventHandler):
         )
 
         self.captain_name_button = ButtonBox(
-            x=35,
+            x=32,
             y=8,
             height=3,
             width=18,
@@ -353,28 +448,28 @@ class NewGame(input_handelers.BaseEventHandler):
             wrap_around=True,
             starting_value=100
         )
-
+        
         self.number_button = ButtonBox(
             x=55,
-            y=8,
+            y=3,
             height=3,
             width=10,
             title="Numbers",
             text=self.number_handeler.text_to_print,
             alignment=constants.RIGHT
         )
-
+        
         self.new_game_button = ButtonBox(
-            x=60,
-            y=15,
+            x=50,
+            y=8,
             height=3,
             width=12,
             text="Okay"
         )
 
         self.cancel_button = ButtonBox(
-            x=60,
-            y=30,
+            x=70,
+            y=8,
             height=3,
             width=12,
             text="Cancel"
@@ -383,24 +478,33 @@ class NewGame(input_handelers.BaseEventHandler):
         self.options_button = ButtonBox(
             x=6,
             y=15,
-            height=40,
-            width=6+35+4,
+            height=38,
+            width=76,
             title="Options",
             text=""
         )
 
         self.aim_button = ButtonBox(
             x=10,
-            y=20,
+            y=18,
             width=30,
             height=4,
             title="Easy (A)im",
             text=""
         )
+        
+        self.random_ship_name_button = ButtonBox(
+            x=45,
+            y=18,
+            height=3,
+            width=30,
+            title="(R)andom Ship Name",
+            text="Randomly selects a ship name"
+        )
 
         self.warp_button = ButtonBox(
             x=10,
-            y=25,
+            y=23,
             width=30,
             height=4,
             title="Easy (W)arping",
@@ -409,25 +513,25 @@ class NewGame(input_handelers.BaseEventHandler):
 
         self.move_button = ButtonBox(
             x=10,
-            y=30,
+            y=28,
             width=30,
             height=4,
             title="Easy (M)ovement",
             text=""
         )
 
-        self.two_d_movement_button = ButtonBox(
+        self.three_d_movement_button = ButtonBox(
             x=10,
-            y=35,
+            y=33,
             width=30,
             height=5,
-            title="2-(D) Movement",
+            title="3-(D) Movement",
             text=""
         )
 
         self.warn_torpedo_button = ButtonBox(
             x=10,
-            y=41,
+            y=39,
             width=30,
             height=5,
             title="(T)orpedo Warnings",
@@ -436,7 +540,7 @@ class NewGame(input_handelers.BaseEventHandler):
 
         self.warn_crash_button = ButtonBox(
             x=10,
-            y=47,
+            y=45,
             width=30,
             height=5,
             title="(C)rash Warnings",
@@ -452,16 +556,14 @@ class NewGame(input_handelers.BaseEventHandler):
             bg=colors.black,
             cursor_position=self.captain_name.cursor
         )
-
-        """
-        console.print(
-            x=self.captain_name_button.x+1+self.captain_name.cursor,
-            y=self.captain_name_button.y+1,
-            string=self.captain_name.get_char_after_cursor(),
-            fg=colors.black,
-            bg=colors.white if self.text_handeler is self.captain_name else colors.grey
+        
+        console.print_box(
+            x=56,
+            y=30,
+            string=self.warning_text,
+            width=20,
+            height=4,
         )
-        """
         
         self.ship_name_button.render(
             console,
@@ -471,32 +573,19 @@ class NewGame(input_handelers.BaseEventHandler):
             cursor_position=self.ship_name.cursor
         )
 
-        """
-        console.print(
-            x=self.ship_name_button.x+1+self.ship_name.cursor,
-            y=self.ship_name_button.y+1,
-            string=self.ship_name.get_char_after_cursor(),
-            fg=colors.black,
-            bg=colors.white if self.text_handeler is self.ship_name else colors.grey
-        )
-        """
-
         self.number_button.render(
             console,
             text=self.number_handeler.text_to_print,
             fg=colors.white if self.text_handeler is self.number_handeler else colors.grey,
             bg=colors.black,
             cursor_position=self.number_handeler.cursor
-
         )
 
-        self.new_game_button.render(
-            console
-        )
+        self.random_ship_name_button.render(console)
 
-        self.cancel_button.render(
-            console
-        )
+        self.new_game_button.render(console)
+
+        self.cancel_button.render(console)
 
         self.options_button.render(
             console,
@@ -525,10 +614,10 @@ class NewGame(input_handelers.BaseEventHandler):
             bg=colors.black,
         )
 
-        self.two_d_movement_button.render(
+        self.three_d_movement_button.render(
             console=console,
-            text="Ships will only collide with another object if they end their path on it" if self.two_d_movement else "Ship will collide with any objects between them and their destination",
-            fg=colors.green if not self.two_d_movement else colors.red,
+            text="Ships will only collide with another object if they end their path on it" if self.three_d_movement else "Ship will collide with any objects between them and their destination",
+            fg=colors.green if self.three_d_movement else colors.red,
             bg=colors.black,
         )
 
@@ -552,16 +641,28 @@ class NewGame(input_handelers.BaseEventHandler):
             return MainMenu()
 
         if self.new_game_button.cursor_overlap(event):
-            return input_handelers.CommandEventHandler(set_up_game(
-                easy_aim=self.easy_aim,
-                easy_move=self.easy_navigation,
-                easy_warp=self.easy_warp,
-                torpedo_warning=self.torpedo_warning,
-                crash_warning=self.crash_warning,
-                two_d_movment=self.two_d_movement,
-                ship_name=self.ship_name.send(),
-                captain_name=self.captain_name.send()
-            ))
+            no_cap_name = self.captain_name.is_empty
+            no_ship_name = self.ship_name.is_empty
+            
+            if no_cap_name:
+                
+                self.warning_text = self.__please_enter_both_names if no_ship_name else self.__please_enter_captain_name
+            elif no_ship_name:
+                
+                self.warning_text = self.__please_enter_ship_name
+            else:
+                
+                return input_handelers.CommandEventHandler(set_up_game(
+                    easy_aim=self.easy_aim,
+                    easy_move=self.easy_navigation,
+                    easy_warp=self.easy_warp,
+                    torpedo_warning=self.torpedo_warning,
+                    crash_warning=self.crash_warning,
+                    three_d_movment=self.three_d_movement,
+                    ship_name=self.ship_name.send(),
+                    captain_name=self.captain_name.send()
+                    #captain_rank_name=self.scenario.your_nation
+                ))
 
         if self.captain_name_button.cursor_overlap(event):
             self.text_handeler = self.captain_name
@@ -570,6 +671,10 @@ class NewGame(input_handelers.BaseEventHandler):
         
         elif self.number_button.cursor_overlap(event):
             self.text_handeler = self.number_handeler
+        
+        elif self.random_ship_name_button.cursor_overlap(event):
+            
+            self.ship_name.set_text(choice(self.rand_ship_names))
         
         elif self.options_button.cursor_overlap(event):
             self.text_handeler = None
@@ -580,8 +685,8 @@ class NewGame(input_handelers.BaseEventHandler):
                 self.easy_warp = not self.easy_warp
             elif self.aim_button.cursor_overlap(event):
                 self.easy_aim = not self.easy_aim
-            elif self.two_d_movement_button.cursor_overlap(event):
-                self.two_d_movement = not self.two_d_movement
+            elif self.three_d_movement_button.cursor_overlap(event):
+                self.three_d_movement = not self.three_d_movement
             elif self.warn_torpedo_button.cursor_overlap(event):
                 self.torpedo_warning = not self.torpedo_warning
             elif self.warn_crash_button.cursor_overlap(event):
@@ -598,23 +703,17 @@ class NewGame(input_handelers.BaseEventHandler):
                 easy_move=self.easy_navigation,
                 easy_warp=self.easy_warp,
                 torpedo_warning=self.torpedo_warning,
-                warn_before_crash=self.crash_warning
+                crash_warning=self.crash_warning,
+                three_d_movment=self.three_d_movement,
+                ship_name=self.ship_name.send(),
+                captain_name=self.captain_name.send(),
             ))
 
         if self.text_handeler:
             self.text_handeler.handle_key(event)
-            """
-            if event.sym in {tcod.event.K_LEFT, tcod.event.K_RIGHT}:
-                self.text_handeler.cursor_move(event.sym)
-            elif event.sym == tcod.event.K_BACKSPACE:
-                self.text_handeler.delete()
-            elif event.sym == tcod.event.K_DELETE:
-                self.text_handeler.delete(True)
-            else:
-                key = self.text_handeler.translate_key(event)
-                if key:
-                    self.text_handeler.insert(key)
-            """
+            if not self.captain_name.is_empty and not self.ship_name.is_empty:
+                
+                self.warning_text = self.__all_okay
         else:
             if event.sym == tcod.event.K_a:
                 self.easy_aim = not self.easy_aim
@@ -623,11 +722,10 @@ class NewGame(input_handelers.BaseEventHandler):
             elif event.sym == tcod.event.K_m:
                 self.easy_navigation = not self.easy_navigation
             elif event.sym == tcod.event.K_d:
-                self.two_d_movement = not self.two_d_movement
+                self.three_d_movement = not self.three_d_movement
             elif event.sym == tcod.event.K_t:
                 self.torpedo_warning = not self.torpedo_warning
             elif event.sym == tcod.event.K_c:
                 self.crash_warning = not self.crash_warning
-
-
-        return super().ev_keydown(event)
+            elif event.sym == tcod.event.K_r:
+                self.ship_name.set_text(choice(self.rand_ship_names))

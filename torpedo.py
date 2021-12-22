@@ -1,12 +1,20 @@
-from enum import Enum, auto
 from typing import Dict, Iterable
+from dataclasses import dataclass
 
 import re
+from global_functions import get_first_group_in_pattern
 
+@dataclass(eq=True, frozen=True)
 class Torpedo:
     
-    __slots__ = ("cap_name", "name", "damage", "infrastructure", "infrastructure_damage")
+    #__slots__ = ("cap_name", "name", "damage", "infrastructure", "infrastructure_damage")
     
+    name:str
+    damage:int
+    infrastructure:float
+    infrastructure_damage:float
+    
+    """
     def __init__(self, *, name:str, damage:int, infrastructure:float, infrastructure_damage:float):
         self.cap_name = name.capitalize()
         self.name = name
@@ -17,6 +25,11 @@ class Torpedo:
     def __hash__(self) -> int:
         
         return hash((self.cap_name, self.name, self.damage, self.infrastructure, self.infrastructure_damage))
+    """
+    
+    @property
+    def cap_name(self):
+        return self.name.capitalize()
 
     def __lt__(self, t: "Torpedo"):
 
@@ -26,6 +39,7 @@ class Torpedo:
         
         return (self.damage > t.damage) if self.infrastructure == t.infrastructure else (self.infrastructure > t.infrastructure)
     
+    """
     def __eq__(self, t: "Torpedo") -> bool:
         try:
             return self.damage == t.damage and self.infrastructure == t.infrastructure and self.name == t.name and self.infrastructure_damage == t.infrastructure_damage
@@ -37,10 +51,11 @@ class Torpedo:
             return self.damage != t.damage or self.infrastructure != t.infrastructure and self.name != t.name and self.infrastructure_damage != t.infrastructure_damage
         except AttributeError:
             return False
+    """
 
-torpedo_pattern = re.compile(r"TORPEDO:([\w]+)\n([^#]+)TORPEDOEND")
-name_pattern = re.compile(r"NAME:([\w\s\ ]+)\n" )
-damage_pattern = re.compile(r"DAMAGE:([\d]+)\n" )
+torpedo_pattern = re.compile(r"TORPEDO:([A-Z\_]+)\n([^#]+)END_TORPEDO")
+name_pattern = re.compile(r"NAME:([a-zA-Z\ \-\']+)\n" )
+damage_pattern = re.compile(r"DAMAGE:([\d]{1,4})\n" )
 req_infrastructure_pattern = re.compile(r"REQUIRED:([\d.]+)\n" )
 planet_damage_pattern = re.compile(r"PLANET_DAMAGE:([\d.]+)\n" )
 
@@ -66,22 +81,14 @@ def create_torpedos() -> Dict[str,Torpedo]:
         torpedo_code = torpedo.group(1)
         
         torpedo_txt = torpedo.group(2)
-        
-        name_pattern_match = name_pattern.search(torpedo_txt)
-        
-        name = name_pattern_match.group(1)
-        
-        damage_pattern_match = damage_pattern.search(torpedo_txt)
-        
-        damage = damage_pattern_match.group(1)
-        
-        req_infrastructure_pattern_match = req_infrastructure_pattern.search(torpedo_txt)
-        
-        req_infrastructure = req_infrastructure_pattern_match.group(1)
-        
-        planet_damage_pattern_match = planet_damage_pattern.search(torpedo_txt)
-        
-        planet_damage_ = planet_damage_pattern_match.groups(1)
+                
+        name = get_first_group_in_pattern(torpedo_txt, name_pattern)
+                
+        damage = get_first_group_in_pattern(torpedo_txt, damage_pattern)
+                
+        req_infrastructure = get_first_group_in_pattern(torpedo_txt, req_infrastructure_pattern)
+                
+        planet_damage_ = get_first_group_in_pattern(torpedo_txt, planet_damage_pattern)
         
         try:
             planet_damage = float(planet_damage_)

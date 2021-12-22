@@ -1,14 +1,19 @@
 from __future__ import annotations
 from collections import Counter
+from datetime import datetime, timedelta
+from decimal import Decimal
 from ai import BaseAi, HostileEnemy
 from coords import Coords
-from data_globals import DAMAGE_TORPEDO, STATUS_ACTIVE, ShipStatus, ShipTypes, CONDITIONS, Condition
+from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, ShipStatus, ShipTypes
 from random import choice, randrange
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set
+from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Tuple, Union, Set, OrderedDict
+
 from get_config import config_object
+from global_functions import stardate
+from scenario import Scenerio
 from starship import ALL_SHIP_CLASSES, Starship
 from space_objects import Star, SubSector, Planet
-
+import colors
 import numpy as np
 
 from torpedo import ALL_TORPEDO_TYPES
@@ -21,11 +26,13 @@ class GameData:
     engine: Engine
 
     def __init__(self, *, subsecs_x:int, subsecs_y:int, subsec_size_x:int, subsec_size_y:int,
-                 noOfFighters:int, noOfAdFighters:int, noOfCruisers:int, noOfBattleships:int,
-                 turns_left:int, 
+                 enemy_ship_dict:OrderedDict[str:int],
+                 current_datetime:datetime,
+                 starting_stardate:Decimal,
+                 ending_stardate:Decimal,
                  easy_move:bool, easy_aim:bool, easy_warp:bool,
-                 torpedo_warning:bool, crash_warning:bool, two_d_movment:bool,
-                 auto_destruct_code:str
+                 torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
+                 scenerio:Scenerio
                  ):
         self.subsecs_x = subsecs_x
         self.subsecs_y = subsecs_y
@@ -37,17 +44,14 @@ class GameData:
         self.subsec_size_range_x = range(subsec_size_x)
         self.subsec_size_range_y = range(subsec_size_y)
 
-        self.noOfFighters:int = noOfFighters
-        self.noOfAdFighters = noOfAdFighters
-        self.noOfCruisers = noOfCruisers
-        self.noOfBattleships = noOfBattleships
-
-        self.turns_left = turns_left
         self.easy_move = easy_move
         self.easy_aim = easy_aim
         self.easy_warp = easy_warp
 
-        self.two_d_movment = two_d_movment
+        self.three_d_movment = three_d_movment
+                
+        self.star_number_weights = scenerio.star_generation
+        self.star_number_weights_len = len(self.star_number_weights)
 
         self.torpedo_warning = torpedo_warning
         self.crash_warning = crash_warning
@@ -56,6 +60,15 @@ class GameData:
         #self.sector_grid = np.empty(shape=(config_object.subsector_width, config_object.subsector_height), order="C", dtype=SubSector)
         
         self.secInfo = []
+        self.scenerio = scenerio
+        
+        self.fifteen_seconds = timedelta(seconds=15)
+        
+        self.date_time:Optional[datetime] = current_datetime
+        self.starting_stardate = starting_stardate
+        self.stardate = stardate(current_datetime)
+        self.ending_stardate = ending_stardate
+        #self.stardate_text = f"{self.stardate:5.2}"
 
         self.selected_ship_planet_or_star:Optional[Union[Starship, Star, Planet]] = None
 
@@ -68,11 +81,11 @@ class GameData:
         self.total_starships:List[Starship] = []
         self.cause_of_damage = ''
 
-        self.condition = Condition.GREEN
+        self.condition = CONDITION_GREEN
 
         self.ships_in_same_sub_sector_as_player:List[Starship] = []
+        self.enemy_ship_dict:OrderedDict[str,int] = enemy_ship_dict
 
-        self.auto_destruct_code = auto_destruct_code
         self.captain_name = ""
         self.player_record = {
             "planets_angered" : 0,
@@ -87,15 +100,20 @@ class GameData:
             "torpedos_fired" : 0
         }
         
-        self.condition_str:Optional[str] = None
-        self.condition_color:Optional[str] = None
+    @property
+    def is_time_up(self):
+        return self.stardate >= self.ending_stardate
+    
+    @property
+    def auto_destruct_code(self):
+        return self.scenerio.self_destruct_code
     
     def set_condition(self):
 
         player = self.player
 
         if player.docked:
-            self.condition = Condition.BLUE
+            self.condition = CONDITION_BLUE
         
         else:
 
@@ -104,13 +122,16 @@ class GameData:
                 accptable_ship_statuses={STATUS_ACTIVE}
                 )
 
-            self.condition = Condition.RED if len(other_ships) > 0 else (Condition.YELLOW if player.shields > 0 else Condition.GREEN) 
+            self.condition = CONDITION_RED if len(other_ships) > 0 else (
+                CONDITION_YELLOW if player.shields > 0 else CONDITION_GREEN
+            ) 
         
         self.player_scan = player.scan_this_ship(1)
         
-        self.condition_str, self.condition_color = CONDITIONS[self.condition]
-        
-        if self.selected_ship_planet_or_star is not None and self.selected_ship_planet_or_star.sector_coords != self.player.sector_coords:
+        if (
+            self.selected_ship_planet_or_star is not None and 
+            self.selected_ship_planet_or_star.sector_coords != self.player.sector_coords
+        ):
             self.selected_ship_planet_or_star = None
             
         if isinstance(self.selected_ship_planet_or_star, Starship):
@@ -123,22 +144,23 @@ class GameData:
         
         for x in self.subsec_size_range_x:
             for y in self.subsec_size_range_y:
-                self.grid[y][x].random_setup()
+                self.grid[y][x].random_setup(self.star_number_weights, self.star_number_weights_len)
                 #self.sector_grid[x,y].random_setup()
 
-        total = self.noOfFighters + self.noOfAdFighters + self.noOfCruisers + self.noOfBattleships
+        total = max(tuple(self.enemy_ship_dict.values()))
 
         sub_sectors = [self.grid[randrange(self.subsecs_y)][randrange(self.subsecs_x)].coords for i in range(total)]
 
         sub_sector_dictionary = Counter(sub_sectors)
         
         def get_ship(ship_count:int):
-
-            if ship_count < self.noOfFighters:
-                return ALL_SHIP_CLASSES["JEM_HADAR_FIGHTER"]
-            if ship_count < self.noOfFighters + self.noOfAdFighters:
-                return ALL_SHIP_CLASSES["ADVANCED_JEM_HADAR_FIGHTER"]
-            return ALL_SHIP_CLASSES["JEM_HADAR_CRUISER"] if ship_count < self.noOfFighters + self.noOfAdFighters + self.noOfCruisers else ALL_SHIP_CLASSES["JEM_HADAR_BATTLESHIP"]
+            
+            for k,v in self.enemy_ship_dict.items():
+                
+                if ship_count < v:
+                    return ALL_SHIP_CLASSES[k]
+            
+            return ALL_SHIP_CLASSES[tuple(self.enemy_ship_dict.keys())[-1]]
 
         def generate_ships():
 
@@ -178,7 +200,9 @@ class GameData:
 
                         ship_count += 1
 
-                        starship = Starship(ship, HostileEnemy, local_co.x, local_co.y, sub_sector_co.x, sub_sector_co.y)
+                        starship = Starship(
+                            ship, HostileEnemy, local_co.x, local_co.y, sub_sector_co.x, sub_sector_co.y
+                        )
 
                         starship.game_data = self
 
@@ -253,8 +277,16 @@ class GameData:
         
         if accptable_ship_statuses:
             return (
-                [s for s in self.total_starships if s.sector_coords == ship.sector_coords and s.ship_status in accptable_ship_statuses] if include_self_in_ships_to_grab else 
-                [s for s in self.total_starships if s.sector_coords == ship.sector_coords and s.ship_status in accptable_ship_statuses and s is not ship]
+                [
+                    s for s in self.total_starships 
+                    if s.sector_coords == ship.sector_coords and s.ship_status in accptable_ship_statuses
+                ] 
+                if include_self_in_ships_to_grab else 
+                [
+                    s for s in self.total_starships 
+                    if s.sector_coords == ship.sector_coords and s.ship_status in accptable_ship_statuses and 
+                    s is not ship
+                ]
             )
 
         return (
@@ -301,7 +333,7 @@ class GameData:
 
     def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:str, ships_in_area:Dict[Coords, Starship]):
         #global PLAYER
-        #headingToDirection
+        #heading_to_direction
         torpedo = ALL_TORPEDO_TYPES[torpedo_type]
 
         posX, posY = shipThatFired.local_coords.x, shipThatFired.local_coords.y
@@ -316,7 +348,7 @@ class GameData:
         plural = "torpedo" if torpsFired == 1 else "torpedos"
         
         self.engine.message_log.add_message(
-            f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading}..."
+            f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading}...", colors.yellow
         )
 
         g: SubSector = self.grid[shipThatFired.sector_coords.y][shipThatFired.sector_coords.x]
@@ -358,6 +390,7 @@ class GameData:
                         try:
                             ship = shipsInArea[co]
                             #hitSomething = shipThatFired.attack_torpedo(self, ship, torpedo)
+                            crew_readyness = shipThatFired.crew_readyness * 0.5 + 0.5
                             
                             hitSomething = shipThatFired.roll_to_hit(
                                 ship, 
@@ -365,7 +398,8 @@ class GameData:
                                 systems_used_for_accuray=(
                                     shipThatFired.sys_sensors.get_effective_value,
                                     shipThatFired.sys_torpedos.get_effective_value
-                                )
+                                ),
+                                crew_readyness=crew_readyness
                             )
                             
                             if hitSomething:
@@ -384,6 +418,9 @@ class GameData:
                     break
                     
             if not hitSomething:
-                self.engine.message_log.add_message("The torpedo misses the target!" if missed_the_target else f"The torpedo vears off into space at {x}, {y}!")
+                self.engine.message_log.add_message(
+                    "The torpedo misses the target!" if missed_the_target else 
+                    f"The torpedo vears off into space at {x}, {y}!", colors.orange
+                )
         
         shipThatFired.torps[torpedo_type] -= torpsFired

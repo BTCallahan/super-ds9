@@ -551,7 +551,9 @@ class NumberHandeler(InputHanderer):
             raise TypeError("The paramiter 'character' must be a integer")
 
         if character not in range(0,10):
-            raise ValueError(f"The integer 'character' must have a value not more then 9 and not less then 0. You are passing in an int with a value of {character}")
+            raise ValueError(
+                f"The integer 'character' must have a value not more then 9 and not less then 0. You are passing in an int with a value of {character}"
+            )
         
         print(f"Before insert: {self.text_char_list} {character}")
 
@@ -617,7 +619,7 @@ class ButtonBox:
     def render(self, console: tcod.Console, *, 
         x:int=0, y:int=0, 
         fg:Optional[Tuple[int,int,int]]=None, bg:Optional[Tuple[int,int,int]]= None, 
-        text:str="", cursor_position:Optional[int]=None
+        text:Optional[str]=None, cursor_position:Optional[int]=None
     ):
 
         console.draw_frame(
@@ -630,7 +632,7 @@ class ButtonBox:
             bg=bg,
             #bg_blend=constants.BKGND_DEFAULT,
         )
-        string_text= text if text else self.text
+        string_text= text if text is not None else self.text
 
         console.print_box(
             x=x+self.x+1,
@@ -652,25 +654,81 @@ class ButtonBox:
                 char = " "
             
             console.print(
-                x=self.x + 1 + (self.width - 2) + cursor_position - len(string_text) if self.alignment == constants.RIGHT else self.x + 1 + cursor_position,
+                x=self.x + 1 + (self.width - 2) + cursor_position - len(string_text) if 
+                self.alignment == constants.RIGHT else 
+                self.x + 1 + cursor_position,
                 y=self.y+1,
                 string=char,
                 fg=bg,
                 bg=fg,
             )
-            
-        """
-
-        console.print(
-            x=x+self.text_x,
-            y=y+self.y,# + (self.width//2),
-            string=text if text else self.text,
-            fg=fg,
-            bg=bg,
-            alignment=self.alignment
-        )
-        """
     
     def cursor_overlap(self, event: "tcod.event.MouseButtonDown",*, x:int=0, y:int=0) -> bool:
 
         return x+self.x <= event.tile.x < x+self.x+self.width and y+self.y <= event.tile.y < y+self.y+self.height
+
+class Selector:
+    
+    def __init__(self, *, x:int, y:int, height:int, width:int, index_items:Tuple[str], keys:Tuple,
+    title:str="", index:int=0, wrap_item:bool=False):
+        self.x = x
+        self.y = y
+        self.height = height
+        self.width = width
+        self.title = title
+        self.index = index
+        self.index_items = index_items
+        self.max_index = len(self.index_items)
+        self.width_2 = width - 2
+        self.joined_items = "\n".join(
+            [f"{i:>{self.width_2}}" for i in index_items]
+        )
+        self.keys = keys
+        self.wrap_item = wrap_item
+
+    @property
+    def index_key(self):
+        return self.keys[self.index]
+    
+    def render(self, console: tcod.Console, *, 
+            fg:Optional[Tuple[int,int,int]]=None, bg:Optional[Tuple[int,int,int]]=None,
+            x=0, y=0
+        ):
+        console.draw_frame(
+            x=self.x+x, y=self.y+y,
+            title=self.title, 
+            width=self.width,
+            height=self.height
+        )
+        console.print_box(
+            x=self.x+1+x,y=self.y+1+y,
+            height=self.height-2,
+            width=self.width-2,
+            fg=fg, bg=bg,
+            string=self.joined_items
+        )
+        console.print(
+            x=self.x+1+x,y=self.y+1+self.index+y,
+            string=f"{self.index_items[self.index]:>{self.width_2}}",
+            fg=bg, bg=fg
+        )
+    
+    def handle_click(self, event: "tcod.event.MouseButtonDown"):
+        
+        y_ = event.tile.y - (self.y + 1)
+        
+        if y_ < self.max_index and self.index != y_:
+            self.index = y_
+            return True
+        return False
+        
+    def cursor_overlap(
+        self, event: "tcod.event.MouseButtonDown", *, x:int=0, y:int=0
+    ):
+        
+        return (
+            x+self.x+1 <= event.tile.x < x+self.x+self.width - 1 and 
+            y+self.y+1 <= event.tile.y < y+self.y+self.height - 1
+        )
+    
+    

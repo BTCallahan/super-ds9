@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Optional
-from data_globals import DAMAGE_TORPEDO, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, PlanetHabitation
+from data_globals import DAMAGE_TORPEDO, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
 
 from order import MoveOrder, Order, EnergyWeaponOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
 
@@ -25,7 +25,7 @@ def find_unopressed_planets(game_data:GameData, ship:Starship):
 
                 for planet in sector.planets_dict.values():
 
-                    if planet.planet_habbitation == PlanetHabitation.PLANET_FRIENDLY:
+                    if planet.planet_habbitation is PLANET_FRIENDLY:
                         yield planet.sector_coords
 
 class HostileEnemy(BaseAi):
@@ -84,17 +84,20 @@ class HostileEnemy(BaseAi):
                     
                     if chance_of_hit > 0.0:
                         
+                        crew_readyness = self.entity.crew_readyness * 0.5 + 0.5
+                        
                         hits = 0
                         for i in range(10):
                             
                             if self.entity.roll_to_hit(
                                 self.target, 
                                 systems_used_for_accuray=(
-                                    self.entity.sys_energy_weapon.get_effective_value,
+                                    self.entity.sys_beam_array.get_effective_value,
                                     self.entity.sys_sensors.get_effective_value
                                 ),
                                 estimated_enemy_impulse=ajusted_impulse, 
-                                damage_type=DAMAGE_TORPEDO
+                                damage_type=DAMAGE_TORPEDO,
+                                crew_readyness=crew_readyness
                             ):
                                 hits += 1
                             
@@ -111,7 +114,7 @@ class HostileEnemy(BaseAi):
                         order_dict_size+=1
                     
                 if has_energy:
-                    if self.entity.sys_energy_weapon.is_opperational:
+                    if self.entity.sys_beam_array.is_opperational:
                         energy_to_use = min(self.entity.ship_class.max_weap_energy, self.entity.energy)
                         averaged_shields, averaged_hull, shield_damage, hull_damage, kill = self.entity.simulate_energy_hit(self.target, 10, energy_to_use)
                         

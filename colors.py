@@ -19,7 +19,7 @@ impossible = red
 alert_red = red
 alert_yellow = yellow
 alert_green = green
-alert_blue = blue
+alert_blue = (127, 127, 255)
 
 planet_allied = lime
 planet_hostile = (255, 0, 171)

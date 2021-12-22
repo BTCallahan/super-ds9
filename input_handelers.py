@@ -1,17 +1,23 @@
 from __future__ import annotations
+from decimal import Decimal
 import os
+from random import choice
 from data_globals import ENERGY_REGEN_PER_TURN, LOCAL_ENERGY_COST, REPAIR_MULTIPLIER, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
 from engine import config_object
 from typing import TYPE_CHECKING, List, Optional, Union
+from nation import ALL_NATIONS
 from order import SelfDestructOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
     Order, DockOrder, OrderWarning, EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
-from space_objects import Planet
-from ui_related import ButtonBox, NumberHandeler, TextHandeler, confirm
+from global_functions import stardate
+from space_objects import Planet, Star
+from starship import Starship
+from torpedo import ALL_TORPEDO_TYPES
+from ui_related import ButtonBox, NumberHandeler, Selector, TextHandeler, confirm
 import tcod
 import tcod.event
 import tcod.constants
 import colors, exceptions
-from render_functions import print_mega_sector, print_message_log, print_subsector, render_other_ship_info, render_own_ship_info, render_command_box, render_position, select_ship_planet_star, select_sub_sector_space, select_sector_space
+from render_functions import print_mega_sector, print_message_log, print_system, render_other_ship_info, render_own_ship_info, render_command_box, render_position, select_ship_planet_star, select_sub_sector_space, select_sector_space
 
 OrderOrHandler = Union["Order", "BaseEventHandler"]
 
@@ -83,6 +89,9 @@ class EventHandler(BaseEventHandler):
         self.engine.handle_enemy_turns()
         game_data = self.engine.game_data
         game_data.ships_in_same_sub_sector_as_player = game_data.grab_ships_in_same_sub_sector(game_data.player)
+        game_data.date_time = game_data.date_time + game_data.fifteen_seconds
+        game_data.stardate = stardate(game_data.date_time)
+        #game_data.stardate_text = f"{game_data.stardate:5.2}"
         return True
 
     def handle_events(self, event: tcod.event.Event) -> BaseEventHandler:
@@ -106,7 +115,7 @@ class MainGameEventHandler(EventHandler):
     
     def on_render(self, console: tcod.Console) -> None:
         
-        print_subsector(console, self.engine.game_data)
+        print_system(console, self.engine.game_data)
         print_mega_sector(console, self.engine.game_data)
         render_own_ship_info(console, self.engine.game_data)
 
@@ -152,143 +161,161 @@ class CommandEventHandler(MainGameEventHandler):
             text="(R)epair",
         )
         
-        p = self.engine.player.ship_class.nation.energy_weapon_beam_name_plural
-
-        self.phasers_button = ButtonBox(
-            x=2+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=10,
-            height=3,
-            text=f"(F)ire {p}",
-        )
-
         self.dock_button = ButtonBox(
             x=2+13+config_object.command_display_x,
             y=10+config_object.command_display_y,
             width=10,
             height=3,
-            text="(D)ock",
+            text="(D)ock" if not self.engine.player.docked else "Un(D)ock",
+        )
+        
+        p = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
+
+        self.phasers_button = ButtonBox(
+            x=2+config_object.command_display_x,
+            y=14+config_object.command_display_y,
+            width=23,
+            height=3,
+            text=f"(F)ire {p}s",
         )
 
         self.torpedos_button = ButtonBox(
             x=2+config_object.command_display_x,
-            y=14+config_object.command_display_y,
-            width=10,
+            y=18+config_object.command_display_y,
+            width=23,
             height=3,
-            text="(T)orpedos",
+            text="Fire (T)orpedos",
         )
         
         self.auto_destruct_button = ButtonBox(
-            x=2+13+config_object.command_display_x,
-            y=14+config_object.command_display_y,
-            width=10,
-            height=4,
+            x=2+config_object.command_display_x,
+            y=22+config_object.command_display_y,
+            width=23,
+            height=3,
             text="(A)uto-Destruct"
         )
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         captain = self.engine.player.ship_class.nation.captain_rank_name
-        if not select_ship_planet_star(self.engine.game_data, event):
-            if self.warp_button.cursor_overlap(event):
-                self.warned_once = False
-                if not self.engine.player.sys_warp_drive.is_opperational:
-                    self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
+        if self.warp_button.cursor_overlap(event):
+            self.warned_once = False
+            if not self.engine.player.sys_warp_drive.is_opperational:
+                self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
 
-                elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                elif self.engine.player.docked:
-                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-                else:
-                    return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
+            elif self.engine.player.energy <= 0:
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            elif self.engine.player.docked:
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            else:
+                return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
+        
+        elif self.move_button.cursor_overlap(event):
+            self.warned_once = False
+            if not self.engine.player.sys_impulse.is_opperational:
+                self.engine.message_log.add_message(
+                    f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
+                )
+
+            elif self.engine.player.energy <= 0:
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            elif self.engine.player.docked:
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            else:
+                return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
+        
+        elif self.shields_button.cursor_overlap(event):
+            self.warned_once = False
+            if not self.engine.player.sys_shield_generator.is_opperational:
+                self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
+
+            elif self.engine.player.energy <= 0:
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            #elif self.engine.player.docked:
+            #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            else:
+                return ShieldsHandler(self.engine)
             
-            elif self.move_button.cursor_overlap(event):
+        elif self.phasers_button.cursor_overlap(event):
+            self.warned_once = False
+            if not self.engine.player.sys_beam_array.is_opperational:
+                p = self.engine.player.ship_class.get_energy_weapon.name_cap
+                self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
+
+            elif self.engine.player.energy <= 0:
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            elif self.engine.player.docked:
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            else:
+                return EnergyWeaponHandler(self.engine)
+
+        elif self.dock_button.cursor_overlap(event):
+            planet = self.engine.game_data.selected_ship_planet_or_star
+
+            if not planet and not isinstance(planet, Planet):
+                self.engine.message_log.add_message(f"Error: No planet selected, {captain}.", fg=colors.red)
+            #elif self.engine.player.docked:
+            #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+
+            else:
                 self.warned_once = False
-                if not self.engine.player.sys_impulse.is_opperational:
-                    self.engine.message_log.add_message(f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red)
+                dock_order = DockOrder(self.engine.player, planet)
 
-                elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                elif self.engine.player.docked:
-                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-                else:
-                    return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
-            
-            elif self.shields_button.cursor_overlap(event):
-                self.warned_once = False
-                if not self.engine.player.sys_shield_generator.is_opperational:
-                    self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
+                warning = dock_order.raise_warning()
 
-                elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                #elif self.engine.player.docked:
-                #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-                else:
-                    return ShieldsHandler(self.engine)
-                
-            elif self.phasers_button.cursor_overlap(event):
-                self.warned_once = False
-                if not self.engine.player.sys_energy_weapon.is_opperational:
-                    p = self.engine.player.ship_class.nation.energy_weapon_beam_name
-                    self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
-
-                elif self.engine.player.energy <= 0:
-                    self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                elif self.engine.player.docked:
-                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-                else:
-                    return EnergyWeaponHandler(self.engine)
-
-            elif self.dock_button.cursor_overlap(event):
-                planet = self.engine.game_data.selected_ship_planet_or_star
-
-                if not planet and not isinstance(planet, Planet):
-                    self.engine.message_log.add_message(f"Error: No planet selected, {captain}.", fg=colors.red)
-                #elif self.engine.player.docked:
-                #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-
-                else:
-                    self.warned_once = False
-                    dock_order = DockOrder(self.engine.player, planet)
-
-                    warning = dock_order.raise_warning()
-
-                    if warning == OrderWarning.SAFE:
+                if warning == OrderWarning.SAFE:
+                    self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
+                    return dock_order
+                if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
+                    if self.warned_once:
                         return dock_order
-                    if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
-                        #if self.warned_once:
-                        #return dock_order
-                        self.engine.message_log.add_message("Warning: There are hostile ships nearby", fg=colors.orange)
-                        
-                    else:
-                        self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-
-            elif self.repair_button.cursor_overlap(event):
-                repair = RepairOrder(self.engine.player, 1)
-                warning = repair.raise_warning()
-                
-                if self.warned_once:
-                    return repair
-                
-                try:
+                    self.engine.message_log.add_message("Warning: There are hostile ships nearby.", fg=colors.orange)
                     
-                    self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
-                    self.warned_once = True
-                except KeyError:
-                    
-                    return repair
-
-            elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
-                self.warned_once = False
-                if not self.engine.player.ship_can_fire_torps:
-                    self.engine.message_log.add_message(
-                        text="Error: Torpedo systems are inoperative, {captain}." if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has no remaining torpedos, {captain}.", fg=colors.red
-                    )
-                elif self.engine.player.docked:
-                    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
                 else:
-                    return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
-            elif self.auto_destruct_button.cursor_overlap(event):
-                return SelfDestructHandler(self.engine)
+                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+
+        elif self.repair_button.cursor_overlap(event):
+            repair = RepairOrder(self.engine.player, 1)
+            warning = repair.raise_warning()
+            
+            if self.warned_once:
+                return repair
+            
+            try:
+                
+                self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
+                self.warned_once = True
+            except KeyError:
+                
+                return repair
+
+        elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
+            self.warned_once = False
+            if not self.engine.player.ship_can_fire_torps:
+                self.engine.message_log.add_message(
+                    text=f"Error: Torpedo systems are inoperative, {captain}." 
+                    if not self.engine.player.sys_torpedos.is_opperational else 
+                    f"Error: This ship has no remaining torpedos, {captain}.", fg=colors.red
+                )
+            elif self.engine.player.docked:
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            else:
+                return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
+        elif self.auto_destruct_button.cursor_overlap(event):
+            return SelfDestructHandler(self.engine)
+        else:
+            game_data = self.engine.game_data
+            ship_planet_or_star = select_ship_planet_star(game_data, event)
+            
+            if ship_planet_or_star:
+                if isinstance(ship_planet_or_star, (Planet, Star)):
+                    game_data.selected_ship_planet_or_star = ship_planet_or_star
+                elif isinstance(ship_planet_or_star, Starship):
+                    
+                    if ship_planet_or_star is not self.engine.player and ship_planet_or_star is not game_data.selected_ship_planet_or_star:
+                        game_data.ship_scan = ship_planet_or_star.scan_this_ship(game_data.player.determin_precision)
+                        game_data.selected_ship_planet_or_star = ship_planet_or_star
+                else:
+                    game_data.selected_ship_planet_or_star = None
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
         captain = self.engine.player.ship_class.nation.captain_rank_name
@@ -306,7 +333,9 @@ class CommandEventHandler(MainGameEventHandler):
         elif event.sym == tcod.event.K_m:
             self.warned_once = False
             if not self.engine.player.sys_impulse.is_opperational:
-                self.engine.message_log.add_message(f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red)
+                self.engine.message_log.add_message(
+                    f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
+                )
 
             elif self.engine.player.energy <= 0:
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
@@ -342,7 +371,7 @@ class CommandEventHandler(MainGameEventHandler):
                 return repair
         elif event.sym == tcod.event.K_f:
             self.warned_once = False
-            if not self.engine.player.sys_energy_weapon.is_opperational:
+            if not self.engine.player.sys_beam_array.is_opperational:
                 p = self.engine.player.ship_class.nation.energy_weapon_beam_name
                 self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
@@ -352,18 +381,28 @@ class CommandEventHandler(MainGameEventHandler):
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return EnergyWeaponHandler(self.engine)
-        if event.sym == tcod.event.K_d:
+        elif event.sym == tcod.event.K_d:
 
             planet = self.engine.game_data.selected_ship_planet_or_star
 
             if not planet and not isinstance(planet, Planet):
-                self.engine.message_log.add_message(f"Error: No planet selected, {captain}.", fg=colors.red)
-            else:
+                player = self.engine.player
+                nearby_planets = [planet_ for planet_ in player.get_sub_sector.planets_dict.values() if planet_.local_coords.is_adjacent(player.local_coords) and planet_.planet_habbitation.can_ressuply]
+                
+                nearby_planets.sort()
+                
+                try:
+                    planet = nearby_planets[0]
+                except IndexError:
+                    planet = None
+                
+            if planet and isinstance(planet, Planet):
                 dock_order = DockOrder(self.engine.player, planet)
                 self.warned_once = False
                 warning = dock_order.raise_warning()
 
                 if warning == OrderWarning.SAFE:
+                    self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
                     return dock_order
                 if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
                     #if self.warned_once:
@@ -372,12 +411,16 @@ class CommandEventHandler(MainGameEventHandler):
                     
                 else:
                     self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-            
-        if event.sym == tcod.event.K_t and self.engine.player.ship_type_can_fire_torps:
+            else:
+                self.engine.message_log.add_message(f"Error: No suitable planet nearbye, {captain}.", fg=colors.red)
+                
+        elif event.sym == tcod.event.K_t and self.engine.player.ship_type_can_fire_torps:
             self.warned_once = False
             if not self.engine.player.ship_can_fire_torps:
                 self.engine.message_log.add_message(
-                    text="Error: Torpedo systems are inoperative, {captain}." if not self.engine.player.sys_torpedos.is_opperational else "Error: This ship has not remaining torpedos, {captain}.", fg=colors.red
+                    text=f"Error: Torpedo systems are inoperative, {captain}." 
+                    if not self.engine.player.sys_torpedos.is_opperational else 
+                    f"Error: This ship has not remaining torpedos, {captain}.", fg=colors.red
                 )
             elif self.engine.player.docked:
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
@@ -389,10 +432,12 @@ class CommandEventHandler(MainGameEventHandler):
     def on_render(self, console: tcod.Console) -> None:
         super().on_render(console)
 
+        captain = self.engine.player.ship_class.nation.captain_rank_name
+
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title=f"Your orders, {self.engine.game_data.captain_name}?"
+            title=f"Your orders, {captain}?"
             )
         
         self.warp_button.render(console)
@@ -434,10 +479,25 @@ class WarpHandler(MainGameEventHandler):
             text="",
             alignment=tcod.constants.RIGHT
         )
+        
+        self.energy_cost = round(
+            self.distance.add_up() * 
+            self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+        )
+        
+        self.cost_button = ButtonBox(
+            x=3+config_object.command_display_x,
+            y=10+config_object.command_display_y,
+            width=10,
+            height=3,
+            title="Energy Cost:",
+            text=f"{self.energy_cost}",
+            alignment=tcod.constants.RIGHT
+        )
 
         self.three_fifteen_button = ButtonBox(
             x=16+config_object.command_display_x,
-            y=2+config_object.command_display_y,
+            y=10+config_object.command_display_y,
             width=5,
             height=3,
             text="315",
@@ -455,7 +515,7 @@ class WarpHandler(MainGameEventHandler):
 
         self.zero_button = ButtonBox(
             x=22+config_object.command_display_x,
-            y=2+config_object.command_display_y,
+            y=10+config_object.command_display_y,
             width=5,
             height=3,
             text="0",
@@ -464,7 +524,7 @@ class WarpHandler(MainGameEventHandler):
 
         self.fourty_five_button = ButtonBox(
             x=28+config_object.command_display_x,
-            y=2+config_object.command_display_y,
+            y=10+config_object.command_display_y,
             width=5,
             height=3,
             text="45",
@@ -473,7 +533,7 @@ class WarpHandler(MainGameEventHandler):
 
         self.two_twenty_five_button = ButtonBox(
             x=16+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+            y=2+config_object.command_display_y,
             width=5,
             height=3,
             text="225",
@@ -491,7 +551,7 @@ class WarpHandler(MainGameEventHandler):
         
         self.one_thirty_five_button = ButtonBox(
             x=28+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+            y=2+config_object.command_display_y,
             width=5,
             height=3,
             text="135",
@@ -500,7 +560,7 @@ class WarpHandler(MainGameEventHandler):
 
         self.one_eighty_button = ButtonBox(
             x=22+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+            y=2+config_object.command_display_y,
             width=5,
             height=3,
             text="180",
@@ -509,7 +569,7 @@ class WarpHandler(MainGameEventHandler):
         
         self.confirm_button = ButtonBox(
             x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
+            y=14+config_object.command_display_y,
             width=9,
             height=3,
             text="Confirm"
@@ -569,6 +629,8 @@ class WarpHandler(MainGameEventHandler):
         
         self.three_fifteen_button.render(console)
         
+        self.cost_button.render(console)
+        
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
         if self.cancel_button.cursor_overlap(event):
@@ -619,6 +681,13 @@ class WarpHandler(MainGameEventHandler):
 
         else:
             self.selected_handeler.handle_key(event)
+            
+            if self.selected_handeler is self.distance:
+                
+                self.energy_cost = round(
+                    self.distance.add_up() * 
+                    self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+                )
 
 class WarpHandlerEasy(MainGameEventHandler):
 
@@ -627,13 +696,21 @@ class WarpHandlerEasy(MainGameEventHandler):
 
         sector_coords = self.engine.game_data.player.sector_coords
 
-        self.x = NumberHandeler(limit=2, max_value=config_object.sector_width, min_value=0, wrap_around=True, starting_value=sector_coords.x)
+        self.x = NumberHandeler(
+            limit=2, max_value=config_object.sector_width, min_value=0, wrap_around=True, starting_value=sector_coords.x
+        )
 
-        self.y = NumberHandeler(limit=2, max_value=config_object.sector_height, min_value=0, wrap_around=True, starting_value=sector_coords.y)
+        self.y = NumberHandeler(
+            limit=2, max_value=config_object.sector_height, min_value=0, wrap_around=True, 
+            starting_value=sector_coords.y
+        )
 
         self.selected_handeler = self.x
 
-        self.energy_cost = round(self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST)
+        self.energy_cost = round(
+            self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * 
+            self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+        )
 
         self.x_button = ButtonBox(
             x=3+config_object.command_display_x,
@@ -656,8 +733,8 @@ class WarpHandlerEasy(MainGameEventHandler):
         )
 
         self.cost_button = ButtonBox(
-            x=10+config_object.command_display_x,
-            y=8+config_object.command_display_y,
+            x=3+config_object.command_display_x,
+            y=10+config_object.command_display_y,
             width=10,
             height=3,
             title="Energy Cost:",
@@ -667,7 +744,7 @@ class WarpHandlerEasy(MainGameEventHandler):
         
         self.confirm_button = ButtonBox(
             x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
+            y=14+config_object.command_display_y,
             width=9,
             height=3,
             text="Confirm"
@@ -742,7 +819,10 @@ class WarpHandlerEasy(MainGameEventHandler):
                 self.x.set_text(x)
                 self.y.set_text(y)
 
-                self.energy_cost = round(self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST)
+                self.energy_cost = round(
+                    self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * 
+                    self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+                )
                 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
@@ -759,7 +839,11 @@ class WarpHandlerEasy(MainGameEventHandler):
             self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
         else:
             self.selected_handeler.handle_key(event)
-            self.energy_cost = round(self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST)
+            
+            self.energy_cost = round(
+                self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * 
+                self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+            )
 
 class MoveHandler(MainGameEventHandler):
 
@@ -790,10 +874,9 @@ class MoveHandler(MainGameEventHandler):
             alignment=tcod.constants.RIGHT
         )
 
-
         self.three_fifteen_button = ButtonBox(
             x=16+config_object.command_display_x,
-            y=2+config_object.command_display_y,
+            y=10+config_object.command_display_y,
             width=5,
             height=3,
             text="315",
@@ -811,7 +894,7 @@ class MoveHandler(MainGameEventHandler):
 
         self.zero_button = ButtonBox(
             x=22+config_object.command_display_x,
-            y=2+config_object.command_display_y,
+            y=10+config_object.command_display_y,
             width=5,
             height=3,
             text="0",
@@ -820,7 +903,7 @@ class MoveHandler(MainGameEventHandler):
 
         self.fourty_five_button = ButtonBox(
             x=28+config_object.command_display_x,
-            y=2+config_object.command_display_y,
+            y=10+config_object.command_display_y,
             width=5,
             height=3,
             text="45",
@@ -829,7 +912,7 @@ class MoveHandler(MainGameEventHandler):
 
         self.two_twenty_five_button = ButtonBox(
             x=16+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+            y=2+config_object.command_display_y,
             width=5,
             height=3,
             text="225",
@@ -847,7 +930,7 @@ class MoveHandler(MainGameEventHandler):
         
         self.one_thirty_five_button = ButtonBox(
             x=28+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+            y=2+config_object.command_display_y,
             width=5,
             height=3,
             text="135",
@@ -856,7 +939,7 @@ class MoveHandler(MainGameEventHandler):
 
         self.one_eighty_button = ButtonBox(
             x=22+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+            y=2+config_object.command_display_y,
             width=5,
             height=3,
             text="180",
@@ -864,8 +947,8 @@ class MoveHandler(MainGameEventHandler):
         )
 
         self.cost_button = ButtonBox(
-            x=10+config_object.command_display_x,
-            y=8+config_object.command_display_y,
+            x=3+config_object.command_display_x,
+            y=10+config_object.command_display_y,
             width=10,
             height=3,
             title="Energy Cost:",
@@ -875,7 +958,7 @@ class MoveHandler(MainGameEventHandler):
 
         self.confirm_button = ButtonBox(
             x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
+            y=14+config_object.command_display_y,
             width=9,
             height=3,
             text="Confirm"
@@ -933,7 +1016,6 @@ class MoveHandler(MainGameEventHandler):
         
         self.three_fifteen_button.render(console)
 
-
         self.cost_button.render(
             console,
             text=f"{self.energy_cost}"
@@ -976,7 +1058,6 @@ class MoveHandler(MainGameEventHandler):
 
             if warning == OrderWarning.SAFE:
                 return move_order
-
             try:
                 self.engine.message_log.add_message(blocks_action[warning], colors.red)
             except KeyError:
@@ -1009,7 +1090,9 @@ class MoveHandler(MainGameEventHandler):
         else:
             self.selected_handeler.handle_key(event)
             self.warned_once = False
-            self.energy_cost = round(self.distance.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier)
+            self.energy_cost = round(
+                self.distance.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
+            )
         
 class MoveHandlerEasy(MainGameEventHandler):
 
@@ -1018,12 +1101,19 @@ class MoveHandlerEasy(MainGameEventHandler):
 
         local_coords = self.engine.game_data.player.local_coords
 
-        self.x = NumberHandeler(limit=1, max_value=config_object.sector_width, min_value=0, wrap_around=True, starting_value=local_coords.x)
-        self.y = NumberHandeler(limit=1, max_value=config_object.sector_height, min_value=0, wrap_around=True, starting_value=local_coords.y)
+        self.x = NumberHandeler(
+            limit=1, max_value=config_object.sector_width, min_value=0, wrap_around=True, starting_value=local_coords.x
+        )
+        self.y = NumberHandeler(
+            limit=1, max_value=config_object.sector_height, min_value=0, wrap_around=True, starting_value=local_coords.y
+        )
 
         self.selected_handeler = self.x
 
-        self.energy_cost = round(self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up())  * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier)
+        self.energy_cost = round(
+            self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up()) * LOCAL_ENERGY_COST * 
+            self.engine.player.sys_impulse.affect_cost_multiplier
+        )
 
         self.x_button = ButtonBox(
             x=3+config_object.command_display_x,
@@ -1141,7 +1231,10 @@ class MoveHandlerEasy(MainGameEventHandler):
                 self.x.set_text(x)
                 self.y.set_text(y)
                 self.warned_once = False
-                self.energy_cost = round(self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up())  * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier)
+                self.energy_cost = round(
+                    self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up()) * 
+                    LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
+                )
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
@@ -1164,7 +1257,10 @@ class MoveHandlerEasy(MainGameEventHandler):
                 self.warned_once =True
         else:
             self.selected_handeler.handle_key(event)
-            self.energy_cost = round(self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up())  * LOCAL_ENERGY_COST)
+            self.energy_cost = round(
+                self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up()) * LOCAL_ENERGY_COST
+            )
+            
             self.warned_once = False
             
 class ShieldsHandler(MainGameEventHandler):
@@ -1173,7 +1269,10 @@ class ShieldsHandler(MainGameEventHandler):
         super().__init__(engine)
         player = self.engine.player
         
-        self.amount = NumberHandeler(limit=4, max_value=min(player.shields + player.energy, player.get_max_effective_shields), min_value=0, starting_value=player.shields)
+        self.amount = NumberHandeler(
+            limit=4, max_value=min(player.shields + player.energy, player.get_max_effective_shields), 
+            min_value=0, starting_value=player.shields
+        )
 
         self.amount_button = ButtonBox(
             x=3+config_object.command_display_x,
@@ -1183,6 +1282,22 @@ class ShieldsHandler(MainGameEventHandler):
             title="Amount:",
             text="",
             alignment=tcod.constants.RIGHT
+        )
+        
+        self.max_button = ButtonBox(
+            x=3+config_object.command_display_x,
+            y=7+config_object.command_display_y,
+            width=12,
+            height=3,
+            text="Max",
+        )
+        
+        self.min_button = ButtonBox(
+            x=17+config_object.command_display_x,
+            y=7+config_object.command_display_y,
+            width=12,
+            height=3,
+            text="Min",
         )
 
         self.confirm_button = ButtonBox(
@@ -1218,13 +1333,24 @@ class ShieldsHandler(MainGameEventHandler):
             bg =colors.black,
             cursor_position=self.amount.cursor
         )
+        
+        self.max_button.render(console)
+        self.min_button.render(console)
 
         self.confirm_button.render(console)
         self.cancel_button.render(console)
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
-        if self.confirm_button.cursor_overlap(event):
+        if self.max_button.cursor_overlap(event):
+            
+            self.amount.set_text(self.amount.max_value)
+            
+        elif self.min_button.cursor_overlap(event):
+            
+            self.amount.set_text(0)
+
+        elif self.confirm_button.cursor_overlap(event):
             recharge_order = RechargeOrder(self.engine.player, self.amount.add_up())
 
             warning = recharge_order.raise_warning()
@@ -1290,19 +1416,43 @@ class EnergyWeaponHandler(MainGameEventHandler):
         self.fire_all_button = ButtonBox(
             x=3+12+config_object.command_display_x,
             y=12+config_object.command_display_y,
-            width=12,
-            height=4,
+            width=14,
+            height=3,
             text="Fire all"
         )
-
+        
+        self.max_button = ButtonBox(
+            x=3+config_object.command_display_x,
+            y=16+config_object.command_display_y,
+            width=12,
+            height=3,
+            text="Max",
+        )
+        
+        self.min_button = ButtonBox(
+            x=3+12+config_object.command_display_x,
+            y=16+config_object.command_display_y,
+            width=12,
+            height=3,
+            text="Min",
+        )
+        
         self.cancel_button = ButtonBox(
             x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
+            y=22+config_object.command_display_y,
             width=9,
             height=3,
             text="Cancel"
         )
-
+        
+        self.auto_target_button = ButtonBox(
+            x=3+12+config_object.command_display_x,
+            y=22+config_object.command_display_y,
+            width=14,
+            height=3,
+            text="Auto-Target"
+        )
+        
     def on_render(self, console: tcod.Console) -> None:
 
         super().on_render(console)
@@ -1320,6 +1470,12 @@ class EnergyWeaponHandler(MainGameEventHandler):
             bg=colors.black,
             cursor_position=self.amount.cursor
         )
+        
+        self.min_button.render(console)
+        
+        self.max_button.render(console)
+        
+        self.auto_target_button.render(console)
 
         self.confirm_button.render(console)
 
@@ -1329,7 +1485,30 @@ class EnergyWeaponHandler(MainGameEventHandler):
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
-        if self.confirm_button.cursor_overlap(event):
+        if self.auto_target_button.cursor_overlap(event):
+            
+            sel = self.engine.game_data.selected_ship_planet_or_star
+            
+            local_ships = self.engine.game_data.ships_in_same_sub_sector_as_player
+            
+            if (not isinstance(sel, Starship) or sel.ship_status.is_active) and local_ships:
+                
+                okay_ships = [s for s in local_ships if s.ship_status.is_active]
+                
+                try:
+                    ship = choice(okay_ships)
+                    
+                    self.engine.game_data.selected_ship_planet_or_star = ship
+                    
+                    self.engine.game_data.ship_scan = ship.scan_this_ship(self.engine.player.determin_precision)
+                except IndexError:
+                    captain_rank_name = self.engine.player.ship_class.nation.captain_rank_name
+                    
+                    self.engine.message_log(
+                        f"There are no hostile ships in the system, {captain_rank_name}."
+                    )
+                
+        elif self.confirm_button.cursor_overlap(event):
 
             fire_order = EnergyWeaponOrder.single_target(
                 self.engine.player,
@@ -1343,7 +1522,7 @@ class EnergyWeaponHandler(MainGameEventHandler):
                 return fire_order
             
             self.engine.message_log.add_message(
-                blocks_action[warning]
+                blocks_action[warning], colors.red
             )
         elif self.fire_all_button.cursor_overlap(event):
 
@@ -1353,7 +1532,7 @@ class EnergyWeaponHandler(MainGameEventHandler):
                 self.engine.game_data.grab_ships_in_same_sub_sector(
                     self.engine.player,
                     accptable_ship_statuses={STATUS_ACTIVE}
-                    )
+                )
             )
 
             warning = fire_order.raise_warning()
@@ -1362,18 +1541,37 @@ class EnergyWeaponHandler(MainGameEventHandler):
                 return fire_order
             
             self.engine.message_log.add_message(
-                blocks_action[warning]
+                blocks_action[warning], colors.red
             )
+        
+        
         elif self.cancel_button.cursor_overlap(event):
 
             return CommandEventHandler(self.engine)
         
-        select_ship_planet_star(self.engine.game_data, event)
+        ship_planet_or_star = select_ship_planet_star(self.engine.game_data, event)
+        if isinstance(ship_planet_or_star, Starship) and ship_planet_or_star is not self.engine.player and ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star:
+            
+            self.engine.game_data.ship_scan = ship_planet_or_star.scan_this_ship(self.engine.player.determin_precision)
+            self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
+            
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
+        if event.sym == tcod.event.K_a:
+        
+            sel = self.engine.game_data.selected_ship_planet_or_star
+            
+            local_ships = self.engine.game_data.ships_in_same_sub_sector_as_player
+            
+            if (not isinstance(sel, Starship) or sel.ship_status.is_active) and local_ships:
+                
+                okay_ships = [s for s in local_ships if s.ship_status.is_active]
+                
+                self.engine.game_data.selected_ship_planet_or_star = choice(okay_ships)
+        
         if event.sym in confirm:
             fire_order = EnergyWeaponOrder(
                 self.engine.player,
@@ -1387,7 +1585,7 @@ class EnergyWeaponHandler(MainGameEventHandler):
                 return fire_order
             
             self.engine.message_log.add_message(
-                blocks_action[warning]
+                blocks_action[warning], colors.red
             )
         else:
             self.amount.handle_key(event)
@@ -1400,7 +1598,7 @@ class TorpedoHandler(MainGameEventHandler):
         self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1)
 
         self.selected_handeler = self.heading
-
+        
         self.heading_button = ButtonBox(
             x=3+config_object.command_display_x,
             y=2+config_object.command_display_y,
@@ -1413,7 +1611,7 @@ class TorpedoHandler(MainGameEventHandler):
 
         self.number_button = ButtonBox(
             x=3+config_object.command_display_x,
-            y=7+config_object.command_display_y,
+            y=6+config_object.command_display_y,
             width=12,
             height=3,
             title="Number:",
@@ -1496,7 +1694,7 @@ class TorpedoHandler(MainGameEventHandler):
 
         self.confirm_button = ButtonBox(
             x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
+            y=10+config_object.command_display_y,
             width=9,
             height=3,
             text="Confirm"
@@ -1504,10 +1702,23 @@ class TorpedoHandler(MainGameEventHandler):
 
         self.cancel_button = ButtonBox(
             x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
+            y=14+config_object.command_display_y,
             width=9,
             height=3,
             text="Cancel"
+        )
+        
+        torpedos = self.engine.player.ship_class.torp_types
+        
+        self.torpedo_select = Selector(
+            x=3+config_object.command_display_x,
+            y=18+config_object.command_display_y,
+            width=10,
+            height=6,
+            index_items=[
+                ALL_TORPEDO_TYPES[name].cap_name for name in torpedos
+            ],
+            keys=torpedos
         )
 
     def on_render(self, console: tcod.Console) -> None:
@@ -1517,7 +1728,7 @@ class TorpedoHandler(MainGameEventHandler):
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Input heading and distance"
+            title="Input heading"
             )
 
         self.heading_button.render(
@@ -1535,6 +1746,8 @@ class TorpedoHandler(MainGameEventHandler):
             text=self.number.text_to_print,
             cursor_position=self.number.cursor
         )
+        
+        self.torpedo_select.render(console, fg=colors.white, bg=colors.black)
 
         self.confirm_button.render(console)
 
@@ -1560,8 +1773,19 @@ class TorpedoHandler(MainGameEventHandler):
 
         if self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
+        if self.torpedo_select.cursor_overlap(event):
+            if self.torpedo_select.handle_click(event):
+                key:str = self.torpedo_select.index_key
+                
+                self.engine.player.torpedo_loaded = key
+                
+                t = ALL_TORPEDO_TYPES[key]
+                
+                self.engine.message_log(
+                    f"{t.cap_name} torpedos loaded, {self.engine.game_data.captain_name}."
+                )
 
-        if self.zero_button.cursor_overlap(event):
+        elif self.zero_button.cursor_overlap(event):
             self.heading.set_text(0)
         elif self.fourty_five_button.cursor_overlap(event):
             self.heading.set_text(45)
@@ -1597,7 +1821,19 @@ class TorpedoHandler(MainGameEventHandler):
                 self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
                 self.warned_once = True
         else:
-            select_ship_planet_star(self.engine.game_data, event)
+            game_data = self.engine.game_data
+            ship_planet_or_star = select_ship_planet_star(game_data, event)
+            
+            if ship_planet_or_star:
+                if isinstance(ship_planet_or_star, (Planet, Star)):
+                    game_data.selected_ship_planet_or_star = ship_planet_or_star
+                elif isinstance(ship_planet_or_star, Starship):
+                    
+                    if ship_planet_or_star is not self.engine.player and ship_planet_or_star is not game_data.selected_ship_planet_or_star:
+                        game_data.ship_scan = ship_planet_or_star.scan_this_ship(game_data.player.determin_precision)
+                        game_data.selected_ship_planet_or_star = ship_planet_or_star
+                else:
+                    game_data.selected_ship_planet_or_star = None
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
@@ -1627,8 +1863,14 @@ class TorpedoHandlerEasy(MainGameEventHandler):
 
         local_coords = self.engine.game_data.player.local_coords
 
-        self.x = NumberHandeler(limit=2, max_value=config_object.subsector_width, min_value=0, wrap_around=True, starting_value=local_coords.x)
-        self.y = NumberHandeler(limit=2, max_value=config_object.subsector_height, min_value=0, wrap_around=True, starting_value=local_coords.y)
+        self.x = NumberHandeler(
+            limit=2, max_value=config_object.subsector_width, min_value=0, 
+            wrap_around=True, starting_value=local_coords.x
+        )
+        self.y = NumberHandeler(
+            limit=2, max_value=config_object.subsector_height, min_value=0, 
+            wrap_around=True, starting_value=local_coords.y
+        )
 
         self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1)
 
@@ -1730,7 +1972,9 @@ class TorpedoHandlerEasy(MainGameEventHandler):
         elif self.number_button.cursor_overlap(event):
             self.selected_handeler = self.number
         elif self.confirm_button.cursor_overlap(event):
-            torpedo_order = TorpedoOrder.from_coords(self.engine.player, self.number.add_up(), self.x.add_up(), self.y.add_up())
+            torpedo_order = TorpedoOrder.from_coords(
+                self.engine.player, self.number.add_up(), self.x.add_up(), self.y.add_up()
+            )
             warning = torpedo_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1745,12 +1989,28 @@ class TorpedoHandlerEasy(MainGameEventHandler):
                 self.warned_once = True
             
         else:
-            x,y = select_sub_sector_space(event)
+            
+            game_data = self.engine.game_data
+            ship_planet_or_star = select_ship_planet_star(game_data, event)
+            
+            if ship_planet_or_star:
+                if isinstance(ship_planet_or_star, (Planet, Star)):
+                    game_data.selected_ship_planet_or_star = ship_planet_or_star
+                elif isinstance(ship_planet_or_star, Starship):
+                    
+                    if ship_planet_or_star is not self.engine.player and ship_planet_or_star is not game_data.selected_ship_planet_or_star:
+                        game_data.ship_scan = ship_planet_or_star.scan_this_ship(game_data.player.determin_precision)
+                        game_data.selected_ship_planet_or_star = ship_planet_or_star
+                else:
+                    game_data.selected_ship_planet_or_star = None
+                    
+                x,y = select_sub_sector_space(event)
 
-            if x is not False and y is not False:
-                self.x.set_text(x)
-                self.y.set_text(y)
-                self.warned_once == False
+                if x is not False and y is not False:
+                    self.x.set_text(x)
+                    self.y.set_text(y)
+                    self.warned_once == False
+                    
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
@@ -1897,7 +2157,9 @@ class SelfDestructHandler(MainGameEventHandler):
 
                 return SelfDestructOrder(self.engine.player)
             else:
-                self.engine.message_log.add_message(f"Error: The code for the self destruct is not correct.")
+                self.engine.message_log.add_message(
+                    f"Error: The code for the self destruct is not correct.", colors.red
+                )
         else:
         
             self.code_handler.handle_key(event)
@@ -1912,7 +2174,9 @@ class SelfDestructHandler(MainGameEventHandler):
 
                 return SelfDestructOrder(self.engine.player)
             else:
-                self.engine.message_log.add_message(f"Error: The code for the self destruct is not correct.")
+                self.engine.message_log.add_message(
+                    f"Error: The code for the self destruct is not correct.", colors.red
+                )
                 
 class GameOverEventHandler(EventHandler):
 
@@ -1922,13 +2186,41 @@ class GameOverEventHandler(EventHandler):
         startingEnemyFleetValue = 0.0
         currentEnemyFleetValue = 0.0
         endingText = []
-        total_ships = len(gameDataGlobal.total_starships) - 1
+        #total_ships = len(gameDataGlobal.total_starships) - 1
         
-        remaining_ships = len(gameDataGlobal.all_enemy_ships)
+        number_of_total_ships = len(
+            gameDataGlobal.all_enemy_ships
+        )
+        
+        number_of_active_enemy_ships = len(
+            [ship for ship in gameDataGlobal.all_enemy_ships if ship.ship_status.is_active]
+        )
+        
+        number_of_killed_enemy_ships = number_of_total_ships - number_of_active_enemy_ships
+        
+        all_enemy_ship_scores = tuple(
+            (ship.calculate_ship_stragic_value()) for ship in gameDataGlobal.all_enemy_ships
+        )
+        
+        percentage_of_ships_destroyed = number_of_killed_enemy_ships / number_of_total_ships
+        
+        point_values_of_destroyed_and_damage_ships = sum([
+            m - v for m, v in all_enemy_ship_scores
+        ])
+        
+        ship_destruction_score = sum(
+            [
+                1 - (v / m) for m,v in all_enemy_ship_scores
+            ]
+        ) / len(all_enemy_ship_scores)
+        
+        no_enemy_losses = number_of_active_enemy_ships == number_of_total_ships
 
-        destroyed_ships = total_ships - remaining_ships
+        all_enemy_ships_destroyed = number_of_active_enemy_ships == 0
+        
+        #remaining_ships = len(gameDataGlobal.all_enemy_ships)
 
-        derlict_ships = 0
+        #destroyed_ships = total_ships - remaining_ships
 
         planets_angered = self.engine.game_data.player_record["planets_angered"]
         planets_depopulated = self.engine.game_data.player_record["planets_depopulated"]
@@ -1939,31 +2231,42 @@ class GameOverEventHandler(EventHandler):
 
         did_the_player_do_bad_stuff = times_hit_poipulated_planet > 0
 
-        percentage_of_ships_destroyed = destroyed_ships / total_ships
+        #percentage_of_ships_destroyed = destroyed_ships / total_ships
 
-        for s in gameDataGlobal.total_starships:
-            if not s.is_controllable:
-                startingEnemyFleetValue+= s.ship_class.max_hull
-                currentEnemyFleetValue+= s.get_ship_value
-                if s.ship_status.is_recrewable:
-                    derlict_ships += 1
-
-        destructionPercent = 1.0 - currentEnemyFleetValue / startingEnemyFleetValue
-        timeLeftPercent = gameDataGlobal.turns_left / 100.0
-        overallScore = destructionPercent * timeLeftPercent#TODO - implement a more complex algorithum for scoring
-        noEnemyLosses = destroyed_ships == 0
-
-        all_enemy_ships_destroyed = remaining_ships == 0
-
+        #destructionPercent = 1.0 - currentEnemyFleetValue / startingEnemyFleetValue
+        starting_stardate = gameDataGlobal.starting_stardate
+        ending_stardate = gameDataGlobal.ending_stardate - starting_stardate
+        current_stardate = gameDataGlobal.stardate - starting_stardate
+        
+        time_left_percent = 1 - (current_stardate / ending_stardate)
+        
+        overall_score = Decimal(point_values_of_destroyed_and_damage_ships * percentage_of_ships_destroyed) * Decimal(0.5) * time_left_percent#TODO - implement a more complex algorithum for scoring
+        
+        player_nation = gameDataGlobal.player.ship_class.nation
+        
+        player_nation_short = player_nation.name_short
+        
+        captain_rank_name = player_nation.captain_rank_name
+        comander_rank_name = player_nation.comander_rank_name
+        navy_name = player_nation.navy_name
+        
+        enemy_nation = ALL_NATIONS[gameDataGlobal.scenerio.enemy_nation]
+        
+        enemy_nation_name_short = enemy_nation.name_short
+        enemy_nation_posessive = enemy_nation.name_possesive
+        
+        command = player_nation.command_name
+        intel_name = player_nation.intelligence_agency
+        
         if gameDataGlobal.player.ship_status.is_active:
 
             if all_enemy_ships_destroyed:
 
                 if did_the_player_do_bad_stuff:
 
-                    endingText.append("While the attacking Domminion force was wiped out, initial enthusamim over your victory \
-has given way to horror. ")
-
+                    endingText.append(
+f"While the attacking {enemy_nation_posessive} force was wiped out, initial enthusamim over your victory has given way to horror."
+)
                     endingText.extend(
                         self._the_player_did_bad_stuff(
                             planets_depopulated=planets_depopulated,
@@ -1974,67 +2277,94 @@ has given way to horror. ")
                         )
                     )
                 else:
-                    endingText.append('Thanks to your heroic efforts, mastery of tactial skill, and shrewd manadgement of limited resources, \
-you have completly destroyed the Domminion strike force. Well done!')
+                    endingText.append(
+f"Thanks to your heroic efforts, mastery of tactial skill, and shrewd manadgement of limited resources, \
+you have completly destroyed the {enemy_nation_name_short} strike force. Well done!")
 
-                    if timeLeftPercent < 0.25:
+                    if time_left_percent < 0.25:
 
-                        endingText.append('The enemy has been forced to relocate a large amount of their ships to \
-this sector. In doing so, they have weakened their fleets in several key areas, including their holdings in the Alpha Quadrent.')
+                        endingText.append(
+"The enemy has been forced to relocate a large amount of their ships to this sector. In doing so, they have \
+weakened their fleets in several key areas, including their holdings in the Alpha Quadrent.")
 
-                    elif timeLeftPercent < 0.5:
+                    elif time_left_percent < 0.5:
 
-                        endingText.append(f'Interecpted communications have revealed that because of the total destruction of the enemy task \
-force, the {gameDataGlobal.player.name} has been designated as a priority target.')
+                        endingText.append(
+f"Interecpted communications have revealed that because of the total destruction of the enemy task \
+force, the {gameDataGlobal.player.name} has been designated as a priority target.")
 
-                    elif timeLeftPercent < 0.75:
+                    elif time_left_percent < 0.75:
 
-                        endingText.append('We are making prepations for an offensive to capture critical systems. Because of your abilities \
-Starfleet Command is offering you a promotion to the rank of real admiral.')
+                        endingText.append(
+f"We are making prepations for an offensive to capture critical systems. Because of your abilities \
+{command} is offering you a promotion to the rank of real admiral.")
 
                     else:
 
-                        endingText.append('The enemy is in complete disarray thanks to the speed at which you annilated the opposing fleet! \
-Allied forces have exploited the chaos, making bold strikes into Dominion controlled space in the Alpha Quadrent. Starfleet \
-Intel has predicded mass defections among from the Cadrassian millitary. Because of abilities Starfleet Command has weighed \
-the possibility of a promotion to the rank of real admiral, but ultimatly decided that your skills are more urgently needed \
-in the war.')
+                        endingText.append(
+f"The enemy is in complete disarray thanks to the speed at which you annilated the opposing fleet! \
+Allied forces have exploited the chaos, making bold strikes into {enemy_nation_posessive} controlled space in the \
+Alpha Quadrent. {intel_name} has predicded mass defections among from allied millitary. Because of \
+abilities {command} has weighed the possibility of a promotion to the rank of {comander_rank_name}, but \
+ultimatly decided that your skills are more urgently needed in the war.")
             else:
-                if noEnemyLosses:
-                    endingText.append('The mission was a complete and utter failure. No ships of the Dominion strike force were destroyed, \
-allowing enemy forces to fortify their positions within the Alpha Quadrent. You can expect a court marshal in your future.')
+                if no_enemy_losses:
+                    endingText.append(
+f"The mission was a complete and utter failure. No ships of the {enemy_nation_name_short} strike force were destroyed, \
+allowing enemy forces to fortify their positions within the Alpha Quadrent. You can expect a court marshal in \
+your future.")
                 elif percentage_of_ships_destroyed < 0.25:
-                    endingText.append('The mission was a failure. Neglible losses were inflited on the enemy. Expect to be demoted')
+                    endingText.append(
+"The mission was a failure. Neglible losses were inflited on the enemy. Expect to be demoted.")
                 elif percentage_of_ships_destroyed < 0.5:
-                    endingText.append('The mission was a failure. The casulties inflicted on the Domminion strike fore were insuficent \
-to prevent them from taking key positions.')
+                    endingText.append(
+f"The mission was a failure. The casulties inflicted on the {enemy_nation_name_short} strike fore were insuficent \
+to prevent them from taking key positions.")
                 elif percentage_of_ships_destroyed < 0.75:
-                    endingText.append('The mission was unsucessful. In spite of in')
+                    endingText.append(
+f"The mission was unsucessful. In spite of inclicting heavy damage in the {enemy_nation_posessive} fleet")
 
         else:
             if all_enemy_ships_destroyed:
-                endingText.append('Thanks to your sacrifice, mastery of tactial skill, and shrewd manadgement of limited resources, \
-you have completly destroyed the Domminion strike force. Well done!')
-                if timeLeftPercent < 0.25:
-                    endingText.append('Your hard fought sacrifice will be long remembered in the reccords of Starfleet history. ')
-                elif timeLeftPercent < 0.5:
-                    endingText.append('')
-                elif timeLeftPercent < 0.75:
-                    endingText.append('')
+                endingText.append(
+f"Thanks to your sacrifice, mastery of tactial skill, and shrewd manadgement of limited resources, \
+you have completly destroyed the {enemy_nation_posessive} strike force. Well done!")
+                if time_left_percent < 0.25:
+                    endingText.append(
+f"Your hard fought sacrifice will be long remembered in the reccords of {navy_name} history. ")
+                elif time_left_percent < 0.5:
+                    endingText.append("")
+                elif time_left_percent < 0.75:
+                    endingText.append("")
                 else:
-                    endingText.append('Althoug you were completly victorous over the Domminion strike force, senior personel have \
-questioned the reckless or your actions. Admeral Ross has stated that a more cautous aproch would resulted in the survival of your crew')
-            elif noEnemyLosses:
-                if timeLeftPercent < 0.25:
-                    endingText.append('You are an embaressment to the Federation. ')
-                else:
-                    endingText.append('You are terrible at this. ')
-            elif destructionPercent < 0.5:
-                endingText.append('Pretty bad. ')
+                    endingText.append(
+f"Althoug you were completly victorous over the {enemy_nation_name_short} strike force, senior personel have \
+questioned the reckless or your actions. {comander_rank_name} Ross has stated that a more cautous aproch \
+would resulted in the survival of your crew.")
+            elif percentage_of_ships_destroyed >= 0.75:
+                endingText.append(
+f"While you were largly victorious over the attacking {enemy_nation_posessive} fleet, many senior officers have expressed dismay over your loss, and have expressed concern over.")
+            
+            elif percentage_of_ships_destroyed >= 0.5:
+            
+                endingText.append(
+f"Your mission was a failure. The caulties you influcted on the {enemy_nation_name_short} strike force hindered them, but not enough to truly make a diffrence."
+                )
+            
+            elif not no_enemy_losses:
+                after = 'shortly after' if time_left_percent < 0.25 else 'after'
+                endingText.append(
+f'You are an embaressment to the {player_nation_short}. Your ship was destroyed {after} you engaged the enemy inspite of your tactial superority you inflicted no losses on the enemy.')
+                
             else:
-                endingText.append('Still bad. ')
+                
+                after = 'shortly after' if time_left_percent < 0.25 else 'after'
+                
+                endingText.append(
+f'You are an embaressment to the {player_nation_short}. Your ship was destroyed {after} you engaged the enemy inspite of your tactial superority you inflicted no losses on the enemy.')
+            
 
-        endingText.append(f'Overall score: {overallScore:%}')
+        endingText.append(f'Overall score: {overall_score:%}')
 
         return ''.join(endingText)
 
@@ -2048,6 +2378,7 @@ questioned the reckless or your actions. Admeral Ross has stated that a more cau
             if planets_depopulated == 1:
 
                 how_many_planets_killed = "a"
+                
             elif planets_depopulated == 2:
 
                 how_many_planets_killed = "two"
@@ -2141,21 +2472,21 @@ of {how_many_planets_killed} ,")
                 y=2, 
                 width=console.width-4, 
                 height=self.console_height, 
-                string="Y O U   H A V E   F A L L E N", 
+                string="Evaluation:", 
             bg_blend=tcod.BKGND_MULTIPLY)
 
             console.print_rect(
                 x=3, 
                 y=3, 
                 width=console.width-6,
-                height=self.console_height-2,
+                height=self.console_height-6,
                 string=self.ending_text)
 
             #for i, e in enumerate(self.ending_text, self.text_scroll):
             
             console.print(x=10, y=40, string="Press ESC to quit")
         else:
-            print_subsector(console, self.engine.game_data)
+            print_system(console, self.engine.game_data)
             print_mega_sector(console, self.engine.game_data)
             render_own_ship_info(console, self.engine.game_data)
 

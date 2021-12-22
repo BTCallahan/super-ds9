@@ -1,30 +1,55 @@
 from __future__ import annotations
-from enum import Enum, auto
-from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
-from functools import wraps, cache, lru_cache
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 import tcod
 
 from coords import Coords
 from space_objects import Planet, Star, SubSector
 from starship import Starship
-from data_globals import STATUS_HULK, STATUS_OBLITERATED, PlanetHabitation, PLANET_HABITATION_COLOR_DICT
+from data_globals import STATUS_HULK
 import colors
 from get_config import config_object
+from torpedo import ALL_TORPEDO_TYPES
 
 if TYPE_CHECKING:
     from tcod import Console
     from game_data import GameData
 
-def print_subsector(console:Console, gamedata:GameData):
+#sys_width = config_object.subsector_width * 2 - 1
+#sys_height = config_object.subsector_height * 2 - 1
+
+def create_grid():
+
+    st1 = " " + ("| " * (config_object.subsector_width - 1))
+
+    st2 = "-" + ("+-" * (config_object.subsector_width - 1))
+
+    st3 = st2 + "\n" + st1
+
+    st4 = [st1] + [st3 for s in range(config_object.subsector_height - 1)]
+
+    st5 = "\n".join(st4)
+    
+    return st5
+
+GRID = create_grid()
+
+def print_system(console:Console, gamedata:GameData):
 
     x = config_object.subsector_display_x
     y = config_object.subsector_display_y
     width = config_object.subsector_width
     heigth = config_object.subsector_height
 
-    condition, condition_color = gamedata.condition_str, gamedata.condition_color
-
     player = gamedata.player
+    
+    console.print_box(
+        x=x+1,
+        y=y+1,
+        width=width * 2,
+        height=heigth * 2,
+        string=GRID,
+        fg=colors.blue,
+    )
     
     console.draw_frame(
         x=x + (player.local_coords.x * 2),
@@ -34,15 +59,27 @@ def print_subsector(console:Console, gamedata:GameData):
         fg=colors.yellow,
         clear=False
     )
+    
+    if player.game_data.selected_ship_planet_or_star is not None:
+        
+        selected = player.game_data.selected_ship_planet_or_star
+        
+        console.draw_frame(
+            x=x + (selected.local_coords.x * 2),
+            y=y + (selected.local_coords.y * 2),
+            height=3,
+            width=3,
+            fg=colors.orange,
+            clear=False
+        )
 
     console.draw_frame(
         x=x,
         y=y,
-        width=width * 2 + 2,
-        height=heigth * 2 + 2,
-        title=condition,
-        fg=condition_color,
-        bg=colors.black
+        width=width * 2 + 1,
+        height=heigth * 2 + 1,
+        title="System",
+        clear=False
         )
 
     sector:SubSector = player.get_sub_sector
@@ -53,7 +90,7 @@ def print_subsector(console:Console, gamedata:GameData):
             x=x + (c.x * 2) + 1, 
             y=y + (c.y * 2) + 1, 
             string="*", 
-        fg=star.color
+        fg=star.color,bg=star.bg
         )
 
     ships = gamedata.ships_in_same_sub_sector_as_player
@@ -75,16 +112,27 @@ def print_subsector(console:Console, gamedata:GameData):
             x=x + (c.x * 2) + 1, 
             y=y + (c.y * 2) + 1, 
             string="#", 
-            fg=PLANET_HABITATION_COLOR_DICT[planet.planet_habbitation]
+            fg=planet.planet_habbitation.color
         )
 
     for s in ships:
         if s.ship_status.is_visible:
+            
+            """
+            console.draw_frame(
+                x=x + (s.local_coords.x * 2),
+                y=y + (s.local_coords.y * 2), 
+                width=3,
+                height=3,
+                fg=colors.white
+            )
+            """
+            
             console.print(
                 x=x + (s.local_coords.x * 2) + 1, 
                 y=y + (s.local_coords.y * 2) + 1, 
                 string=s.ship_class.symbol, 
-                fg=s.ship_status.override_color if s.ship_status.override_color else colors.red
+                fg=s.ship_status.override_color if s.ship_status.override_color else s.ship_class.nation.nation_color
             )
     
     console.print(
@@ -245,7 +293,7 @@ def print_ship_info(
         ):
             console.print(x=x+2, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
 
-        from torpedo import ALL_TORPEDO_TYPES
+        
 
         s = 10
 
@@ -332,30 +380,16 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 string=f"Planet at {ship_planet_or_star.local_coords.x}, {ship_planet_or_star.local_coords.y}"
             )
 
-            planet_status = ""
+            planet_status = ship_planet_or_star.planet_habbitation.description
 
-            if ship_planet_or_star.infastructure == 0.0:
-
-                planet_status = "Uninhabited"
-
-            elif ship_planet_or_star.planet_habbitation == PlanetHabitation.PLANET_PREWARP:
-
-                planet_status = "Pre-Warp"
-
-            else:
-
-                planet_status = "Hostile" if ship_planet_or_star.planet_habbitation in {PlanetHabitation.PLANET_ANGERED, PlanetHabitation.PLANET_HOSTILE} else "Friendly"
-
-            console.print(
+            console.print_box(
                 x=start_x+3,
                 y=start_y+6,
-                string=f"Planet status: {planet_status}"
+                width=width-6,
+                height=6,
+                string=f"Planet status: {planet_status}\n\nPlanet development: {ship_planet_or_star.infastructure:.3}"
             )
-            console.print(
-                x=start_x+1,
-                y=start_y+8,
-                string=f"Planet development: {ship_planet_or_star.infastructure:.2}"
-            )
+            
         elif isinstance(ship_planet_or_star, Star):
 
             console.draw_frame(
@@ -404,65 +438,76 @@ def render_command_box(console: Console, gameData:GameData, title:str):
 
 def render_position(console: Console, gameData:GameData):
     #console.draw_frame()
+    w = config_object.position_info_end_x - config_object.position_info_x
+    h = config_object.position_info_end_y - config_object.position_info_y
     console.draw_frame(
         x=config_object.position_info_x,
         y=config_object.position_info_y,
-        width=config_object.position_info_end_x - config_object.position_info_x,
-        height=config_object.position_info_end_y - config_object.position_info_y,
-        
+        width=w,
+        height=h,
+        title=gameData.condition.text,
+        fg=gameData.condition.fg,
+        bg=gameData.condition.bg
     )
-    console.print(
+    
+    console.print_box(
         x=config_object.position_info_x+1,
         y=config_object.position_info_y+1,
-        string= f"Local pos: {gameData.player.local_coords}"
-    )
-    console.print(
-        x=config_object.position_info_x+1,
-        y=config_object.position_info_y+2,
-        string= f"Sector pos: {gameData.player.sector_coords}"
+        string=f"Local pos: {gameData.player.local_coords}\nSystem pos: {gameData.player.sector_coords}\nStardate: {gameData.stardate}\nEnding stardate: {gameData.ending_stardate}",
+        width=w-2,
+        height=h-2
     )
 
     pass
 
-def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDown") -> bool:
+def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDown") -> Union[Planet, Star, Starship, bool]:
+    """Attempts to select the ship, planet, or star that the player is clicking on. Otherwise, it returns a boolean value depending on weither the cursor was positioned over a system grid square.
 
-        x,y = config_object.subsector_display_x, config_object.subsector_display_y
+    Args:
+        game_data (GameData): The GameData object.
+        event (tcod.event.MouseButtonDown): The event containing the location of the click.
 
-        width, height = config_object.subsector_width, config_object.subsector_height
+    Returns:
+        Union[Planet, Star, Starship, bool]: If the mouse cursor is over a ship, planet, or star, that object will be returned. If not, then True will be returned. If the mouse cursor was not over a grid square, False will be returned.
+    """
 
-        x_range = range(x+1, x+2+width*2, 2)
-        y_range = range(y+1, y+1+height*2, 2)
+    x,y = config_object.subsector_display_x, config_object.subsector_display_y
 
-        if event.tile.x in x_range and event.tile.y in y_range:
-            x_ajusted = (event.tile.x - (x + 1)) // 2
-            y_ajusted = (event.tile.y - (y + 1)) // 2
+    width, height = config_object.subsector_width, config_object.subsector_height
 
-            subsector = game_data.player.get_sub_sector
-            co = Coords(x_ajusted, y_ajusted)
+    x_range = range(x+1, x+2+width*2, 2)
+    y_range = range(y+1, y+1+height*2, 2)
+
+    if event.tile.x in x_range and event.tile.y in y_range:
+        x_ajusted = (event.tile.x - (x + 1)) // 2
+        y_ajusted = (event.tile.y - (y + 1)) // 2
+
+        subsector = game_data.player.get_sub_sector
+        co = Coords(x_ajusted, y_ajusted)
+        try:
+            planet = subsector.planets_dict[co]
+
+            #game_data.selected_ship_planet_or_star = planet
+
+            return planet
+        except KeyError:
             try:
-                planet = subsector.planets_dict[co]
-
-                game_data.selected_ship_planet_or_star = planet
-
-                return True
+                star = subsector.stars_dict[co]
+                #game_data.selected_ship_planet_or_star = star
+                return star
             except KeyError:
-                try:
-                    star = subsector.stars_dict[co]
-                    game_data.selected_ship_planet_or_star = star
-                    return True
-                except KeyError:
-                    
-                    #ships_in_same_sector = game_data.grab_ships_in_same_sub_sector(game_data.player)
-
-                    for ship in game_data.ships_in_same_sub_sector_as_player:
-                        if ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted and ship.ship_status.is_visible:
-                            if game_data.selected_ship_planet_or_star is not ship:
-                                game_data.selected_ship_planet_or_star = ship
-                                game_data.ship_scan = ship.scan_this_ship(game_data.player.determin_precision)
-                            #self.engine.game_data.selectedEnemyShip = ship
-                            return True
+                
+                for ship in game_data.ships_in_same_sub_sector_as_player:
+                    if ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted and ship.ship_status.is_visible:
+                        #if game_data.ship_scan is None or game_data.selected_ship_planet_or_star is not ship:
+                            #game_data.selected_ship_planet_or_star = ship
+                            
+                            #game_data.ship_scan = ship.scan_this_ship(game_data.player.determin_precision)
+                        #self.engine.game_data.selectedEnemyShip = ship
+                        return ship
+                return True
+    else:
         return False
-
 
 def select_sub_sector_space(event: "tcod.event.MouseButtonDown"):
 
@@ -478,7 +523,7 @@ def select_sub_sector_space(event: "tcod.event.MouseButtonDown"):
     if tile.x in x_range and tile.y in y_range:
         x_ajusted = (tile.x - (x + 1)) // 2
         y_ajusted = (tile.y - (y + 1)) // 2
-        print(f"{tile.x} {tile.y} {x_ajusted} {y_ajusted}")
+        #print(f"{tile.x} {tile.y} {x_ajusted} {y_ajusted}")
         return x_ajusted, y_ajusted
     
     return False, False

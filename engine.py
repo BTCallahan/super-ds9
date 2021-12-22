@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 from coords import Coords, AnyCoords
-from typing import Dict, Tuple
+from typing import Dict, Tuple, TYPE_CHECKING
 from data_globals import ENERGY_REGEN_PER_TURN, REPAIR_MULTIPLIER
 from message_log import MessageLog
 from game_data import GameData
 from starship import Starship
 from get_config import config_object
 import lzma, pickle
+
+if TYPE_CHECKING:
+    from scenario import Scenerio
 
 class Engine:
 
@@ -35,7 +40,7 @@ class Engine:
         self.filename = filename
 
         self.lookup_table:Dict[Coords,Tuple[Coords]] = {}
-    
+        
     def save_as(self, filename: str) -> None:
         """Save this Engine instance as a compressed file."""
         save_data = lzma.compress(pickle.dumps(self))
@@ -56,7 +61,7 @@ class Engine:
     def get_lookup_table(self, *, direction_x:float, direction_y:float, normalise_direction:bool=True):
 
         origin_tuple = Coords(direction_x, direction_y)
-
+        
         try:
             return self.lookup_table[(origin_tuple, normalise_direction)]
         except KeyError:
@@ -66,13 +71,15 @@ class Engine:
             def create_tuple():
 
                 old_x, old_y = new_coords_x, new_coords_y
-
+                old_c = None
                 for r in range(config_object.max_move_distance):
 
                     c:Coords = Coords(round(old_x), round(old_y))
 
-                    yield c
-
+                    if not old_c or c != old_c:
+                        yield c
+                    
+                    old_c = c
                     old_x += new_coords_x
                     old_y += new_coords_y
             

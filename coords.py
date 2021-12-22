@@ -83,6 +83,20 @@ class Coords(namedtuple("Coords_", ("x", "y"))):
         except ZeroDivisionError:
             return 0, 0
     
+    @staticmethod
+    def normalize_other(
+        *, coords:Optional[AnyCoords]=None, x:Optional[IntOrFloat]=None, y:Optional[IntOrFloat]=None
+    ):
+        if x is not None and y is not None:
+            d = sqrt(pow(x, 2) + pow(y, 2))
+        else:
+            x, y = coords.x, coords.y
+            d = sqrt(pow(x, 2) + pow(y, 2))
+        try:
+            return x / d, y / d
+        except ZeroDivisionError:
+            return 0, 0
+    
     def is_adjacent(self, *, other:Optional[AnyCoords]=None, x:Optional[int]=None, y:Optional[int]=None):
         if x is not None and y is not None:
             return self.x in {x-1, x, x+1} and self.y in {y-1, y, y+1}
@@ -92,13 +106,13 @@ class Coords(namedtuple("Coords_", ("x", "y"))):
         return 'X: ' + str(self.x) + ', Y: ' + str(self.y)
 
     @classmethod
-    def randomPointWithinRadius(cls, radius):
-        dist = uniform(0.0, radius)
-        diam = radians(uniform(0.0, 360.0))
+    def randomPointWithinRadius(cls, radius:IntOrFloat, use_float:bool=False):
+        #dist = uniform(0.0, radius)
+        #diam = radians(uniform(0.0, 360.0))
 
-        x = randint(-radius, radius+1)
-        y =  randint(-radius, radius+1)
-
+        x,y = (uniform(-radius, radius), uniform(-radius, radius)
+               ) if use_float else (randint(-radius, radius), randint(-radius, radius))
+        
         d = pow((pow(x, 2) + pow(y, 2)), 0.5)
         nX, nY = cls.normalize(x=x, y=y)
         return cls(round(nX * radius), round(nY * radius))

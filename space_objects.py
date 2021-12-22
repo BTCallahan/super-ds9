@@ -3,9 +3,9 @@ from typing import Dict, Iterable, List, Optional,  Tuple, TYPE_CHECKING
 from random import choice, choices, randint, uniform, random
 from itertools import accumulate
 from coords import Coords
-from data_globals import PLANET_TYPES, PlanetHabitation, ShipTypes
+from data_globals import PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_TYPES, PlanetHabitation
 import colors
-from torpedo import Torpedo
+from torpedo import ALL_TORPEDO_TYPES, Torpedo
 
 if TYPE_CHECKING:
     from game_data import GameData
@@ -24,6 +24,112 @@ class InterstellerObject:
     def hit_by_torpedo(self, is_player:bool, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
         raise NotImplementedError
 
+STAR_TYPES = (
+    "Main sequence O",
+    "Main sequence B",
+    "Main sequence A",
+    "Main sequence F",
+    "Main sequence G (Yellow dwarf)",
+    "Main sequence K (Orange dwarf)",
+    "Main sequence M (Red dwarf)",
+    
+    "Brown dwarf",
+    "Brown subdwarf",
+    
+    "Blue subdwarf",
+    "Blue giant",
+    "Blue supergiant",
+    "Blue hypergiant",
+    
+    "Yellow giant",
+    "Yellow supergiant",
+    "Yellow hypergiant",
+    
+    "Red giant",
+    "Red supergiant",
+    "Red hypergiant",
+    
+    "White dwarf",
+    "Neutron star",
+    "Black hole"
+)
+
+STAR_WEIGHTS = tuple(
+    accumulate(
+        (
+            6,
+            48,
+            118,
+            325,
+            731,
+            1646,
+            5730,
+            
+            1024,
+            1237,
+            
+            33,
+            24,
+            11,
+            4,
+            
+            12,
+            6,
+            2,
+            
+            51,
+            26,
+            8,
+            
+            34,
+            9,
+            3,
+        )
+    )
+)
+
+STAR_COLORS = {
+    "Main sequence O" : colors.star_blue,
+    "Main sequence B" : colors.star_blue_white,
+    "Main sequence A" : colors.star_white,
+    "Main sequence F" : colors.star_yellow_white,
+    "Main sequence G (Yellow dwarf)" : colors.star_yellow,
+    "Main sequence K (Orange dwarf)" : colors.star_orange,
+    "Main sequence M (Red dwarf)" : colors.star_red,
+    "Brown dwarf" : colors.star_brown,
+    "Brown subdwarf" : colors.star_brown,
+    "Blue subdwarf" : colors.star_blue,
+    "Blue giant" : colors.star_blue,
+    "Blue supergiant" : colors.star_blue,
+    "Blue hypergiant" : colors.star_blue,
+    
+    "Yellow giant" : colors.star_yellow,
+    "Yellow supergiant" : colors.star_yellow,
+    "Yellow hypergiant" : colors.star_yellow,
+    
+    "Red giant" : colors.star_red,
+    "Red supergiant" : colors.star_red,
+    "Red hypergiant" : colors.star_red,
+    
+    "White dwarf" : colors.star_white,
+    "Neutron star" : colors.star_white,
+    "Black hole" : colors.black
+}
+
+'''
+STAR_COLORS = (
+    colors.star_blue,
+    colors.star_blue_white,
+    colors.star_white,
+    colors.star_yellow_white,
+    colors.star_yellow,
+    colors.star_orange,
+    colors.star_red,
+    colors.star_brown,
+    colors.black
+)
+'''
+
 class Star(InterstellerObject):
     
     orderSuffexes = ['Alpha ', 'Beta ', 'Gamma ', 'Delta ']
@@ -31,21 +137,15 @@ class Star(InterstellerObject):
 
     def __init__(self, local_coords:Coords, sector_coords:Coords):
         super().__init__(local_coords, sector_coords)
-        self.color = choice(
-            (
-                colors.star_blue,
-                colors.star_blue_white,
-                colors.star_brown,
-                colors.star_orange,
-                colors.star_red,
-                colors.star_white,
-                colors.star_yellow,
-                colors.star_yellow_white,
-                colors.black
-            )
-        )
-        self.bg = colors.white if self.color is colors.black else colors.black
+        self.name = choices(
+            STAR_TYPES,
+            cum_weights=STAR_WEIGHTS
+        )[0]
         
+        self.color = STAR_COLORS[self.name]
+        
+        self.bg = colors.white if self.color is colors.black else colors.black
+        '''
         if self.color in {colors.star_blue, colors.star_blue_white}:
             self.name = choice(("Blue giant", "Blue supergiant", "Blue hypergiant", "Blue subdwarf"))
         elif self.color is colors.star_white:
@@ -60,6 +160,7 @@ class Star(InterstellerObject):
             self.name = choice(("Brown dwarf", "Brown subdwarf"))
         else:
             self.name = "Black hole"
+        '''
 
     def hit_by_torpedo(self, is_player:bool, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
         pass
@@ -112,7 +213,7 @@ class SubSector:
         self.small_ships = 0
         self.player_present = False
 
-    def random_setup(self):
+    def random_setup(self, star_number_weights:Iterable[int], star_number_weights_len:int):
 
         stars = choices(range(star_number_weights_len), cum_weights=star_number_weights)[0]
 
@@ -140,9 +241,9 @@ class SubSector:
 
                 self.planets_dict[local_coords] = p
                 
-                if p.planet_habbitation == PlanetHabitation.PLANET_FRIENDLY:
+                if p.planet_habbitation == PLANET_FRIENDLY:
                     self.friendly_planets+=1
-                elif p.planet_habbitation == PlanetHabitation.PLANET_HOSTILE:
+                elif p.planet_habbitation.supports_life and not p.planet_habbitation.can_ressuply:
                     self.unfriendly_planets += 1
                 else:
                     self.barren_planets += 1
@@ -168,7 +269,10 @@ class SubSector:
 
     def find_random_safe_spots(self, how_many:int, ship_list:Optional[Iterable[Starship]]=None):
         if ship_list:
-            ship_positions = [ship.local_coords for ship in ship_list if ship.sector_coords.x == self.x and ship.sector_coords.y == self.y]
+            ship_positions = [
+                ship.local_coords for ship in ship_list if ship.sector_coords.x == self.x and 
+                ship.sector_coords.y == self.y
+            ]
             okay_spots = [c for c in self.safe_spots if c not in ship_positions]
             return choices(okay_spots, k=how_many)
         return choices(self.safe_spots, k=how_many)
@@ -225,7 +329,7 @@ class Planet(InterstellerObject):
         super().__init__(local_coords, sector_coords)
         self.planet_habbitation = planet_habbitation# if random() < change_of_life_supporting_planets[self.planetType] else PlanetHabitation.PLANET_BARREN
 
-        self.infastructure = uniform(0.0, 1.0) if self.planet_habbitation is not PlanetHabitation.PLANET_BARREN else 0.0
+        self.infastructure = self.planet_habbitation.generate_development()
 
     def __lt__(self, p:"Planet"):
         return self.infastructure < p.infastructure
@@ -237,8 +341,35 @@ class Planet(InterstellerObject):
         return self.local_coords == p.local_coords and self.sector_coords == p.sector_coords and self.planet_habbitation == p.planet_habbitation and self.infastructure == p.infastructure
 
     def canSupplyPlayer(self, player:Starship):
-        return self.planet_habbitation is PlanetHabitation.PLANET_FRIENDLY and self.sector_coords == player.sector_coords and \
-            self.local_coords.is_adjacent(player.local_coords) and len(player.game_data.grab_ships_in_same_sub_sector(player)) < 1            
+        return (
+            self.planet_habbitation is PLANET_FRIENDLY and self.sector_coords == player.sector_coords and 
+            self.local_coords.is_adjacent(player.local_coords) and 
+            len(player.game_data.grab_ships_in_same_sub_sector(player)) < 1
+        )
+
+    def can_supply_torpedos(self, ship:Starship):
+        
+        if ship.ship_type_can_fire_torps:
+            supply = ship.ship_class.max_torpedos - ship.get_total_torpedos
+            
+            if supply > 0:
+                
+                most_powerful = None
+                
+                old_damage = 0
+                
+                for t in ship.ship_class.torp_types:
+                    
+                    dam = ALL_TORPEDO_TYPES[t].damage
+                    req = ALL_TORPEDO_TYPES[t].infrastructure
+                    
+                    if dam > old_damage and req <= self.infastructure:
+                        
+                        most_powerful = t
+                
+                return most_powerful, 0 if most_powerful is None else supply
+                
+        return None, 0
 
     def hit_by_torpedo(self, is_player:bool, game_data:GameData, torpedo:Torpedo):
         """Somebody did a bad, bad, thing (and it was probably you).
@@ -248,19 +379,23 @@ class Planet(InterstellerObject):
             game_data (GameData): [description]
             torpedo (Torpedo): The torpedo object. This contains the amount of damage to do to the planet.
         """
+        player_is_in_same_system = game_data.player.sector_coords == self.sector_coords
         
         message_log = game_data.engine.message_log
 
-        if self.planet_habbitation in {PlanetHabitation.PLANET_BARREN, PlanetHabitation.PLANET_BOMBED_OUT}:
-            message_log.add_message('The torpedo struck the planet. ')
-            if is_player:
-                game_data.player_record['times_hit_planet'] += 1
-                if self.planet_habbitation is PlanetHabitation.PLANET_BOMBED_OUT:
-                    message_log.add_message('Now you are just being petty. ')
-        else:
-            infrustructure_damage = uniform(torpedo.infrastructure * 0.5, torpedo.infrastructure) * 10 * self.infastructure
+        if is_player:
+            game_data.player_record['times_hit_planet'] += 1
 
-            game_data.player_record["deathtoll"] += infrustructure_damage
+        if not self.planet_habbitation.supports_life and player_is_in_same_system:
+            message_log.add_message('The torpedo struck the planet.')
+            if is_player and self.planet_habbitation is PLANET_BOMBED_OUT:
+                message_log.add_message('Now you are just being petty.')
+        else:
+            infrustructure_damage = uniform(
+                torpedo.infrastructure * 0.5, torpedo.infrastructure) * 10 * self.infastructure
+
+            if is_player:
+                game_data.player_record["deathtoll"] += infrustructure_damage
 
             how_many_killed = "hundreds"
 
@@ -283,37 +418,44 @@ class Planet(InterstellerObject):
             if self.infastructure <= 0:
                 self.infastructure = 0
 
-                message_log.add_message(f'The torpedo impacted the planet, killing {how_many_killed} and destroying the last vestages of civilisation. ')
+                if player_is_in_same_system:
+                    message_log.add_message(
+                        f'The torpedo impacted the planet, killing {how_many_killed} and destroying the last vestages of civilisation.'
+                    )
                 if is_player:
 
                     game_data.player_record['planets_depopulated'] += 1
                     game_data.player_record['times_hit_poipulated_planet'] += 1
-                    message_log.add_message('You will definitly be charged with a war crime. ')
+                    message_log.add_message('You will definitly be charged with a war crime.', colors.red)
                 
-                self.planet_habbitation = PlanetHabitation.PLANET_BOMBED_OUT
+                self.planet_habbitation = PLANET_BOMBED_OUT
 
-            elif self.planet_habbitation is PlanetHabitation.PLANET_FRIENDLY:
+            elif self.planet_habbitation is PLANET_FRIENDLY:
 
-                message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}. ')
+                if player_is_in_same_system:
+                    message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}.')
 
                 if is_player:
-                    self.planet_habbitation = PlanetHabitation.PLANET_ANGERED
+                    self.planet_habbitation = PLANET_ANGERED
 
                     game_data.player_record['planets_angered'] += 1
                     game_data.player_record['times_hit_poipulated_planet'] += 1
                     
-                    message_log.add_message('The planet has severed relations with the Federation. ')
+                    message_log.add_message('The planet has severed relations with the Federation.')
 
-            elif self.planet_habbitation is PlanetHabitation.PLANET_PREWARP:
-
-                message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed} of unsuspecting inhabitents. ')
+            elif self.planet_habbitation is PLANET_PREWARP:
+                if player_is_in_same_system:
+                    message_log.add_message(
+                        f'The torpedo struck the planet, killing {how_many_killed} of unsuspecting inhabitents.'
+                    )
                 if is_player:
                     game_data.player_record['times_hit_prewarp_planet'] += 1
                     game_data.player_record['times_hit_poipulated_planet'] += 1
 
-                    message_log.add_message('This is a grevous viloation of the prime directive! ')
+                    message_log.add_message('This is a grevous viloation of the prime directive!', colors.red)
             else:
-                message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}. ')
+                if player_is_in_same_system:
+                    message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}.')
                 if is_player:
                     game_data.player_record['times_hit_poipulated_planet'] += 1
-                    message_log.add_message('You will probably be charged with a war crime. ' )
+                    message_log.add_message('You will probably be charged with a war crime.', colors.red)
