@@ -1,17 +1,20 @@
-# NATION
-# COLOR: - this should be three intigers no larger then 255 seperated by commas
-# NAME_LONG
-# NAME_SHORT: - Optional - if not present, then the NAME_LONG will be used
-# NAME_POSSESIVE: - optional - if not present, then the NAME_LONG or the NAME_SHORT will be used depending on if the NAME_SHORT is present
-# ENERGY_WEAPON_NAME:
-# SHIP_PREFIX: optional e.g. U.S.S., I.K.S.
-# CONGRATULATIONS_TEXT:
-# CAPTAIN_RANK_NAME
-# ADMIRAL_RANK_NAME
-# SHIP_NAMES: - optional a list of ship names seperated by commas. If not present, an randomly generaed number will be used
+# NATION: - The nation code used to identify this nation. This can contain uppercase letters, numbers, and underscores.
+# COLOR: - The color used to desplay ships belonging to this nation on the system screen. This should be three intigers no larger then 255 seperated by commas.
+# NAME_LONG: - The long form of the name of this nation. This can contain letters, spaces, and apostriphes.
+# NAME_SHORT: - The shorthand name of this nation. Optional - if not present, then the NAME_LONG will be used. This can contain letters, spaces, and apostriphes. This can contain letters, spaces, and apostriphes.
+# NAME_POSSESIVE: - The possesive form of the name. e.g. "a <NAME_POSSESIVE> ship was destroyed". Optional - if not present, then the NAME_SHORT will be used. If neither the NAME_SHORT nor the NAME_POSSESIVE are present, then the NAME_LONG will be used. This can contain letters, spaces, and apostriphes.
+# COMMAND_NAME: The name of the millitary command. Can contain letters, numbers, and spaces.
+# INTELLIGENCE_AGENCY: The name of the intelligence agency. Can contain letters, numbers, and spaces.
+# NAVY_NAME: The name of the navy. Can contain letters, numbers, and spaces.
+# SHIP_PREFIX: The prefix of the ship. e.g. U.S.S., I.K.S. Optional. This can contain uppercase letters and periods.
+# CONGRATULATIONS_TEXT: - Text displayed when congratulating the player. This can contain letters, spaces, and puncation marks.
+# CAPTAIN_RANK_NAME: - The name of the rank for ship commanders. Can contain letter and spaces.
+# ADMIRAL_RANK_NAME: - The name of the rank for the players superior officer. Can contain letter and spaces.
+# SHIP_NAMES: - Possible names of randomly generated ships. Optional, If not present, an randomly generaed number will be used. Ship names should be seperated by commas. Names may include letters, spaces, dashes, and apostriphes.
+# SHIP_NAMES_END - Tells the regex to stop looking.
 # END_NATION
 # feds have akira, Ambassador
-
+#
 NATION:FEDERATION
 COLOR:50,45,235
 NAME_LONG:United Federation of Planets
@@ -19,7 +22,6 @@ NAME_SHORT:Federation
 COMMAND_NAME:Starfleet Command
 INTELLIGENCE_AGENCY:Starfleet Intelligence
 NAVY_NAME:Starfleet
-ENERGY_WEAPON_NAME:Phaser
 SHIP_PREFIX:U.S.S.
 CONGRATULATIONS_TEXT:Well done!
 CAPTAIN_RANK_NAME:Captain
@@ -67,9 +69,9 @@ Bonaventure,Bradbury,
 Ticonderoga,Angelou,Centaur,Challenger
 SHIP_NAMES_END
 END_NATION
-
+#
 # Always put a '#' between nations
-
+#
 NATION:KLINGON
 COLOR:231,50,12
 NAME_LONG:Klingon Empire
@@ -78,7 +80,6 @@ NAME_POSSESIVE:Klingon
 COMMAND_NAME:High Command
 INTELLIGENCE_AGENCY:Klingon Intelligence
 NAVY_NAME:Klingon Defence Force
-ENERGY_WEAPON_NAME:Disruptor
 SHIP_PREFIX:I.K.S.
 CONGRATULATIONS_TEXT:Qapah!
 CAPTAIN_RANK_NAME:Captain
@@ -104,7 +105,6 @@ NAME_POSSESIVE:Romulan
 COMMAND_NAME:Star Command
 INTELLIGENCE_AGENCY:the Tal Shiar
 NAVY_NAME:Imperial Navy
-ENERGY_WEAPON_NAME:Disruptor
 CONGRATULATIONS_TEXT:Well done!
 CAPTAIN_RANK_NAME:Commander
 ADMIRAL_RANK_NAME:Admiral
@@ -125,7 +125,6 @@ NAME_POSSESIVE:Cardassian
 INTELLIGENCE_AGENCY:the Obsidian Order
 COMMAND_NAME:Central Command
 NAVY_NAME:Cardassian Guard
-ENERGY_WEAPON_NAME:Compresser
 CONGRATULATIONS_TEXT:Excellent.
 CAPTAIN_RANK_NAME:Gul
 ADMIRAL_RANK_NAME:Legate
@@ -140,7 +139,6 @@ NAME_LONG:Dominion
 COMMAND_NAME:the Founders
 INTELLIGENCE_AGENCY:Dominion Intelligence
 NAVY_NAME:Dominion Navy
-ENERGY_WEAPON_NAME:Pha. Poleron
 CONGRATULATIONS_TEXT:Victory is life!
 CAPTAIN_RANK_NAME:Founder
 ADMIRAL_RANK_NAME:First
@@ -156,7 +154,6 @@ NAME_POSSESIVE:Borg
 COMMAND_NAME:the Queen
 INTELLIGENCE_AGENCY:Unimatrix Four
 NAVY_NAME:Borg Fleet
-ENERGY_WEAPON_NAME:Plasma
 CONGRATULATIONS_TEXT:Efficent.
 CAPTAIN_RANK_NAME:Locutus
 ADMIRAL_RANK_NAME:Queen
@@ -165,4 +162,4 @@ SHIP_NAMES_END
 END_NATION
 #
 #
-# 
+#

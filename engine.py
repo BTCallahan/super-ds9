@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from coords import Coords, AnyCoords
 from typing import Dict, Tuple, TYPE_CHECKING
-from data_globals import ENERGY_REGEN_PER_TURN, REPAIR_MULTIPLIER
+import lzma, pickle
 from message_log import MessageLog
 from game_data import GameData
-from starship import Starship
-from get_config import config_object
-import lzma, pickle
+from get_config import CONFIG_OBJECT
 
 if TYPE_CHECKING:
-    from scenario import Scenerio
+    from starship import Starship
 
 class Engine:
 
@@ -28,8 +26,8 @@ class Engine:
         self.message_log = MessageLog()
         self.mouse_location = (0, 0)
         self.player = player
-        self.screen_width = config_object.screen_width
-        self.screen_height = config_object.screen_height
+        self.screen_width = CONFIG_OBJECT.screen_width
+        self.screen_height = CONFIG_OBJECT.screen_height
 
         self.easy_aim = easy_aim
         self.easy_navigation = easy_navigation
@@ -72,7 +70,7 @@ class Engine:
 
                 old_x, old_y = new_coords_x, new_coords_y
                 old_c = None
-                for r in range(config_object.max_move_distance):
+                for r in range(CONFIG_OBJECT.max_distance):
 
                     c:Coords = Coords(round(old_x), round(old_y))
 

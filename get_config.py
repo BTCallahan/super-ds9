@@ -14,8 +14,27 @@ class FrozenDict(Mapping):
 class ConfigObject:
 
     def __init__(self) -> None:
-        d:Dict[str,string_or_int] = {}
+        
         with open("config.ini", "r") as f:
+            lines = f.readlines()
+            
+        config_file = None
+        
+        for line in lines:
+            if ":" in line and line[0] != "#":
+                k ,v = line.split(":")
+                if k == "config_file":
+                    
+                    config_file = "configurations/" + v.strip()
+        
+        if config_file is None:
+            raise OSError(
+                "The file 'config.ini' did not contain an entry for 'config_file'"
+            )
+                
+        d:Dict[str,string_or_int] = {}
+        
+        with open(config_file, "r") as f:
             lines = f.readlines()
         for line in lines:
             if ":" in line and line[0] != "#":
@@ -63,33 +82,13 @@ class ConfigObject:
         self.position_info_end_x = d['position_info_end_x']
         self.position_info_y = d['position_info_y']
         self.position_info_end_y = d['position_info_end_y']
-        
-        self.auto_destruct_code = d['auto_destruct_code']
+                
+        self.graphics = "fonts/" + d['graphics']
 
         c1:Coords = Coords(x=0, y=0)
 
         self.max_warp_distance = ceil(c1.distance(x=d["sector_width"], y=d["sector_height"]))
         self.max_move_distance = ceil(c1.distance(x=d["subsector_width"], y=d["subsector_height"]))
+        self.max_distance = max(self.max_warp_distance, self.max_move_distance)
         
-config_object:Final= ConfigObject()
-
-"""
-screen_width:120
-screen_height:60
-sector_width:8
-sector_height:8
-subsector_width:8
-subsector_height:8
-sector_display_x:30
-sector_display_y:0
-subsector_display_x:60
-subsector_display_y:0
-message_display_x:60
-message_display_y:30
-message_display_end_x:120
-message_display_end_y:60
-your_ship_display_x:0
-your_ship_display_y:0
-other_ship_display_x:80
-other_ship_display_y:0
-"""
+CONFIG_OBJECT:Final= ConfigObject()

@@ -7,44 +7,44 @@ from decimal import Decimal
 
 #-----------Gameplay related-----------
 
-to_rads: Final = (pi / 180)
+TO_RADIANS: Final = (pi / 180)
 """To convert a number in degrees to radians, multiply by this number. To convert a number in radians to degrees, divide it by this number. 
 """
 
 def get_rads(h:float):
-    return (h % 360) * to_rads
+    return (h % 360) * TO_RADIANS
 
 def heading_to_coords_torp(heading, distance):
-    rads = (heading % 360) * to_rads
+    rads = (heading % 360) * TO_RADIANS
     return round(sin(rads) * distance), round(cos(rads) * distance)
 
 def heading_to_direction(heading:float, *, heading_is_rads:bool=False):
-    rads = heading if heading_is_rads else ((heading % 360) * to_rads)
+    rads = heading if heading_is_rads else ((heading % 360) * TO_RADIANS)
     return sin(rads), cos(rads)
 
 def heading_to_coords(
     heading:IntOrFloat, distance:int, startX:int, startY:int, max_x:int, max_y:int, *, heading_is_rads:bool=False
 ):
-    """Takes a heading, distance, and start coords for x and y
+    """Takes a heading, distance, and start coords for X and Y values and calculates the ending position
 
     Args:
-        heading ([type]): [description]
-        distance ([type]): [description]
-        startX ([type]): [description]
-        startY ([type]): [description]
-        use_rads (bool, optional): If this is True, . Defaults to False.
+        heading (IntOrFloat): [description]
+        distance (int): [description]
+        startX (int): [description]
+        startY (int): [description]
+        heading_is_rads (bool, optional): If this is True, the ehading will not be coverted from degrees to radians. Defaults to False.
 
     Returns:
-        [type]: [description]
+        Tuple[int, int]: A tuple containg two intigers for the X and Y coodinates
     """
-    rads = heading if heading_is_rads else ((heading % 360) * to_rads)
+    rads = heading if heading_is_rads else ((heading % 360) * TO_RADIANS)
     retX, retY = startX, startY
 
     for d in range(distance + 1):
         new_x = round(sin(rads) * d) + startX
         new_y = round(cos(rads) * d) + startY
 
-        if not (0 < new_x < max_x) or (0 < new_y < max_y):
+        if not (0 <= new_x < max_x) or not (0 <= new_y < max_y):
             break
 
         retX, retY = new_x, new_y
@@ -67,33 +67,55 @@ def safe_division(n:IntOrFloat, d:IntOrFloat, return_number:IntOrFloat=0.0):
     return n / d
 
 def get_first_group_in_pattern(
-    text_to_search:str, pattern:Pattern[str],*, return_aux_if_no_match:bool=False, aux_valute_to_return_if_no_match=None
+    text_to_search:str, pattern:Pattern[str],*, 
+    return_aux_if_no_match:bool=False, 
+    aux_valute_to_return_if_no_match=None,
+    type_to_convert_to:type=str
 ):
     
     match = pattern.search(text_to_search)
     
+    
     if return_aux_if_no_match:
         try:
-            return match.group(1)
+            return type_to_convert_to(match.group(1))
         except AttributeError:
             return aux_valute_to_return_if_no_match
-        
-    return match.group(1)
+    match_ = match[1]
+    return type_to_convert_to(match.group(1))
 
 def get_multiple_groups_in_pattern(
-    text_to_search:str, pattern:Pattern[str],*, number_of_groups:int=1, return_aux_if_no_match:bool=False, aux_valute_to_return_if_no_match=None
+    text_to_search:str, pattern:Pattern[str],*, expected_number_of_groups:int=1, 
+    return_aux_if_no_match:bool=False, aux_valute_to_return_if_no_match=None,
+    type_to_convert_to:type=str
 ):
     match = pattern.search(text_to_search)
     
+    #if number_of_groups < 1:
+    #    match.
+    
     if return_aux_if_no_match:
         try:
-            return tuple(match.group(grp) for grp in range(1, number_of_groups + 1))
-            
+            #match_ = match[1:]
+            ma = tuple(
+                type_to_convert_to(match.group(grp)) for grp in range(1, expected_number_of_groups + 1)
+            )
+            if expected_number_of_groups > 0:
+                assert len(ma) == expected_number_of_groups
+            return ma
+            #return tuple(match.group(grp) for grp in range(1, number_of_groups + 1))
         except AttributeError:
-            return tuple([aux_valute_to_return_if_no_match] * number_of_groups)
-        
-    return tuple(match.group(grp) for grp in range(1, number_of_groups + 1))
-
+            return aux_valute_to_return_if_no_match
+        except IndexError:
+            return aux_valute_to_return_if_no_match
+    #match_ = match[1:]
+    ma = tuple(
+        type_to_convert_to(match.group(grp)) for grp in range(1, expected_number_of_groups + 1)
+    )
+    if expected_number_of_groups > 0:
+        assert len(ma) == expected_number_of_groups
+    return ma
+    
 def convert_to_color_friendly_int(s:str):
     
     i = int(s)

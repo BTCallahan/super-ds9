@@ -1,27 +1,14 @@
 from enum import Enum, auto
 from collections import defaultdict, namedtuple
 from random import uniform
-from typing import Dict, Optional, Tuple, Union, TypeVar
+from typing import Dict, Final, Optional, Tuple, Union
 import colors
 from dataclasses import dataclass
 from math import inf
 
-SMALLEST:float = 1 / inf
+SMALLEST:Final = 1 / inf
 
 string_or_int = Union[int,str]
-
-class ShipTypes(Enum):
-
-    TYPE_ALLIED = auto()
-    TYPE_ENEMY_SMALL = auto()
-    TYPE_ENEMY_LARGE = auto()
-
-SYM_PLAYER = '@'
-SYM_FIGHTER = 'F'
-SYM_AD_FIGHTER = 'A'
-SYM_CRUISER = 'C'
-SYM_BATTLESHIP = 'B'
-SYM_RESUPPLY = '$'
 
 @dataclass(frozen=True, eq=True)
 class PlanetHabitation:
@@ -37,56 +24,50 @@ class PlanetHabitation:
         
         return uniform(self.min_development, self.max_development) if self.max_development > 0 else 0.0
             
-
-PLANET_PREWARP = PlanetHabitation(
+PLANET_PREWARP:Final = PlanetHabitation(
     color=colors.orange, 
     supports_life=True, 
     description="Pre-Warp",
     min_development = SMALLEST,
-    max_development=0.25
+    max_development=0.05
 )
-PLANET_BARREN = PlanetHabitation(
+PLANET_BARREN:Final = PlanetHabitation(
     color=colors.planet_barren, 
     supports_life=False,
     description="Uninhabited"
 )
-PLANET_BOMBED_OUT = PlanetHabitation(
+PLANET_BOMBED_OUT:Final = PlanetHabitation(
     description="Formerly Inhabited", 
     supports_life=False,
     color=colors.planet_barren
 )
-PLANET_FRIENDLY = PlanetHabitation(
+PLANET_FRIENDLY:Final = PlanetHabitation(
     supports_life=True, 
     description="Friendly", 
     can_ressuply=True, 
     color=colors.planet_allied,
-    min_development=0.25,
+    min_development=0.05,
     max_development=1.0
 )
-PLANET_HOSTILE = PlanetHabitation(
+PLANET_HOSTILE:Final = PlanetHabitation(
     supports_life=True, 
     description="Hostile", 
     color=colors.planet_hostile,
-    min_development=0.25,
+    min_development=0.05,
     max_development=1.0
 )
-PLANET_ANGERED = PlanetHabitation(
+PLANET_ANGERED:Final = PlanetHabitation(
     supports_life=True, 
     description="Angered", 
     color=colors.planet_hostile,
-    min_development=0.25,
+    min_development=0.05,
     max_development=1.0
 )
 
-#life_supporting_planets = (PlanetHabitation.PLANET_PREWARP, PlanetHabitation.PLANET_HOSTILE, PlanetHabitation.PLANET_FRIENDLY)
+PLANET_TYPES:Final = (PLANET_BARREN, PLANET_HOSTILE, PLANET_FRIENDLY, PLANET_PREWARP)
 
-
-PLANET_TYPES = (PLANET_BARREN, PLANET_HOSTILE, PLANET_FRIENDLY, PLANET_PREWARP)
-
-LOCAL_ENERGY_COST = 100
-SECTOR_ENERGY_COST = 500
-ENERGY_REGEN_PER_TURN = 100
-REPAIR_MULTIPLIER = 3
+LOCAL_ENERGY_COST:Final = 50
+SECTOR_ENERGY_COST:Final = 250
 
 @dataclass(eq=True, frozen=True)
 class Condition:
@@ -95,10 +76,10 @@ class Condition:
     fg:Tuple[int,int,int]
     bg:Tuple[int,int,int] = colors.black
 
-CONDITION_GREEN = Condition("CONDITION GREEN", colors.alert_green)
-CONDITION_YELLOW = Condition("CONDITION YELLOW", colors.alert_yellow)
-CONDITION_BLUE = Condition("CONDITION BLUE", colors.alert_blue, colors.white)
-CONDITION_RED = Condition("CONDITION RED", colors.alert_red)
+CONDITION_GREEN:Final = Condition("CONDITION GREEN", colors.alert_green)
+CONDITION_YELLOW:Final = Condition("CONDITION YELLOW", colors.alert_yellow)
+CONDITION_BLUE:Final = Condition("CONDITION BLUE", colors.alert_blue)
+CONDITION_RED:Final = Condition("CONDITION RED", colors.alert_red)
 
 """
 __damType = namedtuple(
@@ -115,9 +96,9 @@ class DamageType:
     damage_vs_hull_multiplier:float = 1.0
     damage_vs_no_shield_multiplier:float = 1.0
     damage_vs_systems_multiplier:float = 0.12
-    damage_chance_vs_systems_multiplier:float = 1.5
+    damage_chance_vs_systems_multiplier:float = 1.0
     damage_variation:float = 0.0
-    chance_to_damage_system:float = 1.75
+    chance_to_damage_system:float = 0.75
     accuracy_loss_per_distance_unit:float = 0.0
     flat_accuracy_loss:float = 0.0
     
@@ -125,60 +106,32 @@ class DamageType:
     __slots__ = ("damage_vs_shields_multiplier", "damage_vs_hull_multiplier", "damage_vs_no_shield_multiplier", "damage_vs_systems_multiplier", "damage_chance_vs_systems_multiplier", "damage_variation", "chance_to_damage_system", "accuracy_loss_per_distance_unit", "flat_accuracy_loss")
     '''
     
-    """
-    def __init__(self, *, damage_vs_shields_multiplier:float=1.0, damage_vs_hull_multiplier:float=1.0, damage_vs_no_shield_multiplier:float=1.0, damage_vs_systems_multiplier:float=0.12, damage_chance_vs_systems_multiplier:float=1.5, damage_variation:float=0.0, chance_to_damage_system:float=1.75, accuracy_loss_per_distance_unit:float=0.0, flat_accuracy_loss:float=0.0):
-        
-        self.damage_vs_shields_multiplier = damage_vs_shields_multiplier
-        self.damage_vs_hull_multiplier = damage_vs_hull_multiplier
-        self.damage_vs_no_shield_multiplier = damage_vs_no_shield_multiplier
-        self.damage_vs_systems_multiplier = damage_vs_systems_multiplier
-        self.damage_chance_vs_systems_multiplier = damage_chance_vs_systems_multiplier
-        self.damage_variation = damage_variation
-        self.chance_to_damage_system = chance_to_damage_system
-        self.accuracy_loss_per_distance_unit = accuracy_loss_per_distance_unit
-        self.flat_accuracy_loss = flat_accuracy_loss
-    
-        
-    def __hash__(self) -> int:
-        return hash((self.damage_vs_shields_multiplier, self.damage_vs_hull_multiplier, self.damage_vs_no_shield_multiplier, self.damage_vs_systems_multiplier, self.damage_chance_vs_systems_multiplier, self.damage_variation, self.chance_to_damage_system, self.accuracy_loss_per_distance_unit, self.flat_accuracy_loss))
-    
-    def __eq__(self, o: "DamageType") -> bool:
-        try:
-            return self.damage_vs_shields_multiplier == o.damage_vs_shields_multiplier and self.damage_vs_hull_multiplier == o.damage_vs_hull_multiplier and self.damage_vs_no_shield_multiplier == o.damage_vs_no_shield_multiplier and self.damage_vs_systems_multiplier == o.damage_vs_systems_multiplier and self.damage_chance_vs_systems_multiplier == o.damage_chance_vs_systems_multiplier and self.damage_variation == o.damage_variation and self.chance_to_damage_system == o.chance_to_damage_system and self.accuracy_loss_per_distance_unit == o.accuracy_loss_per_distance_unit and self.flat_accuracy_loss == o.flat_accuracy_loss
-        except AttributeError:
-            return False
-    """
-
-
-#A = TypeVar("A", int)
-#DamageType = TypeVar("DamageType", DamageType)
-
-DAMAGE_BEAM = DamageType(
+DAMAGE_BEAM:Final = DamageType(
     damage_variation=0.025, 
-    damage_chance_vs_systems_multiplier=2.75, 
+    damage_chance_vs_systems_multiplier=1.75, 
     damage_vs_systems_multiplier=0.25, 
-    chance_to_damage_system=2.75,
+    chance_to_damage_system=2.25,
     accuracy_loss_per_distance_unit = 0.01
 )
-DAMAGE_CANNON = DamageType(
+DAMAGE_CANNON:Final = DamageType(
     damage_vs_shields_multiplier= 1.25, 
     damage_vs_hull_multiplier=1.25, 
     damage_vs_no_shield_multiplier=1.25, 
     damage_variation=0.075,
     accuracy_loss_per_distance_unit=0.03
 )
-DAMAGE_TORPEDO = DamageType(
+DAMAGE_TORPEDO:Final = DamageType(
     damage_vs_shields_multiplier=0.75, 
     damage_vs_hull_multiplier=1.15, 
     damage_vs_no_shield_multiplier=1.75,
     flat_accuracy_loss=0.12,
     damage_variation=0.1
 )
-DAMAGE_EXPLOSION = DamageType(
+DAMAGE_EXPLOSION:Final = DamageType(
     damage_vs_no_shield_multiplier=1.05, 
     damage_variation=0.25
 )
-DAMAGE_RAMMING = DamageType(
+DAMAGE_RAMMING:Final = DamageType(
     damage_vs_shields_multiplier=1.05,
     damage_vs_hull_multiplier=1.2,
     damage_vs_no_shield_multiplier=1.35,
@@ -197,37 +150,17 @@ class RepairStatus:
     energy_regeration:int
     repair_permanent_hull_damage:bool = False
     
-    """
-    def __init__(self, *, hull_repair:float, system_repair:float, energy_regeration:int, repair_permanent_hull_damage:bool=False) -> None:
-        self.hull_repair = hull_repair
-        self.system_repair = system_repair
-        self.energy_regeration = energy_regeration
-        self.repair_permanent_hull_damage = repair_permanent_hull_damage
-    
-    
-    def __hash__(self) -> int:
-        return hash((self.hull_repair, self.system_repair, self.energy_regeration, self.repair_permanent_hull_damage))
-    
-    def __eq__(self, o: "RepairStatus") -> bool:
-        try:
-            return self.hull_repair == o.hull_repair and self.system_repair == o.system_repair and self.energy_regeration == o.energy_regeration and self.repair_permanent_hull_damage == o.repair_permanent_hull_damage
-        except AttributeError:
-            return False
-    """
-
-#RepairStatus = TypeVar("RepairStatus", RepairStatus)
-
-REPAIR_PER_TURN = RepairStatus(
+REPAIR_PER_TURN:Final = RepairStatus(
     hull_repair=0.01,
     system_repair=0.005,
     energy_regeration=100
 )
-REPAIR_DEDICATED = RepairStatus(
+REPAIR_DEDICATED:Final = RepairStatus(
     hull_repair=0.1,
     system_repair=0.05,
     energy_regeration=250
 )
-REPAIR_DOCKED = RepairStatus(
+REPAIR_DOCKED:Final = RepairStatus(
     hull_repair=0.25,
     system_repair=0.15,
     energy_regeration=750,
@@ -262,39 +195,19 @@ class ShipStatus:
     can_be_targeted:bool=True
     override_color:Optional[Tuple[int,int,int]]=None
     
-    """
-    def __init__(self, *, is_active:bool=False, is_visible:bool=True, is_recrewable:bool=False, is_collidable:bool=True, do_shields_work:bool=False, override_color:Optional[Tuple[int,int,int]]=None) -> None:
-        self.is_active = is_active
-        self.is_visible = is_visible
-        self.is_recrewable = is_recrewable
-        self.is_collidable = is_collidable
-        self.do_shields_work = do_shields_work
-        self.override_color = override_color
-    
-    
-    def __hash__(self) -> int:
-        return hash((self.is_active, self.is_visible, self.is_recrewable, self.is_collidable, self.override_color))
-
-    def __eq__(self, o: "ShipStatus") -> bool:
-        try:
-            return self.is_active == o.is_active and self.is_visible == o.is_visible and self.is_recrewable == o.is_recrewable and self.is_collidable == o.is_collidable and self.override_color == o.override_color
-        except AttributeError:
-            return False
-    """
-    
-STATUS_ACTIVE = ShipStatus(
+STATUS_ACTIVE:Final = ShipStatus(
     is_active=True, 
     do_shields_work=True
 )
-STATUS_DERLICT = ShipStatus(
+STATUS_DERLICT:Final = ShipStatus(
     is_recrewable=True, 
     override_color=colors.white
 )
-STATUS_HULK = ShipStatus(
+STATUS_HULK:Final = ShipStatus(
     override_color=colors.grey, 
     is_destroyed=True
 )
-STATUS_OBLITERATED = ShipStatus(
+STATUS_OBLITERATED:Final = ShipStatus(
     is_visible=False, 
     is_collidable=False, 
     is_destroyed=True, 

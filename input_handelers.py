@@ -1,10 +1,12 @@
 from __future__ import annotations
+from collections import OrderedDict
 from decimal import Decimal
 import os
 from random import choice
-from data_globals import ENERGY_REGEN_PER_TURN, LOCAL_ENERGY_COST, REPAIR_MULTIPLIER, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
-from engine import config_object
-from typing import TYPE_CHECKING, List, Optional, Union
+from textwrap import wrap
+from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
+from engine import CONFIG_OBJECT
+from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 from nation import ALL_NATIONS
 from order import SelfDestructOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
     Order, DockOrder, OrderWarning, EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
@@ -12,14 +14,12 @@ from global_functions import stardate
 from space_objects import Planet, Star
 from starship import Starship
 from torpedo import ALL_TORPEDO_TYPES
-from ui_related import ButtonBox, NumberHandeler, Selector, TextHandeler, confirm
+from ui_related import BooleanBox, ButtonBox, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, TextHandeler, confirm
 import tcod
 import tcod.event
 import tcod.constants
 import colors, exceptions
 from render_functions import print_mega_sector, print_message_log, print_system, render_other_ship_info, render_own_ship_info, render_command_box, render_position, select_ship_planet_star, select_sub_sector_space, select_sector_space
-
-OrderOrHandler = Union["Order", "BaseEventHandler"]
 
 numeric = {
     tcod.event.K_0 : 0,
@@ -48,6 +48,8 @@ negiative_signs = {tcod.event.K_MINUS, tcod.event.K_KP_MINUS}
 
 if TYPE_CHECKING:
     from engine import Engine
+
+OrderOrHandler = Union["Order", "BaseEventHandler"]
 
 class BaseEventHandler(tcod.event.EventDispatch[OrderOrHandler]):
     engine: Engine
@@ -100,7 +102,7 @@ class EventHandler(BaseEventHandler):
         if isinstance(action_or_state, BaseEventHandler):
             return action_or_state
         if self.handle_action(action_or_state):
-            if not self.engine.player.ship_status.is_active:
+            if self.engine.game_data.scenerio.scenario_type.is_game_over(self.engine.game_data):
                 # The player was killed sometime during or after the action.
                 return GameOverEventHandler(self.engine)
         if not self.engine.player.ship_status.is_active:
@@ -124,75 +126,404 @@ class MainGameEventHandler(EventHandler):
         print_message_log(console, self.engine.game_data)
         render_position(console, self.engine.game_data)
 
+class CancelConfirmHandler(MainGameEventHandler):
+    
+    def __init__(self, engine: Engine) -> None:
+        super().__init__(engine)
+        
+        self.confirm_button = SimpleElement(
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=16+CONFIG_OBJECT.command_display_y,
+            width=9,
+            height=3,
+            text="Confirm",
+            active_fg=colors.white,
+            bg=colors.black,
+        )
+
+        self.cancel_button = SimpleElement(
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=20+CONFIG_OBJECT.command_display_y,
+            width=9,
+            height=3,
+            text="Cancel",
+            active_fg=colors.white,
+            bg=colors.black,
+        )
+    
+    def on_render(self, console: tcod.Console) -> None:
+        super().on_render(console)
+        self.cancel_button.render(console)
+        self.confirm_button.render(console)
+
+class MinMaxInitator(CancelConfirmHandler):
+    
+    def __init__(
+        self, 
+        engine: Engine, 
+        *,
+        max_value:int, starting_value:int
+        ) -> None:
+        super().__init__(engine)
+        
+        self.max_button = SimpleElement(
+            x=3+12+CONFIG_OBJECT.command_display_x,
+            y=16+CONFIG_OBJECT.command_display_y,
+            width=7,
+            height=3,
+            text="Max",
+            active_fg=colors.white,
+            bg=colors.black
+        )
+        
+        self.min_button = SimpleElement(
+            x=3+12+CONFIG_OBJECT.command_display_x,
+            y=20+CONFIG_OBJECT.command_display_y,
+            width=7,
+            height=3,
+            text="Min",
+            active_fg=colors.white,
+            bg=colors.black
+        )
+        
+        self.amount_button = NumberHandeler(
+            limit=4, max_value=max_value, 
+            min_value=0, starting_value=starting_value,
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=12,
+            height=3,
+            title="Amount:",
+            alignment=tcod.constants.RIGHT,
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black
+        )
+    
+    def on_render(self, console: tcod.Console) -> None:
+        
+        super().on_render(console)
+        
+        self.min_button.render(console)
+        self.max_button.render(console)
+        self.amount_button.render(console)
+        
+class HeadingBasedHandler(CancelConfirmHandler):
+        
+    def __init__(self, engine: Engine) -> None:
+        super().__init__(engine)
+        
+        self.heading_button = NumberHandeler(
+            limit=3, 
+            max_value=360, min_value=0, wrap_around=True, starting_value=0,
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=12,
+            height=3,
+            title="Heading:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.selected_handeler = self.heading_button
+        
+        self.three_fifteen_button = SimpleElement(
+            x=16+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="315",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.two_seventy_button = SimpleElement(
+            x=16+CONFIG_OBJECT.command_display_x,
+            y=6+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="270",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.zero_button = SimpleElement(
+            x=22+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="0",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.fourty_five_button = SimpleElement(
+            x=28+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="45",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.two_twenty_five_button = SimpleElement(
+            x=16+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="225",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.ninty_button = SimpleElement(
+            x=28+CONFIG_OBJECT.command_display_x,
+            y=6+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="90",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+        
+        self.one_thirty_five_button = SimpleElement(
+            x=28+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="135",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.one_eighty_button = SimpleElement(
+            x=22+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=5,
+            height=3,
+            text="180",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+        
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
+            
+        if self.fourty_five_button.cursor_overlap(event):
+            self.heading_button.set_text(45)
+            #self.heading_button.text = self.fourty_five_button.text
+            
+        elif self.ninty_button.cursor_overlap(event):
+            self.heading_button.set_text(90)
+            #self.heading_button.text = self.ninty_button.text
+        
+        elif self.one_thirty_five_button.cursor_overlap(event):
+            self.heading_button.set_text(135)
+            #self.heading_button.text = self.one_thirty_five_button.text
+        
+        elif self.one_eighty_button.cursor_overlap(event):
+            self.heading_button.set_text(180)
+            #self.heading_button.text = self.one_eighty_button.text
+            
+        elif self.two_twenty_five_button.cursor_overlap(event):
+            self.heading_button.set_text(225)
+            #self.heading_button.text = self.two_twenty_five_button.text
+        
+        elif self.two_seventy_button.cursor_overlap(event):
+            self.heading_button.set_text(270)
+            #self.heading_button.text = self.two_seventy_button.text
+        
+        elif self.three_fifteen_button.cursor_overlap(event):
+            self.heading_button.set_text(315)
+            #self.heading_button.text = self.three_fifteen_button.text
+        
+        elif self.zero_button.cursor_overlap(event):
+            self.heading_button.set_text(0)
+            #self.heading_button.text = self.zero_button.text
+        
+    def on_render(self, console: tcod.Console) -> None:
+        super().on_render(console)
+        self.heading_button.render(console)
+        self.fourty_five_button.render(console)
+        self.ninty_button.render(console)
+        self.one_thirty_five_button.render(console)
+        self.one_eighty_button.render(console)
+        self.two_twenty_five_button.render(console)
+        self.two_seventy_button.render(console)
+        self.three_fifteen_button.render(console)
+        self.zero_button.render(console)
+
+class CoordBasedHandler(CancelConfirmHandler):
+    
+    def __init__(
+        self, engine: Engine, 
+        *,
+        max_x:int,
+        max_y:int,
+        starting_x:int,
+        starting_y:int,
+        ) -> None:
+        
+        super().__init__(engine)
+        
+        self.x_button = NumberHandeler(
+            limit=2, 
+            max_value=max_x, min_value=0, 
+            wrap_around=True, 
+            starting_value=starting_x,
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=6,
+            height=3,
+            title="X:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT
+        )
+
+        self.y_button = NumberHandeler(
+            limit=2, 
+            max_value=max_y, min_value=0, 
+            wrap_around=True, 
+            starting_value=starting_y,
+            x=10+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=6,
+            height=3,
+            title="Y:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT,
+            initally_active=False
+        )
+
+        self.selected_handeler = self.x_button
+        
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
+        
+        if self.x_button.cursor_overlap(event):
+            self.selected_handeler = self.x_button
+            self.x_button.is_active = True
+            self.y_button.is_active = False
+        elif self.y_button.cursor_overlap(event):
+            self.selected_handeler = self.y_button
+            self.x_button.is_active = False
+            self.y_button.is_active = True
+        
+    def on_render(self, console: tcod.Console) -> None:
+        super().on_render(console)
+        self.y_button.render(console)
+        self.x_button.render(console)
+
 class CommandEventHandler(MainGameEventHandler):
 
     def __init__(self, engine: Engine) -> None:
-        print("CommandEventHandler")
+        #print("CommandEventHandler")
         super().__init__(engine)
-        self.warp_button = ButtonBox(
-            x=2+config_object.command_display_x, 
-            y=2+config_object.command_display_y,
+        
+        self.warp_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x, 
+            y=2+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             text="(W)arp",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
         )
 
-        self.move_button = ButtonBox(
-            x=2+13+config_object.command_display_x,
-            y=2+config_object.command_display_y,
+        self.move_button = SimpleElement(
+            x=2+13+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             text="(M)ove",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
         )
 
-        self.shields_button = ButtonBox(
-            x=2+config_object.command_display_x,
-            y=6+config_object.command_display_y,
+        self.shields_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=6+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             text="(S)hields",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
         )
 
-        self.repair_button = ButtonBox(
-            x=2+13+config_object.command_display_x,
-            y=6+config_object.command_display_y,
+        self.repair_button = SimpleElement(
+            x=2+13+CONFIG_OBJECT.command_display_x,
+            y=6+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             text="(R)epair",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
         )
         
-        self.dock_button = ButtonBox(
-            x=2+13+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+        self.dock_button = BooleanBox(
+            x=2+13+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
-            text="(D)ock" if not self.engine.player.docked else "Un(D)ock",
+            active_text="(D)ock",
+            inactive_text="Un(D)ock",
+            active_fg=colors.white,
+            inactive_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER,
+            initally_active= not self.engine.player.docked
         )
         
         p = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
 
-        self.phasers_button = ButtonBox(
-            x=2+config_object.command_display_x,
-            y=14+config_object.command_display_y,
+        self.phasers_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=14+CONFIG_OBJECT.command_display_y,
             width=23,
             height=3,
             text=f"(F)ire {p}s",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
         )
 
-        self.torpedos_button = ButtonBox(
-            x=2+config_object.command_display_x,
-            y=18+config_object.command_display_y,
+        self.torpedos_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=18+CONFIG_OBJECT.command_display_y,
             width=23,
             height=3,
             text="Fire (T)orpedos",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
         )
         
-        self.auto_destruct_button = ButtonBox(
-            x=2+config_object.command_display_x,
-            y=22+config_object.command_display_y,
+        self.auto_destruct_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=22+CONFIG_OBJECT.command_display_y,
             width=23,
             height=3,
-            text="(A)uto-Destruct"
+            text="(A)uto-Destruct",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
         )
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
@@ -252,36 +583,49 @@ class CommandEventHandler(MainGameEventHandler):
             planet = self.engine.game_data.selected_ship_planet_or_star
 
             if not planet and not isinstance(planet, Planet):
-                self.engine.message_log.add_message(f"Error: No planet selected, {captain}.", fg=colors.red)
-            #elif self.engine.player.docked:
-            #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-
-            else:
-                self.warned_once = False
-                dock_order = DockOrder(self.engine.player, planet)
-
-                warning = dock_order.raise_warning()
-
-                if warning == OrderWarning.SAFE:
-                    self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
-                    return dock_order
-                if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
-                    if self.warned_once:
-                        return dock_order
-                    self.engine.message_log.add_message("Warning: There are hostile ships nearby.", fg=colors.orange)
+                player = self.engine.player
+                
+                nearby_planets = [
+                    planet_ for planet_ in player.get_sub_sector.planets_dict.values() if 
+                    planet_.local_coords.is_adjacent(
+                        other=player.local_coords
+                    ) and planet_.planet_habbitation.can_ressuply
+                ]
+                
+                nearby_planets.sort(reverse=True)
+                
+                try:
+                    planet = nearby_planets[0]
                     
-                else:
-                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                except IndexError:
+                    planet = None
+
+            
+            self.warned_once = False
+            dock_order = DockOrder(self.engine.player, planet)
+
+            warning = dock_order.raise_warning()
+
+            if warning == OrderWarning.SAFE:
+                self.dock_button.is_active = not self.dock_button.is_active
+                #self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
+                return dock_order
+            if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
+                if self.warned_once:
+                    return dock_order
+                self.engine.message_log.add_message("Warning: There are hostile ships nearby.", fg=colors.orange)
+                
+            else:
+                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
 
         elif self.repair_button.cursor_overlap(event):
+            
             repair = RepairOrder(self.engine.player, 1)
             warning = repair.raise_warning()
             
             if self.warned_once:
                 return repair
-            
             try:
-                
                 self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
                 self.warned_once = True
             except KeyError:
@@ -289,7 +633,9 @@ class CommandEventHandler(MainGameEventHandler):
                 return repair
 
         elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
+            
             self.warned_once = False
+            
             if not self.engine.player.ship_can_fire_torps:
                 self.engine.message_log.add_message(
                     text=f"Error: Torpedo systems are inoperative, {captain}." 
@@ -297,31 +643,44 @@ class CommandEventHandler(MainGameEventHandler):
                     f"Error: This ship has no remaining torpedos, {captain}.", fg=colors.red
                 )
             elif self.engine.player.docked:
+                
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
+            
         elif self.auto_destruct_button.cursor_overlap(event):
+            
             return SelfDestructHandler(self.engine)
         else:
             game_data = self.engine.game_data
             ship_planet_or_star = select_ship_planet_star(game_data, event)
             
             if ship_planet_or_star:
+                
                 if isinstance(ship_planet_or_star, (Planet, Star)):
-                    game_data.selected_ship_planet_or_star = ship_planet_or_star
-                elif isinstance(ship_planet_or_star, Starship):
                     
-                    if ship_planet_or_star is not self.engine.player and ship_planet_or_star is not game_data.selected_ship_planet_or_star:
+                    game_data.selected_ship_planet_or_star = ship_planet_or_star
+                    
+                elif isinstance(ship_planet_or_star, Starship):
+                    if (
+                        ship_planet_or_star is not self.engine.player and 
+                        ship_planet_or_star is not game_data.selected_ship_planet_or_star
+                    ):    
                         game_data.ship_scan = ship_planet_or_star.scan_this_ship(game_data.player.determin_precision)
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
                     game_data.selected_ship_planet_or_star = None
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
+        
         captain = self.engine.player.ship_class.nation.captain_rank_name
+        
         if event.sym == tcod.event.K_w:
+            
             self.warned_once = False
+            
             if not self.engine.player.sys_warp_drive.is_opperational:
+                
                 self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
@@ -338,46 +697,60 @@ class CommandEventHandler(MainGameEventHandler):
                 )
 
             elif self.engine.player.energy <= 0:
+                
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+                
             elif self.engine.player.docked:
+                
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
+            
         elif event.sym == tcod.event.K_s:
+            
             self.warned_once = False
+            
             if not self.engine.player.sys_shield_generator.is_opperational:
                 self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-            #elif self.engine.player.docked:
-            #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            
             else:
                 return ShieldsHandler(self.engine)
             
         elif event.sym == tcod.event.K_r:
+            
             repair = RepairOrder(self.engine.player, 1)
+            
             warning = repair.raise_warning()
             
             if self.warned_once:
                 return repair
-            
             try:
                 
-                self.engine.message_log(misc_warnings[warning], fg=colors.orange)
+                self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
                 self.warned_once = True
+                
             except KeyError:
                 
                 return repair
+            
         elif event.sym == tcod.event.K_f:
+            
             self.warned_once = False
+            
             if not self.engine.player.sys_beam_array.is_opperational:
+                
                 p = self.engine.player.ship_class.nation.energy_weapon_beam_name
                 self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
+                
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+                
             elif self.engine.player.docked:
+                
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return EnergyWeaponHandler(self.engine)
@@ -386,13 +759,21 @@ class CommandEventHandler(MainGameEventHandler):
             planet = self.engine.game_data.selected_ship_planet_or_star
 
             if not planet and not isinstance(planet, Planet):
-                player = self.engine.player
-                nearby_planets = [planet_ for planet_ in player.get_sub_sector.planets_dict.values() if planet_.local_coords.is_adjacent(player.local_coords) and planet_.planet_habbitation.can_ressuply]
                 
-                nearby_planets.sort()
+                player = self.engine.player
+                
+                nearby_planets = [
+                    planet_ for planet_ in player.get_sub_sector.planets_dict.values() if 
+                    planet_.local_coords.is_adjacent(
+                        other=player.local_coords
+                    ) and planet_.planet_habbitation.can_ressuply
+                ]
+                
+                nearby_planets.sort(reverse=True)
                 
                 try:
                     planet = nearby_planets[0]
+                    
                 except IndexError:
                     planet = None
                 
@@ -402,7 +783,8 @@ class CommandEventHandler(MainGameEventHandler):
                 warning = dock_order.raise_warning()
 
                 if warning == OrderWarning.SAFE:
-                    self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
+                    self.dock_button.is_active = not self.dock_button.is_active
+                    #self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
                     return dock_order
                 if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
                     #if self.warned_once:
@@ -450,34 +832,25 @@ class CommandEventHandler(MainGameEventHandler):
             self.torpedos_button.render(console)
         self.auto_destruct_button.render(console)
         
-class WarpHandler(MainGameEventHandler):
+class WarpHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
         
-        self.heading = NumberHandeler(limit=3, max_value=360, min_value=0, wrap_around=True, starting_value=0)
-        self.distance = NumberHandeler(limit=3, max_value=config_object.max_warp_distance, min_value=1)
-
-        self.selected_handeler = self.heading
-
-        self.heading_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=12,
-            height=3,
-            title="Heading:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.distance_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=7+config_object.command_display_y,
+        self.distance = NumberHandeler(
+            limit=3, 
+            max_value=CONFIG_OBJECT.max_warp_distance, 
+            min_value=1,
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=7+CONFIG_OBJECT.command_display_y,
             width=12,
             height=3,
             title="Distance:",
-            text="",
-            alignment=tcod.constants.RIGHT
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT,
+            initally_active=False
         )
         
         self.energy_cost = round(
@@ -485,149 +858,28 @@ class WarpHandler(MainGameEventHandler):
             self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
         )
         
-        self.cost_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+        self.cost_button = SimpleElement(
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             title="Energy Cost:",
             text=f"{self.energy_cost}",
+            active_fg=colors.white,
+            bg=colors.black,
             alignment=tcod.constants.RIGHT
-        )
-
-        self.three_fifteen_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="315",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.two_seventy_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=6+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="270",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.zero_button = ButtonBox(
-            x=22+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="0",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.fourty_five_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="45",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.two_twenty_five_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="225",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.ninty_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=6+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="90",
-            alignment=tcod.constants.RIGHT
-        )
-        
-        self.one_thirty_five_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="135",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.one_eighty_button = ButtonBox(
-            x=22+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="180",
-            alignment=tcod.constants.RIGHT
-        )
-        
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=14+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Confirm"
-        )
-
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
         )
 
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Input heading and distance"
+            title="Input warp heading and distance"
             )
-
-        self.heading_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.heading else colors.grey,
-            bg=colors.black,
-            text=self.heading.text_to_print,
-            cursor_position=self.heading.cursor
-        )
-
-        self.distance_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.distance else colors.grey,
-            bg=colors.black,
-            text=self.distance.text_to_print,
-            cursor_position=self.distance.cursor
-        )
-
-        self.confirm_button.render(console)
-
-        self.cancel_button.render(console)
-
-        self.zero_button.render(console)
-
-        self.fourty_five_button.render(console)
-
-        self.ninty_button.render(console)
-
-        self.one_thirty_five_button.render(console)
-
-        self.one_eighty_button.render(console)
-
-        self.two_twenty_five_button.render(console)
-
-        self.two_seventy_button.render(console)
+        super().on_render(console)
         
-        self.three_fifteen_button.render(console)
+        self.distance.render(console)
         
         self.cost_button.render(console)
         
@@ -635,49 +887,43 @@ class WarpHandler(MainGameEventHandler):
 
         if self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
-
-        if self.zero_button.cursor_overlap(event):
-            self.heading.set_text(0)
-        elif self.fourty_five_button.cursor_overlap(event):
-            self.heading.set_text(45)
-        elif self.ninty_button.cursor_overlap(event):
-            self.heading.set_text(90)
-        elif self.one_thirty_five_button.cursor_overlap(event):
-            self.heading.set_text(135)
-        elif self.one_eighty_button.cursor_overlap(event):
-            self.heading.set_text(180)
-        elif self.two_twenty_five_button.cursor_overlap(event):
-            self.heading.set_text(235)
-        elif self.two_seventy_button.cursor_overlap(event):
-            self.heading.set_text(270)
-        elif self.three_fifteen_button.cursor_overlap(event):
-            self.heading.set_text(315)
-
-        elif self.heading_button.cursor_overlap(event):
-            self.selected_handeler = self.heading
-        elif self.distance_button.cursor_overlap(event):
-            self.selected_handeler = self.distance
+        
         elif self.confirm_button.cursor_overlap(event):
-            warp_order = WarpOrder.from_heading(self.engine.player, self.heading.add_up(), self.distance.add_up())
+            warp_order = WarpOrder.from_heading(
+                self.engine.player, self.heading_button.add_up(), self.distance.add_up()
+            )
             warning = warp_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
                 return warp_order
             
-            self.engine.message_log.add_message(blocks_action[warning])
+            self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+
+        elif self.heading_button.cursor_overlap(event):
+            self.selected_handeler = self.heading_button
+            self.heading_button.is_active = True
+            self.distance.is_active = False
+        elif self.distance.cursor_overlap(event):
+            self.selected_handeler = self.distance
+            self.heading_button.is_active = False
+            self.distance.is_active = True
+        else:
+            super().ev_mousebuttondown(event)
             
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            warp_order = WarpOrder.from_heading(self.engine.player, self.heading.add_up(), self.distance.add_up())
+            warp_order = WarpOrder.from_heading(
+                self.engine.player, self.heading_button.add_up(), self.distance.add_up()
+            )
             warning = warp_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
                 return warp_order
             
-            self.engine.message_log.add_message(blocks_action[warning])
+            self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
 
         else:
             self.selected_handeler.handle_key(event)
@@ -688,110 +934,47 @@ class WarpHandler(MainGameEventHandler):
                     self.distance.add_up() * 
                     self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
                 )
-
-class WarpHandlerEasy(MainGameEventHandler):
+                
+class WarpHandlerEasy(CoordBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
-
-        sector_coords = self.engine.game_data.player.sector_coords
-
-        self.x = NumberHandeler(
-            limit=2, max_value=config_object.sector_width, min_value=0, wrap_around=True, starting_value=sector_coords.x
+        sector_coords = engine.game_data.player.sector_coords
+        super().__init__(
+            engine,
+            max_x=CONFIG_OBJECT.sector_width,
+            max_y=CONFIG_OBJECT.sector_height,
+            starting_x=sector_coords.x,
+            starting_y=sector_coords.y
         )
-
-        self.y = NumberHandeler(
-            limit=2, max_value=config_object.sector_height, min_value=0, wrap_around=True, 
-            starting_value=sector_coords.y
-        )
-
-        self.selected_handeler = self.x
-
+        
         self.energy_cost = round(
-            self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * 
+            self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
             self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
         )
-
-        self.x_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=6,
-            height=3,
-            title="X:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.y_button = ButtonBox(
-            x=10+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=6,
-            height=3,
-            title="Y:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.cost_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+        
+        self.cost_button = SimpleElement(
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             title="Energy Cost:",
-            text="",
+            text=f"{self.energy_cost}",
+            active_fg=colors.white,
+            bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
         
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=14+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Confirm"
-        )
-
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
-        )
-
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Input coordants"
+            title="Input warp coordants"
             )
-
-        self.x_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.x else colors.grey,
-            bg=colors.black,
-            text=self.x.text_to_print,
-            cursor_position=self.x.cursor
-        )
-
-        self.y_button.render(
-            console,
-            fg=colors.white if self.selected_handeler is self.y else colors.grey,
-            bg=colors.black,
-            text=self.y.text_to_print,
-            cursor_position=self.y.cursor
-        )
-
-        self.cost_button.render(
-            console,
-            text=f"{self.energy_cost}"
-        )
-
-        self.confirm_button.render(console)
-
-        self.cancel_button.render(console)
+        
+        super().on_render(console)
+        
+        self.cost_button.render(console)
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
@@ -799,11 +982,17 @@ class WarpHandlerEasy(MainGameEventHandler):
             return CommandEventHandler(self.engine)
 
         if self.x_button.cursor_overlap(event):
-            self.selected_handeler = self.x
+            self.selected_handeler = self.x_button
+            self.x_button.is_active = True
+            self.y_button.is_active = False
         elif self.y_button.cursor_overlap(event):
-            self.selected_handeler = self.y
+            self.selected_handeler = self.y_button
+            self.x_button.is_active = False
+            self.y_button.is_active = True
         elif self.confirm_button.cursor_overlap(event):
-            warp_order = WarpOrder.from_coords(self.engine.player, self.x.add_up(), self.y.add_up())
+            
+            warp_order = WarpOrder.from_coords(self.engine.player, self.x_button.add_up(), self.y_button.add_up())
+            
             warning = warp_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -812,25 +1001,33 @@ class WarpHandlerEasy(MainGameEventHandler):
             self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
         
         else:
+            
             x, y = select_sector_space(event)
 
             if x is not False and y is not False:
-                print(f"{x} {y}")
-                self.x.set_text(x)
-                self.y.set_text(y)
-
+                
+                #print(f"{x} {y}")
+                
+                self.x_button.set_text(x)
+                self.y_button.set_text(y)
+                
                 self.energy_cost = round(
-                    self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * 
+                    self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
                     self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
                 )
+                self.cost_button.text = f"{self.energy_cost}"
+            else:
+                super().ev_mousebuttondown(event)
                 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
+            
             return CommandEventHandler(self.engine)
+        
         if event.sym in confirm:
             
-            warp_order = WarpOrder.from_coords(self.engine.player, self.x.add_up(), self.y.add_up())
+            warp_order = WarpOrder.from_coords(self.engine.player, self.x_button.add_up(), self.y_button.add_up())
             warning = warp_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -841,219 +1038,83 @@ class WarpHandlerEasy(MainGameEventHandler):
             self.selected_handeler.handle_key(event)
             
             self.energy_cost = round(
-                self.engine.player.sector_coords.distance(x=self.x.add_up(),y=self.y.add_up()) * 
+                
+                self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
                 self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
             )
+            
+            self.cost_button.text = f"{self.energy_cost}"
 
-class MoveHandler(MainGameEventHandler):
+class MoveHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
+        
         super().__init__(engine)
-        self.heading = NumberHandeler(limit=3, max_value=360, min_value=0, wrap_around=True)
-        self.distance = NumberHandeler(limit=3, max_value=config_object.max_move_distance, min_value=1)
-
-        self.energy_cost = round(self.distance.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier)
-
-        self.heading_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=12,
-            height=3,
-            title="Heading:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.distance_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=7+config_object.command_display_y,
+        
+        self.distance_button = NumberHandeler(
+            limit=3, max_value=CONFIG_OBJECT.max_move_distance, min_value=1,
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=7+CONFIG_OBJECT.command_display_y,
             width=12,
             height=3,
             title="Distance:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT,
+            initally_active=False
+            )
 
-        self.three_fifteen_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="315",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.two_seventy_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=6+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="270",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.zero_button = ButtonBox(
-            x=22+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="0",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.fourty_five_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="45",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.two_twenty_five_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="225",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.ninty_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=6+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="90",
-            alignment=tcod.constants.RIGHT
-        )
+        self.energy_cost = round(
+            self.distance_button.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier)
         
-        self.one_thirty_five_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="135",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.one_eighty_button = ButtonBox(
-            x=22+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="180",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.cost_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=10+config_object.command_display_y,
+        self.cost_button = SimpleElement(
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             title="Energy Cost:",
             text=f"{self.energy_cost}",
+            active_fg=colors.white,
+            bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
 
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=14+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Confirm"
-        )
-
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
-        )
-
-        self.selected_handeler = self.heading
+        self.selected_handeler = self.heading_button
 
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Input heading and distance"
-            )
-
-        self.heading_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.heading else colors.grey,
-            bg=colors.black,
-            text=self.heading.text_to_print,
-            cursor_position=self.heading.cursor
+            title="Input move heading and distance"
         )
-
-        self.distance_button.render(
-            console,
-            fg=colors.white if self.selected_handeler is self.distance else colors.grey,
-            bg=colors.black,
-            text=self.distance.text_to_print,
-            cursor_position=self.distance.cursor
-        )
-
-        self.zero_button.render(console)
-
-        self.fourty_five_button.render(console)
-
-        self.ninty_button.render(console)
-
-        self.one_thirty_five_button.render(console)
-
-        self.one_eighty_button.render(console)
-
-        self.two_twenty_five_button.render(console)
-
-        self.two_seventy_button.render(console)
         
-        self.three_fifteen_button.render(console)
-
-        self.cost_button.render(
-            console,
-            text=f"{self.energy_cost}"
-        )
-
-        self.confirm_button.render(
-            console
-        )
-
-        self.cancel_button.render(
-            console
-        )
-
+        super().on_render(console)
+        
+        self.distance_button.render(console)
+        
+        self.cost_button.render(console)
+        
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
-
-        if self.zero_button.cursor_overlap(event):
-            self.heading.set_text(0)
-        elif self.fourty_five_button.cursor_overlap(event):
-            self.heading.set_text(45)
-        elif self.ninty_button.cursor_overlap(event):
-            self.heading.set_text(90)
-        elif self.one_thirty_five_button.cursor_overlap(event):
-            self.heading.set_text(135)
-        elif self.one_eighty_button.cursor_overlap(event):
-            self.heading.set_text(180)
-        elif self.two_twenty_five_button.cursor_overlap(event):
-            self.heading.set_text(235)
-        elif self.two_seventy_button.cursor_overlap(event):
-            self.heading.set_text(270)
-        elif self.three_fifteen_button.cursor_overlap(event):
-            self.heading.set_text(315)
-
-        elif self.heading_button.cursor_overlap(event):
-            self.selected_handeler = self.heading
+        
+        if self.heading_button.cursor_overlap(event):
+            
+            self.selected_handeler = self.heading_button
+            self.heading_button.is_active = True
+            self.distance_button.is_active = False
+            
         elif self.distance_button.cursor_overlap(event):
-            self.selected_handeler = self.distance
+            
+            self.selected_handeler = self.distance_button
+            self.heading_button.is_active = False
+            self.distance_button.is_active = True
+            
         elif self.confirm_button.cursor_overlap(event):
-            move_order = MoveOrder(self.engine.player, self.heading.add_up(), self.distance.add_up())
+            
+            move_order = MoveOrder.from_heading(
+                self.engine.player, self.heading_button.add_up(), self.distance_button.add_up(), self.energy_cost
+            )
             warning = move_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1068,13 +1129,17 @@ class MoveHandler(MainGameEventHandler):
 
         elif self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
+        super().ev_mousebuttondown(event)
+
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
-        if event.sym in confirm and not self.heading.is_empty and not self.distance.is_empty:
-            move_order = MoveOrder(self.engine.player, self.heading.add_up(), self.distance.add_up())
+        if event.sym in confirm and not self.heading_button.is_empty and not self.distance_button.is_empty:
+            move_order = MoveOrder.from_heading(
+                self.engine.player, self.heading_button.add_up(), self.distance_button.add_up(), self.energy_cost
+            )
             warning = move_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1089,128 +1154,72 @@ class MoveHandler(MainGameEventHandler):
                 self.warned_once = True
         else:
             self.selected_handeler.handle_key(event)
+            
             self.warned_once = False
-            self.energy_cost = round(
-                self.distance.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
-            )
+            
+            if self.selected_handeler is self.distance_button:
+            
+                self.energy_cost = round(
+                    self.distance_button.add_up() * LOCAL_ENERGY_COST * 
+                    self.engine.player.sys_impulse.affect_cost_multiplier
+                )
+                
+                self.cost_button.text = f"{self.energy_cost}"
         
-class MoveHandlerEasy(MainGameEventHandler):
+class MoveHandlerEasy(CoordBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
-
-        local_coords = self.engine.game_data.player.local_coords
-
-        self.x = NumberHandeler(
-            limit=1, max_value=config_object.sector_width, min_value=0, wrap_around=True, starting_value=local_coords.x
+        
+        local_coords = engine.game_data.player.local_coords
+        
+        super().__init__(
+            engine, 
+            starting_x=local_coords.x, starting_y=local_coords.y,
+            max_x=CONFIG_OBJECT.sector_width,
+            max_y=CONFIG_OBJECT.sector_height
         )
-        self.y = NumberHandeler(
-            limit=1, max_value=config_object.sector_height, min_value=0, wrap_around=True, starting_value=local_coords.y
-        )
-
-        self.selected_handeler = self.x
-
+        
         self.energy_cost = round(
-            self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up()) * LOCAL_ENERGY_COST * 
+            self.engine.player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST * 
             self.engine.player.sys_impulse.affect_cost_multiplier
         )
-
-        self.x_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=6,
-            height=3,
-            title="X:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.y_button = ButtonBox(
-            x=10+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=6,
-            height=3,
-            title="Y:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Confirm"
-        )
-
-        self.cost_button = ButtonBox(
-            x=10+config_object.command_display_x,
-            y=8+config_object.command_display_y,
+        
+        self.cost_button = SimpleElement(
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
             width=10,
             height=3,
             title="Energy Cost:",
             text=f"{self.energy_cost}",
+            active_fg=colors.white,
+            bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
-        )
-
+        
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Input coordants"
-            )
-
-        self.x_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.x else colors.grey,
-            bg=colors.black,
-            text=self.x.text_to_print,
-            cursor_position=self.x.cursor
+            title="Input move coordants"
         )
-
-        self.y_button.render(
-            console,
-            fg=colors.white if self.selected_handeler is self.y else colors.grey,
-            bg=colors.black,
-            text=self.y.text_to_print,
-            cursor_position=self.y.cursor
-        )
-
+        
+        super().on_render(console)
+        
         self.cost_button.render(
             console,
             text=f"{self.energy_cost}"
-        )
-
-        self.confirm_button.render(
-            console
-        )
-
-        self.cancel_button.render(
-            console
         )
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
         if self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
-        
-        if self.x_button.cursor_overlap(event):
-            self.selected_handeler = self.x
-        elif self.y_button.cursor_overlap(event):
-            self.selected_handeler = self.y
+            
         elif self.confirm_button.cursor_overlap(event):
-            warp_order = MoveOrder.from_coords(self.engine.player, self.x.add_up(), self.y.add_up())
+            warp_order = MoveOrder.from_coords(
+                self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
+            )
             warning = warp_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1228,13 +1237,15 @@ class MoveHandlerEasy(MainGameEventHandler):
 
             if x is not False and y is not False:
                 
-                self.x.set_text(x)
-                self.y.set_text(y)
+                self.x_button.set_text(x)
+                self.y_button.set_text(y)
                 self.warned_once = False
                 self.energy_cost = round(
-                    self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up()) * 
+                    self.engine.player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * 
                     LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
                 )
+            else:
+                super().ev_mousebuttondown(event)
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
@@ -1242,7 +1253,9 @@ class MoveHandlerEasy(MainGameEventHandler):
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
             
-            warp_order = MoveOrder.from_coords(self.engine.player, self.x.add_up(), self.y.add_up())
+            warp_order = MoveOrder.from_coords(
+                self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
+            )
             warning = warp_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1258,100 +1271,52 @@ class MoveHandlerEasy(MainGameEventHandler):
         else:
             self.selected_handeler.handle_key(event)
             self.energy_cost = round(
-                self.engine.player.local_coords.distance(x=self.x.add_up(), y=self.y.add_up()) * LOCAL_ENERGY_COST
+                self.engine.player.local_coords.distance(
+                    x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST
             )
             
             self.warned_once = False
             
-class ShieldsHandler(MainGameEventHandler):
+class ShieldsHandler(MinMaxInitator):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
-        player = self.engine.player
         
-        self.amount = NumberHandeler(
-            limit=4, max_value=min(player.shields + player.energy, player.get_max_effective_shields), 
-            min_value=0, starting_value=player.shields
-        )
-
-        self.amount_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=12,
-            height=3,
-            title="Amount:",
-            text="",
-            alignment=tcod.constants.RIGHT
+        player = engine.player
+        
+        super().__init__(
+            engine, 
+            starting_value=player.shields,
+            max_value=min(player.shields + player.energy, player.get_max_effective_shields)
         )
         
-        self.max_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=7+config_object.command_display_y,
-            width=12,
-            height=3,
-            text="Max",
-        )
-        
-        self.min_button = ButtonBox(
-            x=17+config_object.command_display_x,
-            y=7+config_object.command_display_y,
-            width=12,
-            height=3,
-            text="Min",
-        )
-
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Confirm"
-        )
-
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
-        )
-
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
             title="Input energy to transfer to shields"
-            )
-
-        self.amount_button.render(
-            console,
-            text=self.amount.text_to_print,
-            fg=colors.white,
-            bg =colors.black,
-            cursor_position=self.amount.cursor
         )
+        
+        super().on_render(console)
+
+        self.amount_button.render(console)
         
         self.max_button.render(console)
         self.min_button.render(console)
-
-        self.confirm_button.render(console)
-        self.cancel_button.render(console)
-
+        
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
         if self.max_button.cursor_overlap(event):
             
-            self.amount.set_text(self.amount.max_value)
+            self.amount_button.set_text(self.amount_button.max_value)
             
         elif self.min_button.cursor_overlap(event):
             
-            self.amount.set_text(0)
+            self.amount_button.set_text(0)
 
         elif self.confirm_button.cursor_overlap(event):
-            recharge_order = RechargeOrder(self.engine.player, self.amount.add_up())
+            
+            recharge_order = RechargeOrder(self.engine.player, self.amount_button.add_up())
 
             warning = recharge_order.raise_warning()
 
@@ -1373,7 +1338,7 @@ class ShieldsHandler(MainGameEventHandler):
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            recharge_order = RechargeOrder(self.engine.player, self.amount.add_up())
+            recharge_order = RechargeOrder(self.engine.player, self.amount_button.add_up())
 
             warning = recharge_order.raise_warning()
 
@@ -1386,90 +1351,52 @@ class ShieldsHandler(MainGameEventHandler):
                 
                 self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
         else:
-            self.amount.handle_key(event)
+            self.amount_button.handle_key(event)
 
-class EnergyWeaponHandler(MainGameEventHandler):
+class EnergyWeaponHandler(MinMaxInitator):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
-        player = self.engine.player
-        self.amount = NumberHandeler(limit=4, max_value=player.get_max_effective_firepower, min_value=0)
-
-        self.amount_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=12,
-            height=3,
-            title="Amount:",
-            text="",
-            alignment=tcod.constants.RIGHT
+        player = engine.player
+        super().__init__(
+            engine, 
+            max_value=player.get_max_effective_firepower,
+            starting_value=0
         )
-
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Fire"
-        )
-
-        self.fire_all_button = ButtonBox(
-            x=3+12+config_object.command_display_x,
-            y=12+config_object.command_display_y,
+        
+        self.auto_target_button = SimpleElement(
+            x=4+12+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
             width=14,
             height=3,
-            text="Fire all"
+            text="Auto-Target",
+            active_fg=colors.white,
+            bg=colors.black
         )
         
-        self.max_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=16+config_object.command_display_y,
-            width=12,
-            height=3,
-            text="Max",
-        )
-        
-        self.min_button = ButtonBox(
-            x=3+12+config_object.command_display_x,
-            y=16+config_object.command_display_y,
-            width=12,
-            height=3,
-            text="Min",
-        )
-        
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=22+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
-        )
-        
-        self.auto_target_button = ButtonBox(
-            x=3+12+config_object.command_display_x,
-            y=22+config_object.command_display_y,
+        self.fire_all_button = BooleanBox(
+            x=4+12+CONFIG_OBJECT.command_display_x,
+            y=7+CONFIG_OBJECT.command_display_y,
             width=14,
             height=3,
-            text="Auto-Target"
+            active_text="Multi-Target",
+            inactive_text="One Target",
+            initally_active=False,
+            active_fg=colors.green,
+            inactive_fg=colors.red,
+            bg=colors.black
         )
         
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
             title="Input energy to use:"
-            )
-        
-        self.amount_button.render(
-            console,
-            text=self.amount.text_to_print,
-            fg=colors.white,
-            bg=colors.black,
-            cursor_position=self.amount.cursor
         )
+        
+        super().on_render(console)
+        
+        self.amount_button.render(console)
         
         self.min_button.render(console)
         
@@ -1485,13 +1412,21 @@ class EnergyWeaponHandler(MainGameEventHandler):
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
+        if self.max_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(self.amount_button.max_value)
+            
+        elif self.min_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(0)
+            
         if self.auto_target_button.cursor_overlap(event):
             
             sel = self.engine.game_data.selected_ship_planet_or_star
             
             local_ships = self.engine.game_data.ships_in_same_sub_sector_as_player
             
-            if (not isinstance(sel, Starship) or sel.ship_status.is_active) and local_ships:
+            if (not isinstance(sel, Starship) or not sel.ship_status.is_active) and local_ships:
                 
                 okay_ships = [s for s in local_ships if s.ship_status.is_active]
                 
@@ -1501,61 +1436,66 @@ class EnergyWeaponHandler(MainGameEventHandler):
                     self.engine.game_data.selected_ship_planet_or_star = ship
                     
                     self.engine.game_data.ship_scan = ship.scan_this_ship(self.engine.player.determin_precision)
+                    
                 except IndexError:
                     captain_rank_name = self.engine.player.ship_class.nation.captain_rank_name
                     
-                    self.engine.message_log(
+                    self.engine.message_log.add_message(
                         f"There are no hostile ships in the system, {captain_rank_name}."
                     )
                 
         elif self.confirm_button.cursor_overlap(event):
 
-            fire_order = EnergyWeaponOrder.single_target(
-                self.engine.player,
-                self.amount.add_up(),
-                self.engine.game_data.selected_ship_planet_or_star
-            )
-
+            if self.fire_all_button.is_active:
+                
+                fire_order = EnergyWeaponOrder.multiple_targets(
+                    self.engine.player,
+                    self.amount_button.add_up(),
+                    self.engine.game_data.grab_ships_in_same_sub_sector(
+                        self.engine.player,
+                        accptable_ship_statuses={STATUS_ACTIVE}
+                    )
+                )
+            else:
+                fire_order = EnergyWeaponOrder.single_target(
+                    self.engine.player,
+                    self.amount_button.add_up(),
+                    self.engine.game_data.selected_ship_planet_or_star
+                )
             warning = fire_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
+                self.amount_button.max_value = self.engine.player.get_max_effective_firepower
+                if self.amount_button.add_up() > self.amount_button.max_value:
+                    self.amount_button.set_text(self.amount_button.max_value)
                 return fire_order
             
             self.engine.message_log.add_message(
                 blocks_action[warning], colors.red
             )
         elif self.fire_all_button.cursor_overlap(event):
-
-            fire_order = EnergyWeaponOrder.multiple_targets(
-                self.engine.player,
-                self.amount.add_up(),
-                self.engine.game_data.grab_ships_in_same_sub_sector(
-                    self.engine.player,
-                    accptable_ship_statuses={STATUS_ACTIVE}
-                )
-            )
-
-            warning = fire_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                return fire_order
             
-            self.engine.message_log.add_message(
-                blocks_action[warning], colors.red
-            )
-        
-        
+            self.fire_all_button.is_active = not self.fire_all_button.is_active
+            
         elif self.cancel_button.cursor_overlap(event):
 
             return CommandEventHandler(self.engine)
         
         ship_planet_or_star = select_ship_planet_star(self.engine.game_data, event)
-        if isinstance(ship_planet_or_star, Starship) and ship_planet_or_star is not self.engine.player and ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star:
+        
+        if (isinstance(
+            
+            ship_planet_or_star, Starship
+            
+        ) and ship_planet_or_star is not self.engine.player and 
+            
+            ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
+        ):
             
             self.engine.game_data.ship_scan = ship_planet_or_star.scan_this_ship(self.engine.player.determin_precision)
+            
             self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
             
-
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
@@ -1573,9 +1513,10 @@ class EnergyWeaponHandler(MainGameEventHandler):
                 self.engine.game_data.selected_ship_planet_or_star = choice(okay_ships)
         
         if event.sym in confirm:
+            
             fire_order = EnergyWeaponOrder(
                 self.engine.player,
-                self.amount.add_up(),
+                self.amount_button.add_up(),
                 target=self.engine.game_data.selected_ship_planet_or_star
             )
 
@@ -1588,133 +1529,37 @@ class EnergyWeaponHandler(MainGameEventHandler):
                 blocks_action[warning], colors.red
             )
         else:
-            self.amount.handle_key(event)
+            self.amount_button.handle_key(event)
 
-class TorpedoHandler(MainGameEventHandler):
+class TorpedoHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
-        self.heading = NumberHandeler(limit=3, max_value=360, min_value=0, wrap_around=True)
-        self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1)
-
-        self.selected_handeler = self.heading
         
-        self.heading_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=12,
-            height=3,
-            title="Heading:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.number_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=6+config_object.command_display_y,
+        self.number_button = NumberHandeler(
+            limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1,
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=6+CONFIG_OBJECT.command_display_y,
             width=12,
             height=3,
             title="Number:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.three_fifteen_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="315",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.two_seventy_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=6+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="270",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.zero_button = ButtonBox(
-            x=22+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="0",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.fourty_five_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="45",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.two_twenty_five_button = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="225",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.ninty_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=6+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="90",
-            alignment=tcod.constants.RIGHT
-        )
-        
-        self.one_thirty_five_button = ButtonBox(
-            x=28+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="135",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.one_eighty_button = ButtonBox(
-            x=22+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=5,
-            height=3,
-            text="180",
-            alignment=tcod.constants.RIGHT
-        )
-
-
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=10+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Confirm"
-        )
-
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=14+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
+            alignment=tcod.constants.RIGHT,
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=False
         )
         
         torpedos = self.engine.player.ship_class.torp_types
         
         self.torpedo_select = Selector(
-            x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
+            x=15+CONFIG_OBJECT.command_display_x,
+            y=16+CONFIG_OBJECT.command_display_y,
             width=10,
             height=6,
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
             index_items=[
                 ALL_TORPEDO_TYPES[name].cap_name for name in torpedos
             ],
@@ -1722,53 +1567,19 @@ class TorpedoHandler(MainGameEventHandler):
         )
 
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Input heading"
-            )
-
-        self.heading_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.heading else colors.grey,
-            bg=colors.black,
-            text=self.heading.text_to_print,
-            cursor_position=self.heading.cursor
-        )
-
-        self.number_button.render(
-            console,
-            fg=colors.white if self.selected_handeler is self.number else colors.grey,
-            bg=colors.black,
-            text=self.number.text_to_print,
-            cursor_position=self.number.cursor
+            title="Input torpedo heading"
         )
         
-        self.torpedo_select.render(console, fg=colors.white, bg=colors.black)
-
-        self.confirm_button.render(console)
-
-        self.cancel_button.render(console)
-
-        self.zero_button.render(console)
-
-        self.fourty_five_button.render(console)
-
-        self.ninty_button.render(console)
-
-        self.one_thirty_five_button.render(console)
-
-        self.one_eighty_button.render(console)
-
-        self.two_twenty_five_button.render(console)
-
-        self.two_seventy_button.render(console)
+        super().on_render(console)
         
-        self.three_fifteen_button.render(console)
-
+        self.number_button.render(console)
+        
+        self.torpedo_select.render(console)
+        
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
         if self.cancel_button.cursor_overlap(event):
@@ -1779,35 +1590,28 @@ class TorpedoHandler(MainGameEventHandler):
                 
                 self.engine.player.torpedo_loaded = key
                 
-                t = ALL_TORPEDO_TYPES[key]
+                cap_name = ALL_TORPEDO_TYPES[key].cap_name
                 
-                self.engine.message_log(
-                    f"{t.cap_name} torpedos loaded, {self.engine.game_data.captain_name}."
+                captain_name = self.engine.player.ship_class.nation.captain_rank_name
+                
+                self.engine.message_log.add_message(
+                    f"{cap_name} torpedos loaded, {captain_name}."
                 )
-
-        elif self.zero_button.cursor_overlap(event):
-            self.heading.set_text(0)
-        elif self.fourty_five_button.cursor_overlap(event):
-            self.heading.set_text(45)
-        elif self.ninty_button.cursor_overlap(event):
-            self.heading.set_text(90)
-        elif self.one_thirty_five_button.cursor_overlap(event):
-            self.heading.set_text(135)
-        elif self.one_eighty_button.cursor_overlap(event):
-            self.heading.set_text(180)
-        elif self.two_twenty_five_button.cursor_overlap(event):
-            self.heading.set_text(235)
-        elif self.two_seventy_button.cursor_overlap(event):
-            self.heading.set_text(270)
-        elif self.three_fifteen_button.cursor_overlap(event):
-            self.heading.set_text(315)
-
+        
         elif self.heading_button.cursor_overlap(event):
-            self.selected_handeler = self.heading
+            
+            self.selected_handeler = self.heading_button
+            self.heading_button.is_active = True
+            self.number_button.is_active = False
+            
         elif self.number_button.cursor_overlap(event):
-            self.selected_handeler = self.number
+            
+            self.selected_handeler = self.number_button
+            self.heading_button.is_active = False
+            self.number_button.is_active = True
+            
         elif self.confirm_button.cursor_overlap(event):
-            torpedo_order = TorpedoOrder.from_heading(self.engine.player, self.heading.add_up(), self.number.add_up())
+            torpedo_order = TorpedoOrder.from_heading(self.engine.player, self.heading_button.add_up(), self.number_button.add_up())
             warning = torpedo_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1834,13 +1638,15 @@ class TorpedoHandler(MainGameEventHandler):
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
                     game_data.selected_ship_planet_or_star = None
+            else:
+                super().ev_mousebuttondown(event)
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            torpedo_order = TorpedoOrder.from_heading(self.engine.player, self.heading.add_up(), self.number.add_up())
+            torpedo_order = TorpedoOrder.from_heading(self.engine.player, self.heading_button.add_up(), self.number_button.add_up())
             warning = torpedo_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1855,125 +1661,98 @@ class TorpedoHandler(MainGameEventHandler):
                 self.warned_once = True
         else:
             self.selected_handeler.handle_key(event)
-        
-class TorpedoHandlerEasy(MainGameEventHandler):
+            
+class TorpedoHandlerEasy(CoordBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
+        
+        local_coords = engine.game_data.player.local_coords
 
-        local_coords = self.engine.game_data.player.local_coords
-
-        self.x = NumberHandeler(
-            limit=2, max_value=config_object.subsector_width, min_value=0, 
-            wrap_around=True, starting_value=local_coords.x
+        super().__init__(
+            engine,
+            max_x=CONFIG_OBJECT.subsector_width,
+            max_y=CONFIG_OBJECT.subsector_height,
+            starting_x=local_coords.x,
+            starting_y=local_coords.y
         )
-        self.y = NumberHandeler(
-            limit=2, max_value=config_object.subsector_height, min_value=0, 
-            wrap_around=True, starting_value=local_coords.y
-        )
-
-        self.number = NumberHandeler(limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1)
-
-        self.selected_handeler = self.x
-
-        self.x_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=6,
-            height=3,
-            title="X:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.y_button = ButtonBox(
-            x=3+8+config_object.command_display_x,
-            y=2+config_object.command_display_y,
-            width=6,
-            height=3,
-            title="Y:",
-            text="",
-            alignment=tcod.constants.RIGHT
-        )
-
-        self.number_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=7+config_object.command_display_y,
+        
+        self.number_button = NumberHandeler(
+            limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1,
+            x=3+CONFIG_OBJECT.command_display_x,
+            y=7+CONFIG_OBJECT.command_display_y,
             width=12,
             height=3,
             title="Number:",
-            text="",
-            alignment=tcod.constants.RIGHT
+            alignment=tcod.constants.RIGHT,
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black
         )
-
-        self.confirm_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=12+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Confirm"
+        
+        torpedos = self.engine.player.ship_class.torp_types
+        
+        self.torpedo_select = Selector(
+            x=15+CONFIG_OBJECT.command_display_x,
+            y=16+CONFIG_OBJECT.command_display_y,
+            width=10,
+            height=6,
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            index_items=[
+                ALL_TORPEDO_TYPES[name].cap_name for name in torpedos
+            ],
+            keys=torpedos
         )
-
-        self.cancel_button = ButtonBox(
-            x=3+config_object.command_display_x,
-            y=18+config_object.command_display_y,
-            width=9,
-            height=3,
-            text="Cancel"
-        )
-
+        
     def on_render(self, console: tcod.Console) -> None:
-
-        super().on_render(console)
-
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
-            title="Input heading and distance"
-            )
-
-        self.x_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.x else colors.grey,
-            bg=colors.black,
-            text=self.x.text_to_print,
-            cursor_position=self.x.cursor
+            title="Input torpedo coordants"
         )
-
-        self.y_button.render(
-            console, 
-            fg=colors.white if self.selected_handeler is self.y else colors.grey,
-            bg=colors.black,
-            text=self.y.text_to_print,
-            cursor_position=self.y.cursor
-        )
-
-        self.number_button.render(
-            console,
-            fg=colors.white if self.selected_handeler is self.number else colors.grey,
-            bg=colors.black,
-            text=self.number.text_to_print,
-            cursor_position=self.number.cursor
-        )
-
-        self.confirm_button.render(console)
-
-        self.cancel_button.render(console)
+        
+        super().on_render(console)
+        
+        self.number_button.render(console)
+        
+        self.torpedo_select.render(console)
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
         if self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
 
+        if self.torpedo_select.cursor_overlap(event):
+            
+            self.torpedo_select.handle_click(event)
+
         if self.x_button.cursor_overlap(event):
-            self.selected_handeler = self.x
+            
+            self.selected_handeler = self.x_button
+            self.x_button.is_active = True
+            self.y_button.is_active = False
+            self.number_button.is_active = False
+            
         elif self.y_button.cursor_overlap(event):
-            self.selected_handeler = self.y
+            
+            self.selected_handeler = self.y_button
+            self.x_button.is_active = False
+            self.y_button.is_active = True
+            self.number_button.is_active = False
+            
         elif self.number_button.cursor_overlap(event):
-            self.selected_handeler = self.number
+            
+            self.selected_handeler = self.number_button
+            self.x_button.is_active = False
+            self.y_button.is_active = False
+            self.number_button.is_active = True
+            
         elif self.confirm_button.cursor_overlap(event):
+            
             torpedo_order = TorpedoOrder.from_coords(
-                self.engine.player, self.number.add_up(), self.x.add_up(), self.y.add_up()
+                self.engine.player, self.number_button.add_up(), self.x_button.add_up(), self.y_button.add_up()
             )
             warning = torpedo_order.raise_warning()
 
@@ -1987,9 +1766,7 @@ class TorpedoHandlerEasy(MainGameEventHandler):
                 
                 self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
                 self.warned_once = True
-            
         else:
-            
             game_data = self.engine.game_data
             ship_planet_or_star = select_ship_planet_star(game_data, event)
             
@@ -2007,11 +1784,12 @@ class TorpedoHandlerEasy(MainGameEventHandler):
                 x,y = select_sub_sector_space(event)
 
                 if x is not False and y is not False:
-                    self.x.set_text(x)
-                    self.y.set_text(y)
+                    self.x_button.set_text(x)
+                    self.y_button.set_text(y)
                     self.warned_once == False
+                else:
+                    super().ev_mousebuttondown(event)
                     
-
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
@@ -2032,15 +1810,21 @@ class TorpedoHandlerEasy(MainGameEventHandler):
                 self.warned_once = True
         else:
             self.selected_handeler.handle_key(event)
-
-class SelfDestructHandler(MainGameEventHandler):
+                
+class SelfDestructHandler(CancelConfirmHandler):
 
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
         
         player = engine.player
         
-        nearbye_ships = [ship for ship in engine.game_data.grab_ships_in_same_sub_sector(player, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_class.warp_breach_dist]
+        self.code = self.engine.game_data.auto_destruct_code
+        
+        nearbye_ships = [
+            ship for ship in engine.game_data.grab_ships_in_same_sub_sector(
+                player, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}
+                ) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_class.warp_breach_dist
+        ]
         
         nearbye_ships.sort(key=lambda ship: ship.local_coords.distance(coords=player.local_coords), reverse=True)
         
@@ -2048,14 +1832,25 @@ class SelfDestructHandler(MainGameEventHandler):
         
         nearbye_active_foes = [ship for ship in nearbye_ships if ship.ship_status.is_active]
         
+        def scan_ship(ships:Iterable[Starship]):
+            
+            for ship in ships:
+                
+                scan = ship.scan_this_ship(player.determin_precision)
+                averaged_shield , averaged_hull, averaged_shield_damage, averaged_hull_damage, kill = player.calc_self_destruct_damage(
+                    ship, scan=scan, number_of_simulations=10
+                )
+                #scan["shields"], scan["hull"], 
+                yield ship.name, averaged_shield_damage, averaged_hull_damage, kill
+        
         self.nearbye_active_foes = tuple(
-            (player.calc_self_destruct_damage(ship)) for ship in nearbye_active_foes
+            scan_ship(nearbye_active_foes)
         )
         
         nearbye_derlicts = [ship for ship in nearbye_ships if ship.ship_status.is_recrewable]
         
         self.nearbye_derlicts = tuple(
-            (player.calc_self_destruct_damage(ship)) for ship in nearbye_derlicts
+            scan_ship(nearbye_derlicts)
         )
         
         self.any_foes_nearby = len(self.nearbye_active_foes) > 0
@@ -2063,85 +1858,61 @@ class SelfDestructHandler(MainGameEventHandler):
         self.any_derlicts_nearbye = len(self.nearbye_derlicts) > 0
 
         self.code_handler = TextHandeler(
-            12
-        )
-
-        self.code_status = 0
-
-        self.confirm = ButtonBox(
-            x=4+config_object.command_display_x,
-            y=4+config_object.command_display_y,
-            width=10,
-            height=3,
-            text="Confirm"
-        )
-
-        self.cancel = ButtonBox(
-            x=16+config_object.command_display_x,
-            y=4+config_object.command_display_y,
-            width=10,
-            height=3,
-            text="Cancel"
-        )
-
-        self.code = ButtonBox(
-            x=4+config_object.command_display_x,
-            y=9+config_object.command_display_y,
+            limit=12,
+            x=4+CONFIG_OBJECT.command_display_x,
+            y=3+CONFIG_OBJECT.command_display_y,
             width=18,
             height=3,
             title="Input code:",
-            text=self.code_handler.send()
+            active_fg=colors.white,
+            inactive_fg=colors.white,
+            bg=colors.black
         )
-    
-    def on_render(self, console: tcod.Console) -> None:
-        super().on_render(console)
 
+        self.code_status = 0
+        
+    def on_render(self, console: tcod.Console) -> None:
+        
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
             title="Input self destruct code"
             )
-    
-        self.confirm.render(console)
-
-        self.cancel.render(console)
-
-        self.code.render(
-            console,
-            text=self.code_handler.text_to_print,
-            cursor_position=self.code_handler.cursor
-        )
+        
+        super().on_render(console)
+        
+        self.code_handler.render(console)
         
         console.print(
-            x=4+config_object.command_display_x,
-            y=12+config_object.command_display_y,
-            string=f"Code: {config_object.auto_destruct_code}"
+            x=4+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            string=f"Code: {self.code}"
         )
         
         if self.any_foes_nearby:
             console.print(
-                x=2+config_object.command_display_x,
-                y=16+config_object.command_display_y,
+                x=2+CONFIG_OBJECT.command_display_x,
+                y=7+CONFIG_OBJECT.command_display_y,
                 string="Ships in radius of a-destruct:"
             )
             
             console.print(
-                x=2+config_object.command_display_x,
-                y=17+config_object.command_display_y,
+                x=2+CONFIG_OBJECT.command_display_x,
+                y=8+CONFIG_OBJECT.command_display_y,
                 string="Name    S. Dam.  H. Dam.  Kill"
             )
             for i, ship_info in enumerate(self.nearbye_active_foes):
                 ship, shield_dam, hull_dam, kill = ship_info
                 console.print(
-                    x=2+config_object.command_display_x,
-                    y=i+18+config_object.command_display_y,
-                    string=f"{ship.name: <8}  {shield_dam: <7}  {hull_dam: <7} {'Yes' if kill else 'No'}"
+                    x=2+CONFIG_OBJECT.command_display_x,
+                    y=i+9+CONFIG_OBJECT.command_display_y,
+                    string=f"{ship: <8}  {shield_dam: <7}  {hull_dam: <7} {'Yes' if kill else 'No'}"
                 )
         else:
             console.print_box(
-                x=2+config_object.command_display_x,
-                y=16+config_object.command_display_y,
-                width=(config_object.command_display_end_x - 2) - (2 + config_object.command_display_x),
+                x=2+CONFIG_OBJECT.command_display_x,
+                y=7+CONFIG_OBJECT.command_display_y,
+                width=(CONFIG_OBJECT.command_display_end_x - 2) - (2 + CONFIG_OBJECT.command_display_x),
                 height=5,
                 string="No ships in radius of auto destruct"
             )
@@ -2153,7 +1924,7 @@ class SelfDestructHandler(MainGameEventHandler):
 
         if event.sym in confirm:
 
-            if self.code_handler.text_to_print == config_object.auto_destruct_code:
+            if self.code_handler.text_to_print == self.code:
 
                 return SelfDestructOrder(self.engine.player)
             else:
@@ -2163,14 +1934,15 @@ class SelfDestructHandler(MainGameEventHandler):
         else:
         
             self.code_handler.handle_key(event)
+            #self.code_handler.text = self.code_handler.text_to_print
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
-        if self.cancel.cursor_overlap(event):
+        if self.cancel_button.cursor_overlap(event):
             
             return CommandEventHandler(self.engine)
-        if self.confirm.cursor_overlap(event):
-            if self.code_handler.text_to_print == config_object.auto_destruct_code:
+        if self.confirm_button.cursor_overlap(event):
+            if self.code_handler.text_to_print == self.code:
 
                 return SelfDestructOrder(self.engine.player)
             else:
@@ -2180,317 +1952,146 @@ class SelfDestructHandler(MainGameEventHandler):
                 
 class GameOverEventHandler(EventHandler):
 
-    def generate_evaluation(self):
-        gameDataGlobal = self.engine.game_data
-
-        startingEnemyFleetValue = 0.0
-        currentEnemyFleetValue = 0.0
-        endingText = []
-        #total_ships = len(gameDataGlobal.total_starships) - 1
-        
-        number_of_total_ships = len(
-            gameDataGlobal.all_enemy_ships
-        )
-        
-        number_of_active_enemy_ships = len(
-            [ship for ship in gameDataGlobal.all_enemy_ships if ship.ship_status.is_active]
-        )
-        
-        number_of_killed_enemy_ships = number_of_total_ships - number_of_active_enemy_ships
-        
-        all_enemy_ship_scores = tuple(
-            (ship.calculate_ship_stragic_value()) for ship in gameDataGlobal.all_enemy_ships
-        )
-        
-        percentage_of_ships_destroyed = number_of_killed_enemy_ships / number_of_total_ships
-        
-        point_values_of_destroyed_and_damage_ships = sum([
-            m - v for m, v in all_enemy_ship_scores
-        ])
-        
-        ship_destruction_score = sum(
-            [
-                1 - (v / m) for m,v in all_enemy_ship_scores
-            ]
-        ) / len(all_enemy_ship_scores)
-        
-        no_enemy_losses = number_of_active_enemy_ships == number_of_total_ships
-
-        all_enemy_ships_destroyed = number_of_active_enemy_ships == 0
-        
-        #remaining_ships = len(gameDataGlobal.all_enemy_ships)
-
-        #destroyed_ships = total_ships - remaining_ships
-
-        planets_angered = self.engine.game_data.player_record["planets_angered"]
-        planets_depopulated = self.engine.game_data.player_record["planets_depopulated"]
-        prewarp_planets_depopulated = self.engine.game_data.player_record["prewarp_planets_depopulated"]
-        times_hit_planet = self.engine.game_data.player_record["times_hit_planet"]
-        times_hit_poipulated_planet = self.engine.game_data.player_record["times_hit_poipulated_planet"]
-        times_hit_prewarp_planet = self.engine.game_data.player_record["times_hit_prewarp_planet"]
-
-        did_the_player_do_bad_stuff = times_hit_poipulated_planet > 0
-
-        #percentage_of_ships_destroyed = destroyed_ships / total_ships
-
-        #destructionPercent = 1.0 - currentEnemyFleetValue / startingEnemyFleetValue
-        starting_stardate = gameDataGlobal.starting_stardate
-        ending_stardate = gameDataGlobal.ending_stardate - starting_stardate
-        current_stardate = gameDataGlobal.stardate - starting_stardate
-        
-        time_left_percent = 1 - (current_stardate / ending_stardate)
-        
-        overall_score = Decimal(point_values_of_destroyed_and_damage_ships * percentage_of_ships_destroyed) * Decimal(0.5) * time_left_percent#TODO - implement a more complex algorithum for scoring
-        
-        player_nation = gameDataGlobal.player.ship_class.nation
-        
-        player_nation_short = player_nation.name_short
-        
-        captain_rank_name = player_nation.captain_rank_name
-        comander_rank_name = player_nation.comander_rank_name
-        navy_name = player_nation.navy_name
-        
-        enemy_nation = ALL_NATIONS[gameDataGlobal.scenerio.enemy_nation]
-        
-        enemy_nation_name_short = enemy_nation.name_short
-        enemy_nation_posessive = enemy_nation.name_possesive
-        
-        command = player_nation.command_name
-        intel_name = player_nation.intelligence_agency
-        
-        if gameDataGlobal.player.ship_status.is_active:
-
-            if all_enemy_ships_destroyed:
-
-                if did_the_player_do_bad_stuff:
-
-                    endingText.append(
-f"While the attacking {enemy_nation_posessive} force was wiped out, initial enthusamim over your victory has given way to horror."
-)
-                    endingText.extend(
-                        self._the_player_did_bad_stuff(
-                            planets_depopulated=planets_depopulated,
-                            planets_angered=planets_angered,
-                            prewarp_planets_depopulated=prewarp_planets_depopulated,
-                            times_hit_poipulated_planet=times_hit_poipulated_planet,
-                            times_hit_prewarp_planet=times_hit_prewarp_planet
-                        )
-                    )
-                else:
-                    endingText.append(
-f"Thanks to your heroic efforts, mastery of tactial skill, and shrewd manadgement of limited resources, \
-you have completly destroyed the {enemy_nation_name_short} strike force. Well done!")
-
-                    if time_left_percent < 0.25:
-
-                        endingText.append(
-"The enemy has been forced to relocate a large amount of their ships to this sector. In doing so, they have \
-weakened their fleets in several key areas, including their holdings in the Alpha Quadrent.")
-
-                    elif time_left_percent < 0.5:
-
-                        endingText.append(
-f"Interecpted communications have revealed that because of the total destruction of the enemy task \
-force, the {gameDataGlobal.player.name} has been designated as a priority target.")
-
-                    elif time_left_percent < 0.75:
-
-                        endingText.append(
-f"We are making prepations for an offensive to capture critical systems. Because of your abilities \
-{command} is offering you a promotion to the rank of real admiral.")
-
-                    else:
-
-                        endingText.append(
-f"The enemy is in complete disarray thanks to the speed at which you annilated the opposing fleet! \
-Allied forces have exploited the chaos, making bold strikes into {enemy_nation_posessive} controlled space in the \
-Alpha Quadrent. {intel_name} has predicded mass defections among from allied millitary. Because of \
-abilities {command} has weighed the possibility of a promotion to the rank of {comander_rank_name}, but \
-ultimatly decided that your skills are more urgently needed in the war.")
-            else:
-                if no_enemy_losses:
-                    endingText.append(
-f"The mission was a complete and utter failure. No ships of the {enemy_nation_name_short} strike force were destroyed, \
-allowing enemy forces to fortify their positions within the Alpha Quadrent. You can expect a court marshal in \
-your future.")
-                elif percentage_of_ships_destroyed < 0.25:
-                    endingText.append(
-"The mission was a failure. Neglible losses were inflited on the enemy. Expect to be demoted.")
-                elif percentage_of_ships_destroyed < 0.5:
-                    endingText.append(
-f"The mission was a failure. The casulties inflicted on the {enemy_nation_name_short} strike fore were insuficent \
-to prevent them from taking key positions.")
-                elif percentage_of_ships_destroyed < 0.75:
-                    endingText.append(
-f"The mission was unsucessful. In spite of inclicting heavy damage in the {enemy_nation_posessive} fleet")
-
-        else:
-            if all_enemy_ships_destroyed:
-                endingText.append(
-f"Thanks to your sacrifice, mastery of tactial skill, and shrewd manadgement of limited resources, \
-you have completly destroyed the {enemy_nation_posessive} strike force. Well done!")
-                if time_left_percent < 0.25:
-                    endingText.append(
-f"Your hard fought sacrifice will be long remembered in the reccords of {navy_name} history. ")
-                elif time_left_percent < 0.5:
-                    endingText.append("")
-                elif time_left_percent < 0.75:
-                    endingText.append("")
-                else:
-                    endingText.append(
-f"Althoug you were completly victorous over the {enemy_nation_name_short} strike force, senior personel have \
-questioned the reckless or your actions. {comander_rank_name} Ross has stated that a more cautous aproch \
-would resulted in the survival of your crew.")
-            elif percentage_of_ships_destroyed >= 0.75:
-                endingText.append(
-f"While you were largly victorious over the attacking {enemy_nation_posessive} fleet, many senior officers have expressed dismay over your loss, and have expressed concern over.")
-            
-            elif percentage_of_ships_destroyed >= 0.5:
-            
-                endingText.append(
-f"Your mission was a failure. The caulties you influcted on the {enemy_nation_name_short} strike force hindered them, but not enough to truly make a diffrence."
-                )
-            
-            elif not no_enemy_losses:
-                after = 'shortly after' if time_left_percent < 0.25 else 'after'
-                endingText.append(
-f'You are an embaressment to the {player_nation_short}. Your ship was destroyed {after} you engaged the enemy inspite of your tactial superority you inflicted no losses on the enemy.')
-                
-            else:
-                
-                after = 'shortly after' if time_left_percent < 0.25 else 'after'
-                
-                endingText.append(
-f'You are an embaressment to the {player_nation_short}. Your ship was destroyed {after} you engaged the enemy inspite of your tactial superority you inflicted no losses on the enemy.')
-            
-
-        endingText.append(f'Overall score: {overall_score:%}')
-
-        return ''.join(endingText)
-
-    def _the_player_did_bad_stuff(self, *, planets_depopulated:int, planets_angered:int, times_hit_prewarp_planet:int, 
-    prewarp_planets_depopulated:int, times_hit_poipulated_planet:int) -> List[str]:
-
-        endingText = []
-
-        if planets_depopulated > 0:
-
-            if planets_depopulated == 1:
-
-                how_many_planets_killed = "a"
-                
-            elif planets_depopulated == 2:
-
-                how_many_planets_killed = "two"
-
-            elif planets_depopulated == 3:
-
-                how_many_planets_killed = "three"
-            else:
-                how_many_planets_killed = "four" if planets_depopulated == 4 else "multiple"
-
-            endingText.append(f"Your ship records indcated that torpedos fired from your ship were the cause of the destruction \
-of {how_many_planets_killed} ,")
-
-            if planets_angered > 0:
-                endingText.append("civilsations,")
-
-                if planets_depopulated == planets_angered:
-
-                    how_many_planets_angered = "all"
-                elif planets_angered == 1:
-
-                    how_many_planets_angered = "one"
-                elif planets_angered == 2:
-                    how_many_planets_angered = "two"
-                elif planets_angered == 3:
-                    how_many_planets_angered = "three"
-                else:
-                    how_many_planets_angered = "four" if planets_angered == 4 else "many"
-                    
-                endingText.append(f"{how_many_planets_angered} of which had good relations with the Federation until you fired on them.")
-            else:
-                endingText.append("civilsations.")
-
-            if prewarp_planets_depopulated > 0:
-
-                if prewarp_planets_depopulated == planets_depopulated:
-                    how_many_prewarp_planets_killed = "all"
-                elif prewarp_planets_depopulated == 1:
-                    how_many_prewarp_planets_killed = "one"
-                elif prewarp_planets_depopulated == 2:
-                    how_many_prewarp_planets_killed = "two"
-                elif prewarp_planets_depopulated == 3:
-                    how_many_prewarp_planets_killed = "three"
-                else:
-                    how_many_prewarp_planets_killed = "four" if planets_depopulated == 4 else "numerous"
-
-                endingText.append(f"Horriffingly, {how_many_prewarp_planets_killed} of thouse planets were prewarp civilastions.")
-
-        return endingText
-
     def __init__(self, engine: Engine):
         super().__init__(engine)
-        self.text_scroll = 0
-        self.console_height = engine.screen_height
-        self.ending_text = self.generate_evaluation()
-        self.show_evaluation = False
+        if engine.player.ship_status.is_active:
+            engine.message_log.add_message(
+                f"Incomming message from {engine.player.ship_class.nation.command_name}...", fg=colors.orange
+            )
+        self.message = "Incomming message"
+        
+    def ev_keydown(self, event: tcod.event.KeyDown) -> None:
+        return EvaluationHandler(self.engine)
+        
+    def on_render(self, console: tcod.Console) -> None:
+        print_system(console, self.engine.game_data)
+        print_mega_sector(console, self.engine.game_data)
+        render_own_ship_info(console, self.engine.game_data)
 
+        render_other_ship_info(console, self.engine.game_data, self.engine.game_data.selected_ship_planet_or_star)
+
+        print_message_log(console, self.engine.game_data)
+        render_position(console, self.engine.game_data)
+        
+        render_command_box(console, self.engine.game_data, self.message)
+        
+class EvaluationHandler(EventHandler):
+    
+    def __init__(self, engine: Engine) -> None:
+        super().__init__(engine)
+        
+        text, self.evaluation, self.score = self.engine.game_data.scenerio.scenario_type.generate_evaluation(
+            self.engine.game_data
+        )
+        
+        width=CONFIG_OBJECT.screen_width - 4
+        
+        self.text_box = ScrollingTextBox(
+            x=2, y=2,
+            width=width,
+            height=CONFIG_OBJECT.screen_height - 8,
+            title="Evaluation:", total_text=wrap(text, width=width, replace_whitespace=False),
+            lines_to_scroll=10
+        )
+        
+        self.score_button = SimpleElement(
+            x=2, y=self.text_box.height + self.text_box.y,
+            width=15, height=3,
+            text="See (S)core"
+        )
+        
+    def on_render(self, console: tcod.Console) -> None:
+        self.text_box.render(console)
+        self.score_button.render(console)
+    
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[BaseEventHandler]:
+        if self.score_button.cursor_overlap(event):
+            return ScoreHandler(self.engine, self.evaluation, self.score)
+    
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[BaseEventHandler]:
+
+        if event.sym in confirm or event.sym == tcod.event.K_s:
+            return ScoreHandler(self.engine, self.evaluation, self.score)
+        self.text_box.handle_key(event)
+
+class ScoreHandler(EventHandler):
+    
+    def replace(self, s:str):
+        
+        if "_" in s:
+            
+            s_list = s.split("_")
+            
+            s_list2 = [s2.capitalize() for s2 in s_list]
+            
+            return " ".join(s_list2)
+        else:
+            return s.capitalize()
+            
+    def __init__(self, engine: Engine, evaluation: OrderedDict[str,Tuple[int,int]], score:Decimal) -> None:
+        super().__init__(engine)
+        
+        max_evaluation_key_len = max(
+            len(k) for k in evaluation.keys()
+        )
+        
+        lines = [f"{self.replace(k):>{max_evaluation_key_len}}:{v[0]}/{v[1]}" for k,v in evaluation.items()]
+        
+        max_len = max(len(l) for l in lines)
+        
+        #self.info = self.engine.game_data.player_record
+        
+        self.evalu = SimpleElement(
+            x=5, y=5,
+            height=len(evaluation), width=max_len,
+            title="Score Info:",
+            text="\n".join(lines), alignment=tcod.LEFT
+        )
+        
+        reccord = self.engine.game_data.player_record
+        
+        max_reccord_key_len = max(
+            len(k) for k in reccord.keys()
+        )
+        
+        reccord_lines = [f"{self.replace(k):>{max_reccord_key_len}}:{v}" for k,v in reccord.items()]
+        
+        max_reccord_len = max(len(l) for l in reccord_lines)
+        
+        self.player_record = SimpleElement(
+            x=5, y=5 + self.evalu.y + self.evalu.height,
+            height=len(reccord_lines), width=max_reccord_len,
+            title="Player Record:", 
+            text="\n".join(reccord_lines), alignment=tcod.LEFT
+        )
+        
+        self.score_record = SimpleElement(
+            x=5, y=5+self.player_record.y+self.player_record.height,
+            height=3,
+            width=40,
+            title="Score:",
+            text=f"{score:.6}"
+        )
+        
+    def on_render(self, console: tcod.Console) -> None:
+        self.evalu.render(console)
+        self.player_record.render(console)
+        self.score_record.render(console)
+    
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[T]:
+        self.on_quit()
+    
     def on_quit(self) -> None:
         """Handle exiting out of a finished game."""
+        raise exceptions.QuitWithoutSaving()
+        '''
         if os.path.exists("saves/" + self.engine.filename + ".sav"):
             self.engine.save_as("")
             #os.remove("savegame.sav")  # Deletes the active save file.
         else:
             print(self.engine.filename)
         raise exceptions.QuitWithoutSaving()  # Avoid saving a finished game.
+        '''
 
     def ev_quit(self, event: tcod.event.Quit) -> None:
         self.on_quit()
-
-    def ev_keydown(self, event: tcod.event.KeyDown) -> None:
-        
-        if self.show_evaluation:
-            key = event.sym
-
-            if key == tcod.event.K_ESCAPE:
-                self.on_quit()
-            elif key == tcod.event.K_UP and self.text_scroll > 0:
-                self.text_scroll -= 1
-            elif key == tcod.event.K_DOWN and self.text_scroll < len(self.text) - self.console_height:
-                self.text_scroll += 1
-        else:
-            self.show_evaluation = True
-
-    def on_render(self, console: tcod.Console) -> None:
-
-        if self.show_evaluation:
-            half_width = console.width//2
-
-            console.print_frame(
-                x=2, 
-                y=2, 
-                width=console.width-4, 
-                height=self.console_height, 
-                string="Evaluation:", 
-            bg_blend=tcod.BKGND_MULTIPLY)
-
-            console.print_rect(
-                x=3, 
-                y=3, 
-                width=console.width-6,
-                height=self.console_height-6,
-                string=self.ending_text)
-
-            #for i, e in enumerate(self.ending_text, self.text_scroll):
-            
-            console.print(x=10, y=40, string="Press ESC to quit")
-        else:
-            print_system(console, self.engine.game_data)
-            print_mega_sector(console, self.engine.game_data)
-            render_own_ship_info(console, self.engine.game_data)
-
-            render_other_ship_info(console, self.engine.game_data, self.engine.game_data.selected_ship_planet_or_star)
-
-            print_message_log(console, self.engine.game_data)
-            render_position(console, self.engine.game_data)

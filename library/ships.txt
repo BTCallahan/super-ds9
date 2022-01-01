@@ -1,18 +1,33 @@
-# SHIPCLASS:
-# TYPE:
-SYM:
-NAME:
-SHIELDS:
-HULL:
-TORPEDOS:
-CREW:
-ENERGY:
-TORPEDO_TYPES:
-DAMAGE_CONTROL:
-MAX_WEAPON_ENERGY:
-WARP_CORE_BREACH_DISTANCE:
-# NATION
+# SHIPCLASS: - The code used for this ship class. This can contain uppercase letters, numbers, and underscores.
+# TYPE: - The role of the ship. Valid roles are ESCORT, CRUISER, WARSHIP, and RESUPPLY.
+# SYM: - A single character that will represent this ship on the map screen. Can be a lower or uppercase letter.
+# NAME: - The name of the ship class. This can contain letters, spaces, brackets, and apostriphes.
+# SHIELDS: - The maximum shield strength of the ship. Must be in intiger.
+# HULL: - The maximum hull strength of the ship. Must be in intiger.
+# TORPEDOS: - The maximum number of torpedos the ship class can carry. Must be in intiger. Optional, defaults to 0 if missing.
+# CREW: - The maximum crew of the ship. Must be in intiger.
+# ENERGY: The maximum energy of the ship. Must be in intiger.
+# TORPEDO_TYPES: - Codes for the torpedos that the ship can carry. This can contain uppercase letters, numbers, and underscores. Optional, can be omitted. Valid codes can be found in the file library/torpdeos.txt.
+# TORPEDO_TUBES: - This set the maximum number of torpedos that can be fired at once. Must be in intiger. Optional, defaults to 0 if missing.
+# DAMAGE_CONTROL: - Damage control. Used to determin how much of a ships is repaired. This must be a floating point value greater then 0.
+# MAX_WEAPON_ENERGY: - The maximum amount of energy that that can be fired from the ships beam arrays. Must be an intiger.
+# WARP_CORE_BREACH_DISTANCE: - If the ship suffers a warp core breach, any ships within this distance will be damaged. Must be an intiger.
+# NATION: - The code for the nation that this ship class belongs to. This can contain uppercase letters, numbers, and underscores. Valid codes can be found in the file library/nations.txt.
 # END_SHIPCLASS
+#
+SHIPCLASS:DRONE
+TYPE:ESCORT
+SYM:d
+NAME:Drone
+SHIELDS:10
+HULL:10
+ENERGY:500
+ENERGY_WEAPON:DISTRUPTOR
+DAMAGE_CONTROL:0.1
+MAX_WEAPON_ENERGY:400
+WARP_CORE_BREACH_DISTANCE:2
+NATION:DOMINION
+END_SHIPCLASS
 #
 SHIPCLASS:DEFIANT
 TYPE:ESCORT

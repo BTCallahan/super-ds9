@@ -16,9 +16,9 @@ grey = (127, 127, 127)
 
 impossible = red
 
-alert_red = red
-alert_yellow = yellow
-alert_green = green
+alert_red = (255, 12, 20)
+alert_yellow = (250, 240, 12)
+alert_green = (8, 255, 15)
 alert_blue = (127, 127, 255)
 
 planet_allied = lime

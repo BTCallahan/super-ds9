@@ -1,48 +1,41 @@
+from __future__ import annotations
 from collections import OrderedDict
+from dataclasses import dataclass
 from itertools import accumulate
 from math import floor
 import re
-from typing import Dict, Tuple
+from typing import Dict, Final, Tuple, TYPE_CHECKING
 from random import randint
 from datetime import datetime
-from global_functions import get_first_group_in_pattern
+from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
+from evaluate_player import SCENARIO_TYPES
+
+if TYPE_CHECKING:
+    from evaluate_player import ScenerioEvaluation
 
 stars_gen = tuple(accumulate((5, 12, 20, 9, 6, 3)))
 
+@dataclass(frozen=True)
 class Scenerio:
-
-    def __init__(self, *,
-                 name:str,
-                 description:str,
-    hostile_ships:OrderedDict[str,Tuple[int,int]],
-    star_generation:Tuple[int], percent_of_friendly_planets:float,
-    default_ship_name:str, default_captain_name:str,
-    self_destruct_code:str,
-    your_ship:str,
-    your_nation:str,
-    enemy_nation:str,
-    your_commanding_officer:str,
-    startdate:datetime,
-    enddate:datetime,
+    
+    name:str
+    description:str
+    hostile_ships:OrderedDict[str,Tuple[int,int]]
+    star_generation:Tuple[int]
+    percent_of_friendly_planets:float
+    default_ship_name:str
+    default_captain_name:str
+    self_destruct_code:str
+    your_ship:str
+    your_nation:str
+    enemy_nation:str
+    your_commanding_officer:str
+    startdate:datetime
+    enddate:datetime
     enemy_give_up_threshold:float
-    ) -> None:
-        self.name = name
-        self.description = description
-        self.your_ship = your_ship
-        self.hostile_ships = hostile_ships
-        self.star_generation = star_generation
-        self.percent_of_friendly_planets = percent_of_friendly_planets
-        self.default_ship_name = default_ship_name
-        self.default_captain_name = default_captain_name
-        self.self_destruct_code = self_destruct_code,
-        self.your_nation=your_nation
-        self.enemy_nation=enemy_nation
-        self.your_commanding_officer = your_commanding_officer
-        self.startdate = startdate
-        self.enddate = enddate
-        self.enemy_give_up_threshold = enemy_give_up_threshold
-        
-
+    scenario_type:type[ScenerioEvaluation]
+    victory_percent:float
+    
     def get_number_of_ships(self, ship_code:str):
         
         min_, max_ = self.hostile_ships[ship_code]
@@ -74,6 +67,8 @@ class Scenerio:
 scenerio_pattern = re.compile(r"SCENARIO:([\w_]+)\n([^#]+)END_SCENARIO")
 name_pattern = re.compile(r"NAME:([\w\ .\-]+)\n" )
 
+scenario_type_pattern = re.compile(r"SCENARIO_TYPE:([\w]+)\n" )
+
 description_pattern = re.compile(r"DESCRIPTION:([a-zA-Z \.\,\?\!]+)\nDESCRIPTIONEND")
 your_ship_pattern = re.compile(r"YOUR_SHIP:([a-zA-Z_]+)\n")
 enemy_ships_pattern = re.compile(r"ENEMY_SHIPS:([\w\,\n]+)ENEMY_SHIPSEND")
@@ -91,14 +86,35 @@ enemy_nation_pattern = re.compile(r"ENEMY_NATION:([a-zA-Z]+)\n")
 
 your_commanding_officer_pattern = re.compile(r"YOUR_COMMANDING_OFFICER:([a-zA-Z\ \'\.\-]+)\n")
 
-enemy_give_up_threshold_pattern = re.compile(r"ENEMY_GIVE_UP_THRESHOLD:([\d.]+)\n")
+enemy_give_up_threshold_pattern = re.compile(r"ENEMY_GIVE_UP_THRESHOLD:([\d\.]+)\n")
 
-destruct_code_pattern = re.compile(r"DESTRUCT_CODE:([\d\w\-]+)\n")
+victory_percent_pattern = re.compile(r"VICTORY_PERCENT:([\d\.]+)\n")
+
+destruct_code_pattern = re.compile(r"DESTRUCT_CODE:([\w\-]+)\n")
 
 start_date_pattern = re.compile(r"START_DATE_TIME:([\d]+).([\d]+).([\d]+).([\d]+).([\d]+).([\d]+)\n")
 end_date_pattern = re.compile(r"END_DATE_TIME:([\d]+).([\d]+).([\d]+).([\d]+).([\d]+).([\d]+)\n")
 
 friendly_planet_pattern = re.compile(r"FRIENDLY_PLANET_PERCENT:([\d\.]+)\n")
+
+#the following is not used - yet, anyway!
+encouners_pattern = re.compile(r"ENOUNTERS:\n([\w\n\:\,]+)END_ENCOUNTERS")
+enc_pattern = re.compile(r"NO_OF_ENCS:([\d]+),([\d]+)\n([\w\n\,]+)END_NO_OF_ENCS")
+ship_enc_pattern = re.compile(r"SHIP:([\w]+),([\d]+),([\d]+)")
+
+@dataclass(frozen=True)
+class Encounter:
+    
+    min_encounters:int
+    max_encounters:int
+    ships:Dict[str,Tuple[int,int]]
+    
+    def __len__(self):
+        return len(self.ships)
+    
+    def roll_encouter(self):
+        r = {k:randint(v[0], v[1]) for k,v in self.ships.items()}
+        return r
 
 def create_sceneraio():
         
@@ -117,12 +133,18 @@ def create_sceneraio():
         scenario_txt = scenario.group(2)
         
         name = get_first_group_in_pattern(scenario_txt, name_pattern)
+        
+        scenario_type_ = get_first_group_in_pattern(scenario_txt, scenario_type_pattern)
+        
+        scenario_type = SCENARIO_TYPES[scenario_type_]
     
         description = get_first_group_in_pattern(scenario_txt, description_pattern)
 
         your_ship = get_first_group_in_pattern(scenario_txt, your_ship_pattern)
         
         enemy_ships = get_first_group_in_pattern(scenario_txt, enemy_ships_pattern)
+        
+        victory_percent = get_first_group_in_pattern(scenario_txt, victory_percent_pattern, type_to_convert_to=float)
         
         #e_ships:Dict[str,Tuple[int,int]] = {}
         e_ships:OrderedDict[str,Tuple[int,int]] = OrderedDict()
@@ -132,10 +154,10 @@ def create_sceneraio():
         for s in a_ships:
             
             k = s.group(1)
-            mi = s.group(2)
-            ma = s.group(3)
+            min_ = s.group(2)
+            max_ = s.group(3)
             
-            e_ships[k] = (int(mi), int(ma))
+            e_ships[k] = (int(min_), int(max_))
         
         your_nation = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
         
@@ -152,37 +174,51 @@ def create_sceneraio():
         except AttributeError:
             star_generation = stars_gen
             
-        friendly_planets = get_first_group_in_pattern(scenario_txt, friendly_planet_pattern)
+        friendly_planets = get_first_group_in_pattern(scenario_txt, friendly_planet_pattern, type_to_convert_to=float)
         
         default_ship_name = get_first_group_in_pattern(scenario_txt, default_ship_name_pattern)
         
         default_captain_name = get_first_group_in_pattern(scenario_txt, default_captain_name_pattern)
         
         enemy_give_up_threshold = get_first_group_in_pattern(
-            scenario_txt, enemy_give_up_threshold_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0)
+            scenario_txt, enemy_give_up_threshold_pattern, 
+            return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0, type_to_convert_to=float
+        )
         
         code = get_first_group_in_pattern(scenario_txt, destruct_code_pattern)
         
-        start_date = start_date_pattern.search(scenario_txt)
+        #start_date = start_date_pattern.search(scenario_txt)
         
-        startdate = datetime(
-            year=int(start_date.group(1)),
-            month=int(start_date.group(2)),
-            day=int(start_date.group(3)),
-            hour=int(start_date.group(4)),
-            minute=int(start_date.group(5)),
-            second=int(start_date.group(6))
+        year, mon, day, hour, mini, sec = get_multiple_groups_in_pattern(
+            scenario_txt, start_date_pattern,
+            expected_number_of_groups=6,
+            type_to_convert_to=int
         )
         
-        end_date = end_date_pattern.search(scenario_txt)
+        startdate = datetime(
+            year=year,
+            month=mon,
+            day=day,
+            hour=hour,
+            minute=mini,
+            second=sec
+        )
+        
+        #end_date = end_date_pattern.search(scenario_txt)
+        
+        year_, mon_, day_, hour_, mini_, sec_ = get_multiple_groups_in_pattern(
+            scenario_txt, end_date_pattern,
+            expected_number_of_groups=6,
+            type_to_convert_to=int
+        )
         
         enddate = datetime(
-            year=int(end_date.group(1)),
-            month=int(end_date.group(2)),
-            day=int(end_date.group(3)),
-            hour=int(end_date.group(4)),
-            minute=int(end_date.group(5)),
-            second=int(end_date.group(6))
+            year=year_,
+            month=mon_,
+            day=day_,
+            hour=hour_,
+            minute=mini_,
+            second=sec_
         )
         
         scenario_dict[scenario_code] = Scenerio(
@@ -192,7 +228,7 @@ def create_sceneraio():
             enemy_nation=enemy_nation,
             star_generation=star_generation,
             description=description,
-            percent_of_friendly_planets=float(friendly_planets),
+            percent_of_friendly_planets=friendly_planets,
             default_ship_name=default_ship_name,
             default_captain_name=default_captain_name,
             your_commanding_officer=your_commanding_officer,
@@ -200,8 +236,10 @@ def create_sceneraio():
             hostile_ships=e_ships,
             startdate=startdate,
             enddate=enddate,
-            enemy_give_up_threshold=float(enemy_give_up_threshold)
+            enemy_give_up_threshold=enemy_give_up_threshold,
+            scenario_type=scenario_type,
+            victory_percent=victory_percent
         )
     return scenario_dict
 
-ALL_SCENERIOS = create_sceneraio()
+ALL_SCENERIOS:Final = create_sceneraio()

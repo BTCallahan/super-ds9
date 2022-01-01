@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import re
-from typing import Dict, Tuple
-from global_functions import get_first_group_in_pattern
+from typing import Dict, Final, Tuple
+from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 
 @dataclass(eq=True, frozen=True)
 class EnergyWeapon:
@@ -80,14 +80,14 @@ def create_energy_weapons() -> Dict[str,EnergyWeapon]:
     
     energy_weapon_dict:Dict[str,EnergyWeapon] = {}
         
-    for wnergy_weapon in energy_weapons:
+    for energy_weapon in energy_weapons:
         
-        energy_weapon_code = wnergy_weapon.group(1)
+        energy_weapon_code = energy_weapon.group(1)
         
-        energy_weapon_txt = wnergy_weapon.group(2)
+        energy_weapon_txt = energy_weapon.group(2)
         
         color = color_pattern.search(energy_weapon_txt)
-                
+        #get_multiple_groups_in_pattern
         color_r, color_g, color_b = color.group(1), color.group(2), color.group(3)
         
         color_tuple = (int(color_r), int(color_g), int(color_b))
@@ -102,4 +102,4 @@ def create_energy_weapons() -> Dict[str,EnergyWeapon]:
     
     return energy_weapon_dict
 
-ALL_ENERGY_WEAPONS = create_energy_weapons()
+ALL_ENERGY_WEAPONS:Final = create_energy_weapons()

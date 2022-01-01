@@ -1,11 +1,23 @@
-# TORPEDO:NONE
-# NAME:none
-# DAMAGE: - this is 
-# REQUIRED: - this is the minmum infrastructure a planet must have in order to resuply you with torpedos of this type
-# PLANET_DAMAGE: - this is the amount of damage inflicted on a planets infrastructure
+# TORPEDO: - This is the code used for the torpedo. This can contain uppercase letters, numbers, and underscores.
+# NAME: - The name of the torpedo. This can contain letters, periods, and apostriphes.
+# DAMAGE: - The shorthand name of the torpedo. This can contain letters, periods, and apostriphes.
+# REQUIRED: - This is the minmum infrastructure a planet must have in order to resuply you with torpedos of this type. It should be a floating point number between 0 and 1.
+# PLANET_DAMAGE: - This is the amount of damage inflicted on a planets infrastructure. It sgould be a floating point number greater than 0.
 # END_TORPEDO
-
-
+#
+TORPEDO:SPATIAL
+NAME:spatial
+DAMAGE:40
+REQUIRED:0.15
+PLANET_DAMAGE:0.25
+END_TORPEDO
+#
+TORPEDO:PHOTONIC
+NAME:photonic
+DAMAGE:60
+REQUIRED:0.20
+PLANET_DAMAGE:0.25
+END_TORPEDO
 #
 TORPEDO:POLARON
 NAME:polaron
@@ -40,5 +52,19 @@ NAME:tri-colbalt
 DAMAGE:220
 REQUIRED:0.725
 PLANET_DAMAGE:0.85
+END_TORPEDO
+#
+TORPEDO:GRAVIMETRIC
+NAME:gravimetric
+DAMAGE:280
+REQUIRED:0.9
+PLANET_DAMAGE:1.25
+END_TORPEDO
+#
+TORPEDO:TRANSPHASIC
+NAME:transphasic
+DAMAGE:300
+REQUIRED:0.975
+PLANET_DAMAGE:0.9
 END_TORPEDO
 #

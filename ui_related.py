@@ -1,4 +1,4 @@
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterable, Iterator, List, Optional, Tuple, Union
 import tcod
 from tcod import constants
 from functools import wraps
@@ -46,7 +46,8 @@ def send_text_after_call(funct):
 
     def send_text(self:"InputHanderer", *args, **kwargs):
         funct(self, *args, **kwargs)
-        self.text_to_print = self.send()
+        self.text = self.send()
+        self.text_to_print = self.text
     return send_text
 
 def check_for_unwanted_zeros(funct):
@@ -104,7 +105,252 @@ def clamp_number_after_call_strict(funct):
     
     return clamp_number
 
-class InputHanderer:
+class SimpleElement:
+    
+    def __init__(
+        self, 
+        *, 
+        x:int, y:int, height:int, width:int, title:str="", 
+        text:str, 
+        active_fg:Optional[Tuple[int,int,int]]=None, 
+        bg:Optional[Tuple[int,int,int]]= None, 
+        alignment:int=tcod.CENTER,
+    ):
+        self.x = x
+        self.y = y
+        self.height = height
+        self.width = width
+        self.title = title
+        self.text = text
+        self.fg = active_fg
+        self.bg = bg
+        self.alignment=alignment
+        
+    def render(self, console: tcod.Console, *, 
+        x:int=0, y:int=0, 
+        fg:Optional[Tuple[int,int,int]]=None, bg:Optional[Tuple[int,int,int]]= None, 
+        text:Optional[str]=None,
+        alignment:Optional[int]=None
+    ):
+        console.draw_frame(
+            x=x+self.x,
+            y=y+self.y,
+            width=self.width,
+            height=self.height,
+            title=self.title,
+            fg=fg if fg else self.fg,
+            bg=bg if bg else self.bg,
+        )
+        string_text = text if text is not None else self.text
+
+        console.print_box(
+            x=x+self.x+1,
+            y=y+self.y+1,
+            height=self.height-2,
+            width=self.width-2,
+            string=string_text,
+            fg=fg if fg else self.fg,
+            bg=bg if bg else self.bg,
+            alignment=alignment if alignment is not None else self.alignment
+        )
+        
+    def cursor_overlap(
+        self, event: "tcod.event.MouseButtonDown", *, x:int=0, y:int=0
+    ):
+        return (
+            x+self.x <= event.tile.x < x+self.x+self.width and 
+            y+self.y <= event.tile.y < y+self.y+self.height
+        )
+
+class InteractiveElement(SimpleElement):
+    
+    def __init__(
+        self, 
+        *, 
+        x:int, y:int, height:int, width:int, title:str="", 
+        text:str,
+        active_fg:Optional[Tuple[int,int,int]]=None, 
+        bg:Optional[Tuple[int,int,int]]= None, 
+        inactive_fg:Optional[Tuple[int,int,int]]=None, 
+        initally_active:bool=True
+    ) -> None:
+        super().__init__(
+            x=x, y=y, height=height, width=width, active_fg=active_fg, bg=bg, title=title, text=text
+        )
+        self.active_fg = active_fg
+        self.inactive_fg = inactive_fg
+        self._is_active = initally_active
+        self.fg = active_fg if initally_active else inactive_fg 
+    
+    @property
+    def is_active(self):
+        return self._is_active
+    
+    @is_active.setter
+    def is_active(self, value:bool):
+        self._is_active = value
+        self.fg = self.active_fg if self._is_active else self.inactive_fg 
+    
+    
+class ButtonBox(InteractiveElement):
+
+    def __init__(
+        self, 
+        *, 
+        x:int, y:int, height:int, width:int, title:str="", 
+        text:str, 
+        active_fg:Optional[Tuple[int,int,int]]=None, 
+        bg:Optional[Tuple[int,int,int]]= None, 
+        inactive_fg:Optional[Tuple[int,int,int]]=None, 
+        initally_active:bool=True,
+        alignment:int=constants.CENTER
+    ) -> None:
+        super().__init__(
+            x=x, y=y, height=height, width=width, title=title, 
+            active_fg=active_fg, bg=bg, inactive_fg=inactive_fg, initally_active=initally_active, text=text
+        )
+        self.alignment = alignment    
+        
+    def render(self, console: tcod.Console, *, 
+        x:int=0, y:int=0, 
+        fg:Optional[Tuple[int,int,int]]=None, bg:Optional[Tuple[int,int,int]]= None, 
+        text:Optional[str]=None, cursor_position:Optional[int]=None
+    ):
+        fg, bg = (fg if fg else self.fg), (bg if bg else self.bg)
+        
+        console.draw_frame(
+            x=x+self.x,
+            y=y+self.y,
+            width=self.width,
+            height=self.height,
+            title=self.title,
+            fg=fg,
+            bg=bg,
+        )
+        string_text = text if text is not None else self.text
+
+        console.print_box(
+            x=x+self.x+1,
+            y=y+self.y+1,
+            height=self.height-2,
+            width=self.width-2,
+            string=string_text,
+            fg=fg,
+            bg=bg,
+            alignment=self.alignment, 
+        )
+
+        if cursor_position is not None:
+
+            try:
+                char = string_text[cursor_position]
+            except IndexError:
+                char = " "
+            
+            console.print(
+                x=self.x + 1 + (self.width - 2) + cursor_position - len(string_text) if 
+                self.alignment == constants.RIGHT else 
+                self.x + 1 + cursor_position,
+                y=self.y+1,
+                string=char,
+                fg=bg,
+                bg=fg,
+            )
+    
+    def cursor_overlap(self, event: "tcod.event.MouseButtonDown",*, x:int=0, y:int=0) -> bool:
+
+        return x+self.x <= event.tile.x < x+self.x+self.width and y+self.y <= event.tile.y < y+self.y+self.height
+
+class ScrollingTextBox(ButtonBox):
+    
+    def __init__(
+        self, 
+        *, 
+        x: int, y: int, 
+        height: int, width: int, 
+        title: str = "", 
+        total_text: Iterable[str], 
+        active_fg: Optional[Tuple[int, int, int]] = None, 
+        bg: Optional[Tuple[int, int, int]] = None, 
+        inactive_fg: Optional[Tuple[int, int, int]] = None, 
+        initally_active: bool = True,
+        lines_to_scroll:int, alignment:int=tcod.LEFT
+        
+        ) -> None:
+        
+        self.total_text = total_text
+        
+        self._index = 0
+        self.lines_to_scroll = lines_to_scroll
+        
+        try:
+            text = "\n".join(self.total_text[self._index : self._index + height])
+        except IndexError:
+            text = "\n".join(self.total_text[self._index : ])
+        
+        super().__init__(
+            x=x, y=y, height=height, 
+            width=width, title=title, 
+            text=text, active_fg=active_fg, bg=bg, inactive_fg=inactive_fg, 
+            initally_active=initally_active, alignment=alignment
+        )
+        
+        self._max_index = max(0, len(self.text) - (height // 2))
+    
+    @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, value:int):
+        old = self._index
+        if value < 0:
+            self._index = 0
+        else:
+            self._index = self._max_index if value > self._max_index else value
+        if old != self._index:
+            try:
+                self.text = "\n".join(self.total_text[self._index : self._index + self.height])
+            except IndexError:
+                self.text = "\n".join(self.total_text[self._index : ])
+    
+    def handle_key(self, event: "tcod.event.KeyDown") -> None:
+        
+        if event.sym == tcod.event.K_UP:
+            self.index -= 1
+        elif event.sym == tcod.event.K_PAGEUP:
+            self.index -= self.lines_to_scroll
+        elif event.sym == tcod.event.K_DOWN:
+            self.index += 1
+        elif event.sym == tcod.event.K_PAGEDOWN:
+            self.index += self.lines_to_scroll
+
+
+class BooleanBox(ButtonBox):
+    
+    def __init__(self, *, x: int, y: int, height: int, width: int, title: str = "", active_text: str, inactive_text:str = None, active_fg: Optional[Tuple[int, int, int]] = None, bg: Optional[Tuple[int, int, int]] = None, inactive_fg: Optional[Tuple[int, int, int]] = None, initally_active: bool = True, alignment: int = constants.LEFT) -> None:
+        
+        text = active_text if initally_active else inactive_text
+        
+        super().__init__(x=x, y=y, height=height, width=width, title=title, text=text, active_fg=active_fg, bg=bg, inactive_fg=inactive_fg, initally_active=initally_active, alignment=alignment)
+        
+        self.active_text = active_text
+        self.inactive_text = inactive_text
+    
+    @property
+    def is_active(self):
+        return self._is_active
+    
+    @is_active.setter
+    def is_active(self, value:bool):
+        
+        self._is_active = value
+        self.fg = self.active_fg if self._is_active else self.inactive_fg 
+        self.text = self.active_text if self._is_active else self.inactive_text
+    
+    
+
+class InputHanderer(ButtonBox):
     """Semi-abstract class with unimplemented methods
 
     Raises:
@@ -120,10 +366,31 @@ class InputHanderer:
     text_to_print = ""
     cursor = 0
 
-    def __init__(self, limit:int, text_char_list:Optional[List[IntOrString]] = None):
+    def __init__(
+        self, 
+        *,
+        limit:int, 
+        text_char_list:Optional[List[IntOrString]] = None,
+        x:int, y:int,
+        height:int, width:int, 
+        title:str,
+        active_fg:Tuple[int, int, int], inactive_fg:Tuple[int, int, int], bg:Tuple[int, int, int],
+        initally_active:bool=True,
+        alignment = tcod.LEFT
+    ):
+        super().__init__(
+            x=x, y=y, 
+            height=height, width=width, 
+            title=title, text="", 
+            active_fg=active_fg, inactive_fg=inactive_fg, bg=bg,
+            initally_active=initally_active, 
+            alignment=alignment
+        )
         self.limit = limit
         self.text_char_list: List[IntOrString] = text_char_list if text_char_list is not None else []
-        self.text_to_print = self.send()
+        
+        self.text = self.send()
+        self.text_to_print = self.text
 
     def set_text(self, character:IntOrString):
         raise NotImplementedError("You are trying to access the unimplemented method 'set_text' from an abstract 'InputHanderer' object")
@@ -152,11 +419,11 @@ class InputHanderer:
             (bool): True if the deletion attempt was sucessful, False if not.
         """
         if reverse and self.number_of_chars > self.cursor:
-            print("Delete")
+            #print("Delete")
             self.text_char_list.pop(self.cursor)
             return True
         if not reverse and self.cursor > 0 and self.number_of_chars >= 1:
-            print("Backspace")
+            #print("Backspace")
             self.text_char_list.pop(self.cursor - 1)
 
             self.cursor -= 1
@@ -194,6 +461,22 @@ class InputHanderer:
     fg:Optional[Tuple[int,int,int]]=None, bg:Optional[Tuple[int,int,int]]=None) -> None:
         raise NotImplementedError("You are trying to access the unimplemented method 'print_text_to_screen' from an abstract 'InputHanderer' object")
 
+    def render(
+        self, 
+        console: tcod.Console, 
+        *, 
+        x: int = 0, y: int = 0, 
+        fg: Optional[Tuple[int, int, int]] = None, bg: Optional[Tuple[int, int, int]] = None, text: Optional[str] = None, 
+        cursor_position: Optional[int] = None
+    ):
+        super().render(
+            console, 
+            x=x, y=y, 
+            fg=fg, bg=bg, 
+            text=text if text else self.text_to_print, 
+            cursor_position=cursor_position if cursor_position else self.cursor
+        )
+
 class TextHandeler(InputHanderer):
     """Handels string operations
 
@@ -202,9 +485,29 @@ class TextHandeler(InputHanderer):
         text_char_list (List[IntOrString], optional): A list of strings. Each string must contain only one character. Defaults to None.
     """
 
-    def __init__(self, limit: int, text_char_list: Optional[List[IntOrString]] = None):
-        super().__init__(limit, text_char_list=text_char_list)
-        self.text_to_print = "".join(self.text_char_list)
+    def __init__(
+        self, 
+        *,
+        limit: int, 
+        text_char_list: Optional[List[IntOrString]] = None,
+        x:int, y:int,
+        height:int, width:int, 
+        title:str,
+        active_fg:Tuple[int, int, int], inactive_fg:Tuple[int, int, int], bg:Tuple[int, int, int],
+        initally_active:bool=True,
+        alignment = tcod.LEFT
+    ):
+        super().__init__(
+            limit=limit, 
+            text_char_list=text_char_list,
+            x=x, y=y,
+            height=height, width=width,
+            title=title,
+            active_fg=active_fg, inactive_fg=inactive_fg, bg=bg,
+            initally_active=initally_active, alignment=alignment
+        )
+        self.text = "".join(self.text_char_list)
+        self.text_to_print = self.text
 
     def set_text(self, character: str):
         if len(character) > self.limit:
@@ -283,6 +586,7 @@ class TextHandeler(InputHanderer):
 
         console.print(x=x+self.cursor, y=y, string=s2, fg=bg, bg=fg)
     
+    
 
 """
 1, 1 (1*1)
@@ -296,14 +600,33 @@ class TextHandeler(InputHanderer):
 
 class NumberHandeler(InputHanderer):
 
-    def __init__(self, limit:int, max_value:int, min_value:int, wrap_around:bool=False, *, starting_value:Optional[int]=None) -> None:
+    def __init__(
+        self, 
+        *,
+        limit:int, 
+        max_value:int, min_value:int, 
+        wrap_around:bool=False, 
+        starting_value:Optional[int]=None,
+        x:int, y:int,
+        height:int, width:int, 
+        title:str,
+        active_fg:Tuple[int, int, int], inactive_fg:Tuple[int, int, int], bg:Tuple[int, int, int],
+        initally_active:bool=True, alignment = tcod.RIGHT
+    ) -> None:
         if min_value > max_value:
             min_value, max_value = max_value, min_value
 
         s_value = starting_value if starting_value is not None else min_value
         
         self.is_negitive = s_value < 0
-        super().__init__(limit)
+        super().__init__(
+            limit=limit,
+            x=x, y=y,
+            height=height, width=width,
+            title=title, 
+            active_fg=active_fg, inactive_fg=inactive_fg, bg=bg,
+            initally_active=initally_active, alignment=alignment
+        )
         self.max_value = max_value
         self.min_value = min_value
         self.wrap_around = wrap_around
@@ -324,7 +647,10 @@ class NumberHandeler(InputHanderer):
         self.text_char_list = self.break_up(character)
         #print(f"New char list {self.text_char_list}")
         self.check_if_is_in_bounds()
-        print(f"New char list {self.text_char_list}, new chars: {character}")
+        n_of_chars = self.number_of_chars
+        if self.cursor > n_of_chars:
+            self.cursor = n_of_chars
+        #print(f"New char list {self.text_char_list}, new chars: {character}")
 
     @property
     def can_be_negative(self):
@@ -422,7 +748,7 @@ class NumberHandeler(InputHanderer):
 
                     if cursor < self.limit:
 
-                        _increment(is_up=is_up, cursor=cursor+1)
+                        _increment(is_up=is_up, cursor=cursor-1)
             except IndexError:
                 pass
                 
@@ -439,7 +765,7 @@ class NumberHandeler(InputHanderer):
 
         self.is_negitive = clamped < 0
 
-        print(f"In bounds: {clamped} ")
+        #print(f"In bounds: {clamped} ")
 
         self.text_char_list = self.break_up(clamped)
 
@@ -517,7 +843,7 @@ class NumberHandeler(InputHanderer):
 
             yield 8
         """
-        print(f"Num to be broken up: {num}")
+        #print(f"Num to be broken up: {num}")
         num = abs(num)
 
         if num < 10:
@@ -537,9 +863,9 @@ class NumberHandeler(InputHanderer):
                 p = pow(10, c)
 
         bu:List[int] = list(__break_up())
-        print(f"{bu}")
+        #print(f"{bu}")
         bu.reverse()
-        print(f"{bu}")
+        #print(f"{bu}")
         return bu
 
     @send_text_after_call
@@ -555,7 +881,7 @@ class NumberHandeler(InputHanderer):
                 f"The integer 'character' must have a value not more then 9 and not less then 0. You are passing in an int with a value of {character}"
             )
         
-        print(f"Before insert: {self.text_char_list} {character}")
+        #print(f"Before insert: {self.text_char_list} {character}")
 
         if not (character == 0 and self.cursor == 0) and super().insert(character=character, position=position):
             """
@@ -599,90 +925,54 @@ class NumberHandeler(InputHanderer):
                 #self.check_if_is_in_bounds()
             """
                 
-            print(f"After insert: {self.text_char_list}")
+            #print(f"After insert: {self.text_char_list}")
             return True
         return False
 
-class ButtonBox:
 
-    def __init__(self, *, x:int, y:int, height:int, width:int, 
-    title:str="", text:str, alignment:int=constants.LEFT
-    ) -> None:
-        self.x = x
-        self.y = y
-        self.height = height
-        self.width = width
-        self.title = title
-        self.text = text
-        self.alignment = alignment
-        
-    def render(self, console: tcod.Console, *, 
-        x:int=0, y:int=0, 
-        fg:Optional[Tuple[int,int,int]]=None, bg:Optional[Tuple[int,int,int]]= None, 
-        text:Optional[str]=None, cursor_position:Optional[int]=None
+class Selector(InteractiveElement):
+    """Allows the user to select an item from a list.
+    
+    Args:
+        x (int): X location
+        y (int): Y location
+        height (int): Height in units
+        width (int): Width in units
+        index_items (Tuple[str]): An itterable containing strings that is used to create the text block
+        keys (Tuple[Any]): An itterable of keys. This is used by the property 'index_key', which returns key will be returned
+        title (str, optional): The title of the element. Defaults to "".
+        index (int, optional): The index. Defaults to 0.
+        wrap_item (bool, optional): If set to true, incrementing the index when it is at the max value will reset it to zero. Defaults to False.
+    
+    """
+    
+    def __init__(
+        self, 
+        *, 
+        x:int, y:int, height:int, width:int, 
+        active_fg:Optional[Tuple[int,int,int]]=None, 
+        bg:Optional[Tuple[int,int,int]]= None, 
+        inactive_fg:Optional[Tuple[int,int,int]]=None, 
+        initally_active:bool=True,
+        index_items:Iterable[str], keys:Iterable[Any],
+        title:str="", index:int=0, wrap_item:bool=False
     ):
-
-        console.draw_frame(
-            x=x+self.x,
-            y=y+self.y,
-            width=self.width,
-            height=self.height,
-            title=self.title,
-            fg=fg,
-            bg=bg,
-            #bg_blend=constants.BKGND_DEFAULT,
+        width_2 = width - 2
+        
+        joined_items = "\n".join(
+            [f"{i:<{width_2}}" for i in index_items]
         )
-        string_text= text if text is not None else self.text
-
-        console.print_box(
-            x=x+self.x+1,
-            y=y+self.y+1,
-            height=self.height-2,
-            width=self.width-2,
-            string=string_text,
-            fg=fg,
-            bg=bg,
-            alignment=self.alignment, 
-            #bg_blend=constants.BKGND_DEFAULT
+        
+        super().__init__(
+            x=x, y=y, height=height, width=width, title=title, text=joined_items,
+            active_fg=active_fg, bg=bg, inactive_fg=inactive_fg, initally_active=initally_active
         )
-
-        if cursor_position is not None:
-
-            try:
-                char = string_text[cursor_position]
-            except IndexError:
-                char = " "
-            
-            console.print(
-                x=self.x + 1 + (self.width - 2) + cursor_position - len(string_text) if 
-                self.alignment == constants.RIGHT else 
-                self.x + 1 + cursor_position,
-                y=self.y+1,
-                string=char,
-                fg=bg,
-                bg=fg,
-            )
-    
-    def cursor_overlap(self, event: "tcod.event.MouseButtonDown",*, x:int=0, y:int=0) -> bool:
-
-        return x+self.x <= event.tile.x < x+self.x+self.width and y+self.y <= event.tile.y < y+self.y+self.height
-
-class Selector:
-    
-    def __init__(self, *, x:int, y:int, height:int, width:int, index_items:Tuple[str], keys:Tuple,
-    title:str="", index:int=0, wrap_item:bool=False):
-        self.x = x
-        self.y = y
-        self.height = height
-        self.width = width
-        self.title = title
+        
         self.index = index
         self.index_items = index_items
         self.max_index = len(self.index_items)
-        self.width_2 = width - 2
-        self.joined_items = "\n".join(
-            [f"{i:>{self.width_2}}" for i in index_items]
-        )
+        self.width_2 = width_2
+        self.joined_items = joined_items
         self.keys = keys
         self.wrap_item = wrap_item
 
@@ -698,19 +988,23 @@ class Selector:
             x=self.x+x, y=self.y+y,
             title=self.title, 
             width=self.width,
-            height=self.height
+            height=self.height,
+            fg=fg if fg else self.fg, 
+            bg=bg if bg else self.bg,
         )
         console.print_box(
             x=self.x+1+x,y=self.y+1+y,
             height=self.height-2,
             width=self.width-2,
-            fg=fg, bg=bg,
-            string=self.joined_items
+            fg=fg if fg else self.fg, 
+            bg=bg if bg else self.bg,
+            string=self.text
         )
         console.print(
             x=self.x+1+x,y=self.y+1+self.index+y,
-            string=f"{self.index_items[self.index]:>{self.width_2}}",
-            fg=bg, bg=fg
+            string=f"{self.index_items[self.index]:<{self.width_2}}",
+            bg=fg if fg else self.fg, 
+            fg=bg if bg else self.bg
         )
     
     def handle_click(self, event: "tcod.event.MouseButtonDown"):
@@ -731,4 +1025,21 @@ class Selector:
             y+self.y+1 <= event.tile.y < y+self.y+self.height - 1
         )
     
-    
+    def handle_key(self, event: tcod.event.KeyDown):
+        
+        if event.sym == tcod.event.K_UP:
+            
+            self.index -= 1
+            
+            if self.index < 0:
+                
+                self.index = (self.max_index - 1) if self.wrap_item else 0
+                
+        elif event.sym == tcod.event.K_DOWN:
+            
+            self.index += 1
+        
+            if self.index >= self.max_index:
+                
+                self.index = 0 if self.wrap_item else (self.max_index - 1)
+                

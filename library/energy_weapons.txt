@@ -1,7 +1,7 @@
-# ENERGY_WEAPON:
-# NAME:
-# NAME_SHORT:
-# COLOR:
+# ENERGY_WEAPON: - The code used for this energy weapon. This can contain uppercase letters, numbers, and underscores.
+# NAME: - The name of the weapon. This can contain letters, periods, and apostriphes.
+# NAME_SHORT: - The shorthand name of the weapon. Optional. This can contain letters, periods, and apostriphes.
+# COLOR: - The color used for the weapon. This should be three intigers seperated by commas, ranging from 0 to 255.
 # END_ENERGY_WEAPON
 #
 #
@@ -17,7 +17,7 @@ END_ENERGY_WEAPON
 #
 ENERGY_WEAPON:PHA_POLERON
 NAME:phased poleron
-NAME_SHORT:p. poleron
+NAME_SHORT:p. pole.
 COLOR:187,23,196
 END_ENERGY_WEAPON
 #

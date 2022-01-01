@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from ai import BaseAi, HostileEnemy
 from coords import Coords
-from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, ShipStatus, ShipTypes
+from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, ShipStatus
 from random import choice, randrange
 from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING, Tuple, Union, Set, OrderedDict
 
-from get_config import config_object
+from get_config import CONFIG_OBJECT
 from global_functions import stardate
 from scenario import Scenerio
 from starship import ALL_SHIP_CLASSES, Starship
@@ -25,15 +25,18 @@ class GameData:
 
     engine: Engine
 
-    def __init__(self, *, subsecs_x:int, subsecs_y:int, subsec_size_x:int, subsec_size_y:int,
-                 enemy_ship_dict:OrderedDict[str:int],
-                 current_datetime:datetime,
-                 starting_stardate:Decimal,
-                 ending_stardate:Decimal,
-                 easy_move:bool, easy_aim:bool, easy_warp:bool,
-                 torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
-                 scenerio:Scenerio
-                 ):
+    def __init__(
+        self, 
+        *, 
+        subsecs_x:int, subsecs_y:int, subsec_size_x:int, subsec_size_y:int,
+        enemy_ship_dict:OrderedDict[str:int],
+        current_datetime:datetime,
+        starting_stardate:Decimal,
+        ending_stardate:Decimal,
+        easy_move:bool, easy_aim:bool, easy_warp:bool,
+        torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
+        scenerio:Scenerio
+    ):
         self.subsecs_x = subsecs_x
         self.subsecs_y = subsecs_y
         self.subsecs_range_x = range(subsecs_x)
@@ -87,7 +90,8 @@ class GameData:
         self.enemy_ship_dict:OrderedDict[str,int] = enemy_ship_dict
 
         self.captain_name = ""
-        self.player_record = {
+        self.player_record = OrderedDict(
+            {
             "planets_angered" : 0,
             "planets_depopulated" : 0,
             "prewarp_planets_depopulated" : 0,
@@ -99,6 +103,7 @@ class GameData:
             "energy_used" : 0,
             "torpedos_fired" : 0
         }
+        )
         
     @property
     def is_time_up(self):
@@ -111,20 +116,18 @@ class GameData:
     def set_condition(self):
 
         player = self.player
-
-        if player.docked:
-            self.condition = CONDITION_BLUE
         
+        all_other_ships = [ship for ship in self.all_enemy_ships if ship.ship_status.is_active]
+        
+        if not all_other_ships:
+            self.condition = CONDITION_GREEN
         else:
+            if player.docked:
+                self.condition = CONDITION_BLUE
+            else:
+                other_ships = [ship for ship in all_other_ships if ship.sector_coords == player.sector_coords]
 
-            other_ships = self.grab_ships_in_same_sub_sector(
-                player,
-                accptable_ship_statuses={STATUS_ACTIVE}
-                )
-
-            self.condition = CONDITION_RED if len(other_ships) > 0 else (
-                CONDITION_YELLOW if player.shields > 0 else CONDITION_GREEN
-            ) 
+                self.condition = CONDITION_RED if len(other_ships) > 0 else CONDITION_YELLOW
         
         self.player_scan = player.scan_this_ship(1)
         
@@ -249,30 +252,7 @@ class GameData:
                    100, False, False)
 
     #-----Gameplay related------
-    """
-    def checkForSelectableShips(self):
-
-        player = self.player
-
-        if (isinstance(self.selected_ship_planet_or_star, Starship) and self.selected_ship_planet_or_star.sector_coords != player.sector_coords
-        ) or (isinstance(self.selected_ship_planet_or_star, Planet) and self.selected_ship_planet_or_star.sector_coords != player.sector_coords
-        ) or self.selected_ship_planet_or_star is None:
-
-            ships_in_same_subsector = self.grab_ships_in_same_sub_sector(player)
-
-            if ships_in_same_subsector:
-
-                self.selected_ship_planet_or_star = ships_in_same_subsector[0]
-            else:
-                sector:SubSector = self.grid[player.sector_coords.y][player.sector_coords.x]
-
-                if sector.planets_dict:
-
-                    self.selected_ship_planet_or_star = sector.planets_dict.values()[0]
-                else:
-
-                    self.selected_ship_planet_or_star = None
-    """
+    
     def grab_ships_in_same_sub_sector(self, ship:Starship, *, include_self_in_ships_to_grab:bool=False, accptable_ship_statuses:Optional[Set[ShipStatus]]=None):
         
         if accptable_ship_statuses:
@@ -337,18 +317,12 @@ class GameData:
         torpedo = ALL_TORPEDO_TYPES[torpedo_type]
 
         posX, posY = shipThatFired.local_coords.x, shipThatFired.local_coords.y
-        """
-        dirX = destX - posX
-        dirY = destY - posY
-        atan2xy = math.atan2(dirX, dirY)
-
-        dirX, dirY = math.sin(atan2xy), math.cos(atan2xy)
-        """
+        
         descriptive_number = "a" if torpsFired == 1 else f"{torpsFired}"
         plural = "torpedo" if torpsFired == 1 else "torpedos"
         
         self.engine.message_log.add_message(
-            f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading}...", colors.yellow
+            f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading:3.2}...", colors.yellow
         )
 
         g: SubSector = self.grid[shipThatFired.sector_coords.y][shipThatFired.sector_coords.x]
@@ -368,7 +342,7 @@ class GameData:
             for co in coords:
                 #x_, y_ = co.x, co.y
                 
-                if not (0<= co.x < config_object.subsector_width) or not (0<= co.y < config_object.subsector_height):
+                if not (0<= co.x < CONFIG_OBJECT.subsector_width) or not (0<= co.y < CONFIG_OBJECT.subsector_height):
                     #self.engine.message_log.add_message("The torpedo vears off into space!" if missed_the_target else "The torpedo misses!")
                     break
 

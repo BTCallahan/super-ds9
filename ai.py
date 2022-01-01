@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Optional
-from data_globals import DAMAGE_TORPEDO, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
+from data_globals import DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
 
 from order import MoveOrder, Order, EnergyWeaponOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
 
@@ -54,17 +54,23 @@ class HostileEnemy(BaseAi):
             #scan = self.target.scanThisShip(self.entity.determinPrecision)
             scan = self.target.scan_this_ship(self.entity.determin_precision)
             
-            precision = self.entity.determin_precision
-            
-            ajusted_impulse = self.target.sys_impulse.get_info(precision, True)
-            
             player_is_present = self.target.sector_coords == self.entity.sector_coords
             
             has_energy = self.entity.energy > 0
             
             if player_is_present:
                 
-                nearbye_ships = [ship for ship in self.game_data.grab_ships_in_same_sub_sector(self.target, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}) if self.target.local_coords.distance(coords=ship.local_coords) <= self.target.ship_class.warp_breach_dist]
+                precision = self.entity.determin_precision
+            
+                ajusted_impulse = self.target.sys_impulse.get_info(precision, True)
+                
+                nearbye_ships = [
+                    ship for ship in self.game_data.grab_ships_in_same_sub_sector(
+                        self.target, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}
+                    ) if self.target.local_coords.distance(
+                        coords=ship.local_coords
+                    ) <= self.target.ship_class.warp_breach_dist
+                ]
             
                 if len(nearbye_ships) > 0:
                     
@@ -133,12 +139,22 @@ class HostileEnemy(BaseAi):
                         ram_damage = round(self.entity.sys_impulse.get_effective_value / (self.entity.hull_percentage + self.entity.shields_percentage) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
                         
                         if ram_damage > 0:
+                            
+                            energy_cost = round(
+                                self.entity.local_coords.distance(
+                                    x=self.target.local_coords.x, y=self.target.local_coords.y
+                                ) * LOCAL_ENERGY_COST * 
+                                self.entity.sys_impulse.affect_cost_multiplier
+                            )
                         
-                            ram = MoveOrder.from_coords(self.entity, self.target.local_coords.x, self.target.local_coords.y)
+                            ram = MoveOrder.from_coords(
+                                self.entity, self.target.local_coords.x, self.target.local_coords.y, energy_cost
+                            )
                             order_dict[ram] = ram_damage
                             
                             order_dict_size+=1
             else:
+                # if the player is not present:
                 
                 ships_in_same_system = self.game_data.grab_ships_in_same_sub_sector(
                     self.entity, accptable_ship_statuses={STATUS_ACTIVE}
@@ -239,7 +255,7 @@ class HostileEnemy(BaseAi):
         
         weight = 0
         
-        if not player_present:
+        if not player_present and self.entity.ship_class.is_automated:
             
             all_derelicts = [ship for ship in self.game_data.all_enemy_ships if ship.ship_status.is_recrewable]
             

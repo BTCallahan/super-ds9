@@ -1,4 +1,4 @@
-from typing import Dict, Iterable
+from typing import Dict, Final, Iterable
 from dataclasses import dataclass
 
 import re
@@ -14,19 +14,6 @@ class Torpedo:
     infrastructure:float
     infrastructure_damage:float
     
-    """
-    def __init__(self, *, name:str, damage:int, infrastructure:float, infrastructure_damage:float):
-        self.cap_name = name.capitalize()
-        self.name = name
-        self.damage = damage
-        self.infrastructure = infrastructure
-        self.infrastructure_damage = infrastructure_damage
-
-    def __hash__(self) -> int:
-        
-        return hash((self.cap_name, self.name, self.damage, self.infrastructure, self.infrastructure_damage))
-    """
-    
     @property
     def cap_name(self):
         return self.name.capitalize()
@@ -39,20 +26,6 @@ class Torpedo:
         
         return (self.damage > t.damage) if self.infrastructure == t.infrastructure else (self.infrastructure > t.infrastructure)
     
-    """
-    def __eq__(self, t: "Torpedo") -> bool:
-        try:
-            return self.damage == t.damage and self.infrastructure == t.infrastructure and self.name == t.name and self.infrastructure_damage == t.infrastructure_damage
-        except AttributeError:
-            return False
-    
-    def __ne__(self, t: "Torpedo") -> bool:
-        try:
-            return self.damage != t.damage or self.infrastructure != t.infrastructure and self.name != t.name and self.infrastructure_damage != t.infrastructure_damage
-        except AttributeError:
-            return False
-    """
-
 torpedo_pattern = re.compile(r"TORPEDO:([A-Z\_]+)\n([^#]+)END_TORPEDO")
 name_pattern = re.compile(r"NAME:([a-zA-Z\ \-\']+)\n" )
 damage_pattern = re.compile(r"DAMAGE:([\d]{1,4})\n" )
@@ -84,9 +57,11 @@ def create_torpedos() -> Dict[str,Torpedo]:
                 
         name = get_first_group_in_pattern(torpedo_txt, name_pattern)
                 
-        damage = get_first_group_in_pattern(torpedo_txt, damage_pattern)
+        damage = get_first_group_in_pattern(torpedo_txt, damage_pattern, type_to_convert_to=int)
                 
-        req_infrastructure = get_first_group_in_pattern(torpedo_txt, req_infrastructure_pattern)
+        req_infrastructure = get_first_group_in_pattern(
+            torpedo_txt, req_infrastructure_pattern, type_to_convert_to=float
+        )
                 
         planet_damage_ = get_first_group_in_pattern(torpedo_txt, planet_damage_pattern)
         
@@ -106,7 +81,7 @@ def create_torpedos() -> Dict[str,Torpedo]:
         
     return torpedo_dict
 
-ALL_TORPEDO_TYPES = create_torpedos()
+ALL_TORPEDO_TYPES:Final = create_torpedos()
 
 def find_most_powerful_torpedo(iter_torpedo_type:Iterable[str]):
 

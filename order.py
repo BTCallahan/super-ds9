@@ -4,10 +4,10 @@ from math import atan2, ceil, floor
 from random import choice
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Iterable, Optional
-from global_functions import to_rads, heading_to_coords, heading_to_direction
+from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
 from data_globals import DAMAGE_BEAM, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK
 from space_objects import Planet, SubSector
-from get_config import config_object
+from get_config import CONFIG_OBJECT
 import colors
 if TYPE_CHECKING:
     from starship import Starship
@@ -45,18 +45,18 @@ class OrderWarning(Enum):
     NO_REPAIRS_NEEDED = auto()
     
 blocks_action = {
-    OrderWarning.NOT_ENOUGHT_ENERGY : "Error: We possess insufficent energy reserves",
-    OrderWarning.OUT_OF_RANGE : "Error: Our destination is out of range",
-    OrderWarning.SYSTEM_INOPERATIVE : "Error: That ship system is off line",
-    OrderWarning.PLANET_AFRAID : "Error: The planet is too afarid of the nearby hostile forces",
-    OrderWarning.PLANET_TOO_DISTANT : "Error: The planet is too far from our ship",
-    OrderWarning.PLANET_TOO_PRIMITIVE : "Error: The planet lacks the infurstucture to repaire and repsuply our ship",
-    OrderWarning.PLANET_UNFRIENDLY : "Error: The planet is hostile to us",
-    OrderWarning.NO_TARGET : "Error: Our sensors have not targeted an enemy ship",
-    OrderWarning.NO_TARGETS : "Error: There are no enemy ships in the area",
+    OrderWarning.NOT_ENOUGHT_ENERGY : "Error: We possess insufficent energy reserves.",
+    OrderWarning.OUT_OF_RANGE : "Error: Our destination is out of range.",
+    OrderWarning.SYSTEM_INOPERATIVE : "Error: That ship system is off line.",
+    OrderWarning.PLANET_AFRAID : "Error: The planet is too afarid of the nearby hostile forces.",
+    OrderWarning.PLANET_TOO_DISTANT : "Error: The planet is too far from our ship.",
+    OrderWarning.PLANET_TOO_PRIMITIVE : "Error: The planet lacks the infurstucture to repaire and repsuply our ship.",
+    OrderWarning.PLANET_UNFRIENDLY : "Error: The planet is hostile to us.",
+    OrderWarning.NO_TARGET : "Error: Our sensors have not targeted an enemy ship.",
+    OrderWarning.NO_TARGETS : "Error: There are no enemy ships in the area.",
     OrderWarning.NO_TORPEDOS_LEFT : "Error: We have no remaining torpedos.",
     OrderWarning.ZERO_VALUE_ENTERED : "Error: You have entered a value of zero.",
-    OrderWarning.NO_CHANGE_IN_POSITION : "Error: There is no change in position", # reword this later
+    OrderWarning.NO_CHANGE_IN_POSITION : "Error: There is no change in our position.", # reword this later
     OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY : "Error: There is no change in shield energy."
 }
 
@@ -128,8 +128,9 @@ class WarpOrder(Order):
     def from_heading(cls, entity:Starship, heading:int, distance:int):
 
         x, y = heading_to_coords(
-            heading, distance, entity.sector_coords.x, entity.sector_coords.y, 
-            config_object.sector_width, config_object.sector_height
+            heading, distance, 
+            entity.sector_coords.x, entity.sector_coords.y, 
+            CONFIG_OBJECT.sector_width, CONFIG_OBJECT.sector_height
         )
 
         return cls(entity, heading, distance, x, y)
@@ -173,7 +174,7 @@ class WarpOrder(Order):
                 "Engage!", colors.cyan
             )
             self.game_data.engine.message_log.add_message(
-                f"The {self.entity.name} hase come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", colors.cyan
+                f"The {self.entity.name} has come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", colors.cyan
             )
                 
         self.entity.turn_repairing = 0
@@ -185,7 +186,7 @@ class WarpOrder(Order):
         if self.x == self.entity.sector_coords.x and self.y == self.entity.sector_coords.y:
             return OrderWarning.NO_CHANGE_IN_POSITION
         
-        if not (0 <= self.x < config_object.sector_width and 0 <= self.y < config_object.subsector_height):
+        if not (0 <= self.x < CONFIG_OBJECT.sector_width and 0 <= self.y < CONFIG_OBJECT.subsector_height):
             return OrderWarning.OUT_OF_RANGE
         
         #distance_to_destination = self.entity.sector_coords.distance(x=self.x, y=self.y)
@@ -203,20 +204,14 @@ class MoveOrder(Order):
         self.cost = ceil(distance * self.entity.sys_impulse.affect_cost_multiplier * LOCAL_ENERGY_COST)
         self.x, self.y = x,y
         self.x_aim, self.y_aim = x_aim, y_aim
-
-        #x, y = heading_to_direction(self.heading)
-
-        x_, y_ = Coords.normalize_other(x=x - entity.local_coords.x, y=y - entity.local_coords.y)
-
+        
         self.coord_list = tuple(
-            [
-                Coords(
-                    co.x + self.entity.local_coords.x, co.y + self.entity.local_coords.y
-                ) for co in self.game_data.engine.get_lookup_table(
-                    direction_x=x_, direction_y=y_, normalise_direction=False
-                )][:ceil(distance)
-            ]
-        )
+            Coords(
+                co.x + self.entity.local_coords.x, co.y + self.entity.local_coords.y
+            ) for co in self.game_data.engine.get_lookup_table(
+                direction_x=x_aim, direction_y=y_aim, normalise_direction=False
+            )
+        )[:ceil(distance)]
 
         self.ships = {
             ship.local_coords.create_coords() : ship for ship in 
@@ -229,7 +224,7 @@ class MoveOrder(Order):
         return hash((self.entity, self.heading, self.distance, self.cost, self.x, self.y, self.x_aim, self.y_aim))
     
     @classmethod
-    def from_coords(cls, entity:Starship, x:int, y:int):
+    def from_coords(cls, entity:Starship, x:int, y:int, cost:int):
 
         distance = entity.local_coords.distance(x=x,y=y)
 
@@ -238,37 +233,21 @@ class MoveOrder(Order):
 
         x_, y_ = Coords.normalize_other(x=rel_x, y=rel_y)
 
-        heading = atan2(y_, x_) / to_rads
+        heading = atan2(y_, x_) / TO_RADIANS
 
         return cls(entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_, y_aim=y_)
     
     @classmethod
-    def from_heading(cls, entity:Starship, heading:int, distance:int):
+    def from_heading(cls, entity:Starship, heading:int, distance:int, cost:int):
         
         x_aim, y_aim = heading_to_direction(heading)
         x, y = heading_to_coords(
-            heading, config_object.max_move_distance, 
+            heading, distance, 
             entity.local_coords.x, entity.local_coords.y,
-            config_object.subsector_width, config_object.subsector_height
+            CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
         )
 
         return cls(entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
-
-    """
-    def can_be_carried_out(self):
-
-        if self.entity.energy < self.distance * self.entity.sys_impulse.affect_cost_multiplier * LOCAL_ENERGY_COST:
-            return False
-
-        last_coord = self.coord_list[-1]
-
-        return (
-            self.entity.sys_impulse.isOpperational and
-            self.entity.energy >= self.distance * (1 / self.entity.sys_impulse.getEffectiveValue) and
-            last_coord.x in self.game_data.subsec_size_range_x and
-            last_coord.y in self.game_data.subsec_size_range_y
-            )
-    """
 
     def perform(self) -> None:
         
@@ -363,8 +342,8 @@ class MoveOrder(Order):
         last_coord = self.coord_list[-1]
 
         if last_coord.x not in range(
-            config_object.subsector_width
-        ) and last_coord.y not in range(config_object.subsector_height):
+            CONFIG_OBJECT.subsector_width
+        ) and last_coord.y not in range(CONFIG_OBJECT.subsector_height):
             return OrderWarning.OUT_OF_RANGE
         
         if self.entity.energy < self.cost:
@@ -499,8 +478,8 @@ class TorpedoOrder(Order):
             Coords(
                 co.x+entity.local_coords.x, co.y+entity.local_coords.y
             ) for co in torp_coords if 0 <= 
-            co.x+entity.local_coords.x < config_object.subsector_width and 
-            co.y+entity.local_coords.y < config_object.subsector_height
+            co.x+entity.local_coords.x < CONFIG_OBJECT.subsector_width and 
+            co.y+entity.local_coords.y < CONFIG_OBJECT.subsector_height
         )
         
         entity.game_data.engine.message_log.add_message(
@@ -521,7 +500,7 @@ class TorpedoOrder(Order):
         
         x_aim, y_aim = Coords.normalize_other(x=x - entity.local_coords.x, y=y - entity.local_coords.y)
 
-        heading = atan2(y_aim, x_aim) / to_rads
+        heading = atan2(y_aim, x_aim) / TO_RADIANS
         return cls(entity, amount, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
     
     @classmethod
@@ -533,8 +512,8 @@ class TorpedoOrder(Order):
         x_aim, y_aim = Coords.normalize_other(x=x_aim, y=y_aim)
         
         x, y = heading_to_coords(
-            heading, config_object.max_move_distance, entity.sector_coords.x, entity.sector_coords.y, 
-            config_object.subsector_width, config_object.subsector_height
+            heading, CONFIG_OBJECT.max_move_distance, entity.local_coords.x, entity.local_coords.y, 
+            CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
         )
 
         return cls(entity, amount, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
@@ -631,14 +610,6 @@ class DockOrder(Order):
             
             if torp is not None and num > 0:
                 self.entity.torps[torp] += num
-                    
-    """
-    def can_be_carried_out(self) -> bool:
-        if self.undock:
-            return True
-
-        return self.planet.canSupplyPlayer(self.entity)
-    """
     
     def raise_warning(self):
 
@@ -795,6 +766,9 @@ class ReactivateDerlict(Order):
             self.delrict_ships.sort(lambda ship: ship.sector_coords.distance(self.entity.sector_coords))
 
     def raise_warning(self):
+        
+        if self.entity.ship_class.is_automated or self.entity.ship_class.is_automated:
+            return OrderWarning.NOT_ENOUGHT_CREW
 
         if self.crew >= self.entity.able_crew:
             return OrderWarning.NOT_ENOUGHT_CREW
@@ -815,71 +789,3 @@ class ReactivateDerlict(Order):
 
         self.entity.able_crew -= crew_to_send_over
         self.target.able_crew += crew_to_send_over
-
-        
-
-
-'''
-class Or:
-
-    def __init__(self, command, x, y, amount, target):
-
-        self.command = command
-        self.x = x
-        self.y = y
-        self.amount = amount
-        self.target = target
-
-    def Warp(self, x ,y):
-        self.command = 'WARP'
-        self.x = x
-        self.y = y
-
-    def Move(self, x, y):
-        self.command = 'MOVE'
-        self.x = x
-        self.y = y
-
-    def Phaser(self, amount, target):
-        self.command = 'FIRE_PHASERS'
-        self.amount = max(0, amount)
-        self.target = target
-
-    def Torpedo(self, x:int, y:int, amount):
-        self.command = 'FIRE_TORPEDO'
-        self.x = x
-        self.y = y
-        self.amount = max(1, amount)
-
-    def Recharge(self, amount):
-        self.command = 'RECHARGE'
-        self.amount = amount
-
-    def Repair(self, amount):
-        self.comand = 'REPAIR'
-        self.amount = amount
-
-    @classmethod
-    def OrderWarp(cls, x, y):
-        return cls('WARP', x, y, 0, None)
-
-    @classmethod
-    def OrderMove(cls, x, y):
-        return cls('MOVE', x, y, 0, None)
-
-    @classmethod
-    def OrderPhaser(cls, amount, target):
-        return cls('FIRE_ENERGY', -1, -1, amount, target)
-
-    @classmethod
-    def OrderTorpedo(cls, x, y):
-        return cls('FIRE_TORPEDO', x, y, 0, None)
-
-    @classmethod
-    def OrderRecharge(cls, amount):
-        return cls('RECHARGE', -1, -1, amount, None)
-
-    @classmethod
-    def OrderRepair(cls):
-        return cls('REPAIR', -1, -1, 0, None)
-'''

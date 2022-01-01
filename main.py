@@ -1,6 +1,6 @@
 #BTCallahan, 3/31/2018
-#version 0.9.9, 12/21/2021
-from get_config import config_object
+#version 1.0, 12/31/2021
+from get_config import CONFIG_OBJECT
 from setup_game import StartupScreen
 import tcod, traceback
 import colors, exceptions, input_handelers
@@ -8,11 +8,11 @@ import colors, exceptions, input_handelers
 def main():
 
     tileset = tcod.tileset.load_tilesheet(
-        "dejavu10x10_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
+        CONFIG_OBJECT.graphics, 
+        32, 8, tcod.tileset.CHARMAP_TCOD
     )
-
-    screen_width = config_object.screen_width
-    screen_height = config_object.screen_height
+    screen_width = CONFIG_OBJECT.screen_width
+    screen_height = CONFIG_OBJECT.screen_height
 
     handler: input_handelers.BaseEventHandler = StartupScreen()
 

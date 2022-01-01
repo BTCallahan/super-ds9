@@ -255,14 +255,13 @@ class SubSector:
     @property
     def number_of_stars(self):
         return len(self.stars_dict)
-    """
-    def checkSafeSpot(self, x, y):
-        return self.astroObjects[y][x] == '.'
-    """
-
+    
     def find_random_safe_spot(self, ship_list:Optional[Iterable[Starship]]=None):
         if ship_list:
-            ship_positions = [ship.local_coords for ship in ship_list if ship.sector_coords.x == self.x and ship.sector_coords.y == self.y]
+            ship_positions = [
+                ship.local_coords for ship in ship_list if 
+                ship.sector_coords.x == self.x and ship.sector_coords.y == self.y
+            ]
             okay_spots = [c for c in self.safe_spots if c not in ship_positions]
             return choice(okay_spots)
         return choice(self.safe_spots)
@@ -276,36 +275,7 @@ class SubSector:
             okay_spots = [c for c in self.safe_spots if c not in ship_positions]
             return choices(okay_spots, k=how_many)
         return choices(self.safe_spots, k=how_many)
-    """
-    def getSetOfSafeSpots(self, shipList=[]):
-
-        safeSpots = []
-        for iy in SUB_SECTOR_SIZE_RANGE_Y:
-            for jx in SUB_SECTOR_SIZE_RANGE_X:
-                if self.checkSafeSpot(jx, iy):
-                    safeSpots.append(tuple([jx, iy]))
-
-        if shipList != []:
-            for s in shipList:
-                if s.sector_coords.check(self.x, self.y):
-                    t = tuple([s.local_coords.x, s.local_coords.y])
-                    if t in safeSpots:
-                        print('Trimming safespot')
-                        safeSpots.remove(t)
-
-        return safeSpots
-    """
-
-    """
-    def __getSubslice(self, y):
-        return''.join([self.astroObjects[y][x] for x in SUB_SECTOR_SIZE_RANGE_X])
-    """
-
-    """
-    def getCopy(self, gd):
-        return [[self.astroObjects[y][x] for x in gd.subsec_size_range_x] for y in gd.subsec_size_range_y]
-    """
-
+    
     def add_ship_to_sec(self, ship:Starship):
         if ship.ship_class.nation_code == "FEDERATION":
             self.player_present = True
@@ -340,11 +310,14 @@ class Planet(InterstellerObject):
     def __eq__(self, p: "Planet") -> bool:
         return self.local_coords == p.local_coords and self.sector_coords == p.sector_coords and self.planet_habbitation == p.planet_habbitation and self.infastructure == p.infastructure
 
-    def canSupplyPlayer(self, player:Starship):
+    def can_supply_ship(self, ship:Starship):
+        """
+        self.nation_relations[ship.ship_class.nation].resuply
+        """
         return (
-            self.planet_habbitation is PLANET_FRIENDLY and self.sector_coords == player.sector_coords and 
-            self.local_coords.is_adjacent(player.local_coords) and 
-            len(player.game_data.grab_ships_in_same_sub_sector(player)) < 1
+            self.planet_habbitation is PLANET_FRIENDLY and self.sector_coords == ship.sector_coords and 
+            self.local_coords.is_adjacent(ship.local_coords) and 
+            len(ship.game_data.grab_ships_in_same_sub_sector(ship)) < 1
         )
 
     def can_supply_torpedos(self, ship:Starship):

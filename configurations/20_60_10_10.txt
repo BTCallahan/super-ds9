@@ -1,0 +1,50 @@
+screen_width:120
+screen_height:60
+# The sector_width, sector_height, subsector_width, subsector_height tell the game the number of subectors in the game, as well as how big each subsector is.
+# A 4x4 subsector means that there are only 16 spots in it for stars, planets, and ships - pretty cramped! Sinilarly, if the sector_width is 3 and the 
+# sector_height is 5, then that means there are 15 sub sectors in the sector. 
+sector_width:8
+sector_height:8
+subsector_width:8
+subsector_height:8
+# The width and height of the subsector display are dependant on how big they are, if 
+sector_display_x:0
+sector_display_y:0
+# Because each subsector must display information such as how many stars it contains, the number of friendly, unfriendy, and unhabited planets, and the 
+# number of large and small enemy ships, each cell in the dsiplay is going to be a lot bigger.   
+# This is what a display with a 2x2 sector width would look like
+#
+# *---------*
+# |+0*1 +1*1|
+# |+0C1 +0C0|
+# |+0F2 +0F0|
+# |         |
+# |+0*2 +1*1|
+# |+2C1 +1C2|
+# |+1F1 +0F0|
+# *---------*
+# If the width of a sector is 4, and the height is 4, then the width in characters will be 1 + 5 * 4 = 21 and the height will be 1 + 4 * 4 = 17. 
+# If width is 8, and the height is 8, then the width in characters will be 1 + 5 * 8 = 41, and the height will be 1 + 4 * 8 = 33.
+subsector_display_x:54
+subsector_display_y:0
+message_display_x:0
+message_display_end_x:41
+message_display_y:33
+message_display_end_y:60
+your_ship_display_x:90
+your_ship_display_end_x:120
+your_ship_display_y:0
+your_ship_display_end_y:30
+other_ship_display_x:90
+other_ship_display_end_x:120
+other_ship_display_y:30
+other_ship_display_end_y:60
+command_display_x:51
+command_display_end_x:85
+command_display_y:28
+command_display_end_y:55
+position_info_x:45
+position_info_end_x:80
+position_info_y:20
+position_info_end_y:26
+graphics:dejavu10x10_gs_tc.png

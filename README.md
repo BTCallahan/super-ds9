@@ -1,7 +1,78 @@
 # super-ds9
-A modernization of the 1971 Star Trek terminal based text game. Written in Python and set during Dominion War arc of Deep Space Nine. 
 
-1. User Interface Basics
+A modernization of the 1971 Star Trek terminal based text game. Written in Python and set during a number of scenerios.
+
+1. Diffrences between with the 1978 Super Star Trek game:
+
+    While Super DS9 is heavly inspired by Super Star Trek, ther are a number of diffrences.
+
+    A. Set in Stone Diffrences:
+
+        i. Energy:
+
+            Running out of energy is no longer the death sentacne that it used to be. Now, your will regerate a small amout of energy each turn. When 
+            out of combat, using the Repair command will allow much greater energy restoration. No need to go mining dilithium crystals!
+
+        ii. In-System Movement:
+
+            When moving within a system, impulse power is always used. Moving via impulse always takes one turn. Warp travel is reserved to traveling 
+            from one system to another. Furthermore, moving via warp with shields up takes no extra energy.
+        
+        iii. Energy Weapons:
+
+            Phasers, disruptors, and other energy weapons can safly be fired with the shields up, so starship captains don't need to fool around with 
+            energy-hungry option of rapid lower-fire-raiseing their shields, firing, and then raising them.
+
+        iv. Torpedos:
+
+            No longer is the player limited to photon torpedos, now the more powerful quantium torpedos are avaliable as well! On the down side, 
+            torpedos are no longer one hit kills against most enemies.
+
+        v. Equilivancy:
+
+            In general, you should assume that everything your ship can do, your enemy can also do.
+
+        vi. No Backup Ship:
+
+            There's no option to abandon your current ship and switch ot another one.
+
+    B. Diffrences for Now:
+
+        i. Life Support:
+
+            The current version of the game lacks this feature from Super Star Trek. That can be expected to change.
+
+        ii. Nova and Supernova:
+
+            So far, stars will not erupt in a nova when hit by torpedos. This will probably change. It remains to be seen how many torpedos it will take 
+            to induce a nova, however...
+
+        iii. Cloaking Device:
+
+            Currently there is no ways for ships to cloak. This is expected to change in future versions.
+
+        iv. One Difficulty Level:
+
+            Multiple difficulty levels are another feature that the game lacks. This can be expected to change in a future version.
+
+        v. Long Range Scans:
+
+            As it stands, the long range display is updated instantly after each turn, and with perfect accuracy. Future versions will proably require 
+            long range scans to determine enemy ship positions.
+
+        vi. Starbases:
+
+            At present, the game lacks starbases that ship would be able to dock with.
+
+        vii. Communications:
+
+            Furure versions will probably include a communications system to call for renforcements.
+        
+        viii: Instant Warp Travel:
+
+            In the current version, warping takes only a single turn.
+        
+2. User Interface Basics
 
     User interface elements are rectangles drawn on the screen with titles and/or text contained in their bodies. They respond to the user clicking on 
     them, keyboard input, or both. There are several types of user interface elements used in this game:
@@ -41,7 +112,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         A menu element offers a selection of items. Clicking on one of the items will select it.
 
-2. Starting a new game:
+3. Starting a new game:
 
     Here, the player has the option to change the default names of their ship and captain, as well as randomly choosing a ship name.
 
@@ -74,7 +145,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         Cancel - Returns to the main screen.
 
-3. Game Interface:
+4. Game Interface:
 
     The game screen is divided into several sub-screens:
 
@@ -193,7 +264,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         Stars will display their system position and classification.
 
-4. Commands:
+5. Commands:
 
     A. Warp:
 
@@ -265,7 +336,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         In times of desperation, the player may want to self destruct their space craft. Because of the severity of this situation, the player is 
         required to input a password to confirm. The password is displayed below the text entry element.
 
-5. Combat:
+6. Combat:
 
     A. Taking Damage:
 
@@ -325,6 +396,6 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
             Decreases energy regeneration and increases risk of a warp core breach when hit.
 
-6. Bugs: 
+7. Bugs: 
 
     Sometimes, when an enemy ships shield is down, and it's hull is badly depleated, it will not appear on the system map.

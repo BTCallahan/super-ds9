@@ -60,15 +60,7 @@ class Coords(namedtuple("Coords_", ("x", "y"))):
 
     def isInBounds(self, rangeX, rangeY):
         return self.x in rangeX and self.y in rangeY
-        """
-    @property
-    def isInSectorBounds(self):
-        return self.x in SUB_SECTORS_RANGE_X and self.y in SUB_SECTORS_RANGE_Y
-
-    @property
-    def isInLocalBounds(self):
-        return self.x in SUB_SECTOR_SIZE_RANGE_X and self.y in SUB_SECTOR_SIZE_RANGE_Y
-"""
+        
     def normalize(self, *, coords:Optional[AnyCoords]=None, x:Optional[IntOrFloat]=None, y:Optional[IntOrFloat]=None):
         if x is not None and y is not None:
             d = sqrt(pow(x, 2) + pow(y, 2))

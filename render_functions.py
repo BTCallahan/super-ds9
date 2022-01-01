@@ -7,7 +7,7 @@ from space_objects import Planet, Star, SubSector
 from starship import Starship
 from data_globals import STATUS_HULK
 import colors
-from get_config import config_object
+from get_config import CONFIG_OBJECT
 from torpedo import ALL_TORPEDO_TYPES
 
 if TYPE_CHECKING:
@@ -19,13 +19,13 @@ if TYPE_CHECKING:
 
 def create_grid():
 
-    st1 = " " + ("| " * (config_object.subsector_width - 1))
+    st1 = " " + ("| " * (CONFIG_OBJECT.subsector_width - 1))
 
-    st2 = "-" + ("+-" * (config_object.subsector_width - 1))
+    st2 = "-" + ("+-" * (CONFIG_OBJECT.subsector_width - 1))
 
     st3 = st2 + "\n" + st1
 
-    st4 = [st1] + [st3 for s in range(config_object.subsector_height - 1)]
+    st4 = [st1] + [st3 for s in range(CONFIG_OBJECT.subsector_height - 1)]
 
     st5 = "\n".join(st4)
     
@@ -35,10 +35,10 @@ GRID = create_grid()
 
 def print_system(console:Console, gamedata:GameData):
 
-    x = config_object.subsector_display_x
-    y = config_object.subsector_display_y
-    width = config_object.subsector_width
-    heigth = config_object.subsector_height
+    x = CONFIG_OBJECT.subsector_display_x
+    y = CONFIG_OBJECT.subsector_display_y
+    width = CONFIG_OBJECT.subsector_width
+    heigth = CONFIG_OBJECT.subsector_height
 
     player = gamedata.player
     
@@ -98,16 +98,7 @@ def print_system(console:Console, gamedata:GameData):
     #number_of_ships = len(ships)
 
     for c, planet in sector.planets_dict.items():
-
-        """
-        planet_color = planet_color_dict[planet.planetType]
-        if planet_color == colors.planet_allied and number_of_ships > 0:
-            planet_color = colors.planet_frightened
-
-        console.print(x=x+c.x, y=y+c.y, string="#", 
-        fg=planet_color
-        )
-        """
+        
         console.print(
             x=x + (c.x * 2) + 1, 
             y=y + (c.y * 2) + 1, 
@@ -150,15 +141,15 @@ def print_mega_sector(console:Console, gamedata:GameData):
 
 
 """
-    x = config_object.sector_display_x
-    y = config_object.sector_display_y
+    x = CONFIG_OBJECT.sector_display_x
+    y = CONFIG_OBJECT.sector_display_y
 
-    sector_width=config_object.sector_width
-    sector_height=config_object.sector_height
+    sector_width=CONFIG_OBJECT.sector_width
+    sector_height=CONFIG_OBJECT.sector_height
 
     player_coords = gamedata.player.sector_coords
 
-    console.draw_frame(x=x, y=y, width=1+sector_width*5, height=1+sector_height*4, title="Sub-Sectors", clear=False)
+    console.draw_frame(x=x, y=y, width=1+sector_width*5, height=1+sector_height*4, title="Systems", clear=False)
 
     console.draw_frame(x=player_coords.x * 5, y=player_coords.y * 4, width=6, height=5)
 
@@ -259,7 +250,6 @@ def print_ship_info(
         string=f"Position: {self.local_coords.x}, {self.local_coords.y}" 
     )
     
-    
     if ship_status == STATUS_HULK:
         
         console.print_box(
@@ -270,40 +260,58 @@ def print_ship_info(
         )
     
     else:
-            
-        for i, n, d, m in zip(
-            range(4, 4+5), 
-            (
-                "Shields:", "Hull:", "Energy:", "Able Crew:", "Injured Crew:"
-            ),
-            (
-                scan['shields'],
-                scan['hull'],
-                scan['energy'],
-                scan['able_crew'],
-                scan['injured_crew']
-            ),
-            (
-                self.ship_class.max_shields,
-                self.ship_class.max_hull,
-                self.ship_class.max_energy, 
-                self.ship_class.max_crew,
-                self.ship_class.max_crew
-            )
-        ):
-            console.print(x=x+2, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
-
+        if not self.ship_class.is_automated:
+                
+            for i, n, d, m in zip(
+                range(4, 4+5), 
+                (
+                    "Shields:", "Hull:", "Energy:", "Able Crew:", "Injured Crew:"
+                ),
+                (
+                    scan['shields'],
+                    scan['hull'],
+                    scan['energy'],
+                    scan['able_crew'],
+                    scan['injured_crew']
+                ),
+                (
+                    self.ship_class.max_shields,
+                    self.ship_class.max_hull,
+                    self.ship_class.max_energy, 
+                    self.ship_class.max_crew,
+                    self.ship_class.max_crew
+                )
+            ):
+                console.print(x=x+3, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
+        else:
+            for i, n, d, m in zip(
+                range(4, 4+3), 
+                (
+                    "Shields:", "Hull:", "Energy:"
+                ),
+                (
+                    scan['shields'],
+                    scan['hull'],
+                    scan['energy']
+                ),
+                (
+                    self.ship_class.max_shields,
+                    self.ship_class.max_hull,
+                    self.ship_class.max_energy, 
+                    
+                )
+            ):
+                console.print(x=x+3, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
         
-
         s = 10
 
         if self.ship_class.ship_type_can_fire_torps:
             max_torps = self.ship_class.max_torpedos 
-            console.print(x=x+2, y=y+s, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}" )
-            console.print(x=x+2, y=y+s+1, string=f"Max Torpedos:{max_torps: =2}")
+            console.print(x=x+3+2, y=y+s, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}" )
+            console.print(x=x+3+3, y=y+s+1, string=f"Max Torpedos:{max_torps: =2}")
             s+=2
             for i, t in enumerate(self.ship_class.torp_types):
-                console.print(x=x+2, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}"
+                console.print(x=x+3, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}"
                 )
                 s+=1
         
@@ -321,14 +329,14 @@ def print_ship_info(
             #k = keys[i-(s+3)]
             n__n = f"{n:>16}"
             s__s = f"{scanned:7.2%}"
-            console.print(x=x+2, y=y+i+end, string=f"{n__n}{s__s}")
+            console.print(x=x+3, y=y+i+end, string=f"{n__n}{s__s}")
     
 def render_own_ship_info(console: Console, gamedata:GameData):
 
-    start_x = config_object.your_ship_display_x
-    start_y = config_object.your_ship_display_y
-    width = config_object.your_ship_display_end_x - config_object.your_ship_display_x
-    height = config_object.your_ship_display_end_y - config_object.your_ship_display_y
+    start_x = CONFIG_OBJECT.your_ship_display_x
+    start_y = CONFIG_OBJECT.your_ship_display_y
+    width = CONFIG_OBJECT.your_ship_display_end_x - CONFIG_OBJECT.your_ship_display_x
+    height = CONFIG_OBJECT.your_ship_display_end_y - CONFIG_OBJECT.your_ship_display_y
 
     print_ship_info(
         console=console,
@@ -342,10 +350,10 @@ def render_own_ship_info(console: Console, gamedata:GameData):
 
 def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[Starship]=None):
 
-    start_x = config_object.other_ship_display_x
-    start_y = config_object.other_ship_display_y
-    width = config_object.other_ship_display_end_x - config_object.other_ship_display_x
-    height = config_object.other_ship_display_end_y - config_object.other_ship_display_y
+    start_x = CONFIG_OBJECT.other_ship_display_x
+    start_y = CONFIG_OBJECT.other_ship_display_y
+    width = CONFIG_OBJECT.other_ship_display_end_x - CONFIG_OBJECT.other_ship_display_x
+    height = CONFIG_OBJECT.other_ship_display_end_y - CONFIG_OBJECT.other_ship_display_y
     
     ship_planet_or_star = gamedata.selected_ship_planet_or_star
 
@@ -419,45 +427,44 @@ def print_message_log(console: Console, gamedata:GameData):
 
     gamedata.engine.message_log.render_messages(
         console=console,
-        x=config_object.message_display_x,
-        y=config_object.message_display_y,
-        width=config_object.message_display_end_x - config_object.message_display_x,
-        height=config_object.message_display_end_y - config_object.message_display_y,
+        x=CONFIG_OBJECT.message_display_x,
+        y=CONFIG_OBJECT.message_display_y,
+        width=CONFIG_OBJECT.message_display_end_x - CONFIG_OBJECT.message_display_x,
+        height=CONFIG_OBJECT.message_display_end_y - CONFIG_OBJECT.message_display_y,
         messages=gamedata.engine.message_log.messages
     )
 
 def render_command_box(console: Console, gameData:GameData, title:str):
 
     console.draw_frame(
-        x=config_object.command_display_x,
-        y=config_object.command_display_y,
-        width=config_object.command_display_end_x - config_object.command_display_x,
-        height=config_object.command_display_end_y - config_object.command_display_y,
+        x=CONFIG_OBJECT.command_display_x,
+        y=CONFIG_OBJECT.command_display_y,
+        width=CONFIG_OBJECT.command_display_end_x - CONFIG_OBJECT.command_display_x,
+        height=CONFIG_OBJECT.command_display_end_y - CONFIG_OBJECT.command_display_y,
         title=title
     )
 
 def render_position(console: Console, gameData:GameData):
     #console.draw_frame()
-    w = config_object.position_info_end_x - config_object.position_info_x
-    h = config_object.position_info_end_y - config_object.position_info_y
+    w = CONFIG_OBJECT.position_info_end_x - CONFIG_OBJECT.position_info_x
+    h = CONFIG_OBJECT.position_info_end_y - CONFIG_OBJECT.position_info_y
+    
     console.draw_frame(
-        x=config_object.position_info_x,
-        y=config_object.position_info_y,
+        x=CONFIG_OBJECT.position_info_x,
+        y=CONFIG_OBJECT.position_info_y,
         width=w,
         height=h,
         title=gameData.condition.text,
         fg=gameData.condition.fg,
         bg=gameData.condition.bg
     )
-    
     console.print_box(
-        x=config_object.position_info_x+1,
-        y=config_object.position_info_y+1,
+        x=CONFIG_OBJECT.position_info_x+1,
+        y=CONFIG_OBJECT.position_info_y+1,
         string=f"Local pos: {gameData.player.local_coords}\nSystem pos: {gameData.player.sector_coords}\nStardate: {gameData.stardate}\nEnding stardate: {gameData.ending_stardate}",
         width=w-2,
         height=h-2
     )
-
     pass
 
 def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDown") -> Union[Planet, Star, Starship, bool]:
@@ -471,9 +478,9 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
         Union[Planet, Star, Starship, bool]: If the mouse cursor is over a ship, planet, or star, that object will be returned. If not, then True will be returned. If the mouse cursor was not over a grid square, False will be returned.
     """
 
-    x,y = config_object.subsector_display_x, config_object.subsector_display_y
+    x,y = CONFIG_OBJECT.subsector_display_x, CONFIG_OBJECT.subsector_display_y
 
-    width, height = config_object.subsector_width, config_object.subsector_height
+    width, height = CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
 
     x_range = range(x+1, x+2+width*2, 2)
     y_range = range(y+1, y+1+height*2, 2)
@@ -511,9 +518,9 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
 
 def select_sub_sector_space(event: "tcod.event.MouseButtonDown"):
 
-    x,y = config_object.subsector_display_x, config_object.subsector_display_y
+    x,y = CONFIG_OBJECT.subsector_display_x, CONFIG_OBJECT.subsector_display_y
 
-    width, height = config_object.subsector_width, config_object.subsector_height
+    width, height = CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
 
     x_range = range(x+1, x+2+width*2, 2)
     y_range = range(y+1, y+1+height*2, 2)
@@ -530,9 +537,9 @@ def select_sub_sector_space(event: "tcod.event.MouseButtonDown"):
 
 def select_sector_space(event: "tcod.event.MouseButtonDown"):
 
-    x,y = config_object.sector_display_x, config_object.sector_display_y
+    x,y = CONFIG_OBJECT.sector_display_x, CONFIG_OBJECT.sector_display_y
 
-    width, height = config_object.sector_width, config_object.sector_height
+    width, height = CONFIG_OBJECT.sector_width, CONFIG_OBJECT.sector_height
 
     x_range = range(x+1, width*5+x+2)
     y_range = range(y+1, height*4+y+2)
