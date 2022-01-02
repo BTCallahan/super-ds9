@@ -186,11 +186,11 @@ class GameData:
 
                     starship.game_data = self
                     
-                    if ship.nation_code != "FEDERATION":
-                        if ship.ship_type == "ESCORT":
-                            sub_sector.small_ships+=1
-                        elif ship.ship_type in {"CRUISER", "WARSHIP"}:
-                            sub_sector.big_ships+=1
+                    #if ship.nation is not game_data.scenerio.your_nation:
+                    if ship.ship_type == "ESCORT":
+                        sub_sector.small_ships+=1
+                    elif ship.ship_type in {"CRUISER", "WARSHIP"}:
+                        sub_sector.big_ships+=1
 
                     yield starship
                 
@@ -239,7 +239,7 @@ class GameData:
         self.total_starships = [self.player] + self.all_enemy_ships
 
         self.ships_in_same_sub_sector_as_player = self.grab_ships_in_same_sub_sector(self.player)
-        self.visible_ships_in_same_sub_sector_as_player = [ship for ship in self.ships_in_same_sub_sector_as_player if ship.cloak_status != CloakStatus.ACTIVE and ship.isAlive]
+        self.visible_ships_in_same_sub_sector_as_player = [ship for ship in self.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible]
 
         self.set_condition()
         
@@ -304,7 +304,9 @@ class GameData:
                 
         for ship in self.all_enemy_ships:
             
-            if ship.ship_status.is_active:
+            status = ship.ship_status
+            
+            if status.is_active:# and status.is_visible:
                 x,y = ship.sector_coords.x, ship.sector_coords.y
                 subsec:SubSector = self.grid[y][x]
                 

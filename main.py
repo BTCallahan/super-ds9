@@ -1,5 +1,5 @@
 #BTCallahan, 3/31/2018
-#version 1.0, 12/31/2021
+#version 1.0.1, 1/1/2022
 from get_config import CONFIG_OBJECT
 from setup_game import StartupScreen
 import tcod, traceback

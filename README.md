@@ -296,17 +296,32 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
     D. Repair:
 
         This will let the player commence repairs on their ship. During this, the crew on the player's ship will focusing repairing the hull and any 
-        damage systems, as well as regenerating energy at an increased rate.
+        damaged systems, as well as regenerating energy at an increased rate.
 
         Damage to the warp core will reduce the amount of energy restored.
 
         For every consecutive turn spent repairing, the amount of of damage that is repaired is increased, as is the amount of energy restored. Taking 
         damage will rest this counter.
 
+    E. Cloaking:
+
+        Some ships have a cloaking devince installed on them. This will allow them to cloak, hiding themselves from detection and making it much more 
+        difficult for hostile ships to target them. This does not, however, render the cloaked ship immune from harm, especially since shields are 
+        offline while cloaked. Should the cloaked ship sustain damage, say from an errant torpedo or the warp core breach of another ship, then the 
+        results will be much worse then if it had been hit while uncloaked.
+        
+        It is hard to detect a cloaked ship, it is not impossible. If an enemy ship has sensors that are good enough, then the cloaked ship will be 
+        (temporarily) revealed to any enemies in the system, and can then be targeted. Note that each enemy ship has a chance to detect the cloaked ship. 
+        This is affected by damage to the cloaking device and the sensors of the cloaked, and hostile ships, respectivly.
+
+        After cloaking, a ship may fire torpedos or energy weapons. This will automaticly decloak the ship, so there is no need to manually drop the 
+        cloak and give the enemy a free turn to shoot. However, the decloak-fire sequence will overstress the device, and require to wait until a 
+        cooldown expires before the ship can cloak again.
+
     E. Dock:
 
-        If the player is adajacent to a planet that is able and willing to resupply them, and there are no nearbye enemy ship, then the player is able 
-        to dock with the planet.
+        If the player is adajacent to a planet that is able and willing to resupply them, then the player is able to dock with the planet. The player may 
+        not dock while there are nearbye enemy ships, nor while they are cloaked.
 
         Docking will allow for increased repairs and energy restoration based on the infrustructure level of the planet.
         
@@ -384,15 +399,19 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
             Decreases the accuracy of torpedoes fired and the number of avaliabe torpedo tubes.
 
-        v. Sensors:
+        v. Cloaking Device:
+
+            Increases the chance of detection. 
+
+        vi. Sensors:
 
             Decreases accuray beam attacks and torpedoes, as well as information on enemy ships displayed.
 
-        vi. Shields:
+        vii. Shields:
 
             Decreases maximum shield strength.
 
-        vii. Warp Core:
+        viii. Warp Core:
 
             Decreases energy regeneration and increases risk of a warp core breach when hit.
 

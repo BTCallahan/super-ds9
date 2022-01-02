@@ -60,9 +60,9 @@ class Engine:
                 
                 if entity in self.game_data.ships_in_same_sub_sector_as_player:
 
-                    if self.player.cloak_status != CloakStatus.INACTIVE:
+                    if self.player.cloak_status == CloakStatus.ACTIVE and entity.detect_cloaked_ship(self.player) :
                         
-                        self.player.cloak_status = CloakStatus.COMPRIMISED if entity.detect_cloaked_ship(self.player) else CloakStatus.ACTIVE
+                        self.player.cloak_status = CloakStatus.COMPRIMISED
                         
                 entity.ai.perform()
                 entity.repair()

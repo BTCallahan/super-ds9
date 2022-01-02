@@ -2,9 +2,9 @@ from __future__ import annotations
 from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Optional
-from data_globals import DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, CloakStatus
+from data_globals import DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
 
-from order import MoveOrder, Order, EnergyWeaponOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
+from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
 
 if TYPE_CHECKING:
     from starship import Starship
@@ -58,7 +58,7 @@ class HostileEnemy(BaseAi):
             
             has_energy = self.entity.energy > 0
             
-            player_is_not_cloaked = self.game_data.player.cloak_status != CloakStatus.ACTIVE
+            player_is_not_cloaked = self.game_data.player.ship_status.is_visible
             
             if player_is_present and player_is_not_cloaked:
                 
@@ -68,7 +68,9 @@ class HostileEnemy(BaseAi):
                 
                 nearbye_ships = [
                     ship for ship in self.game_data.grab_ships_in_same_sub_sector(
-                        self.target, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}
+                        self.target, accptable_ship_statuses={
+                            STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED
+                        }
                     ) if self.target.local_coords.distance(
                         coords=ship.local_coords
                     ) <= self.target.ship_class.warp_breach_dist
@@ -155,11 +157,16 @@ class HostileEnemy(BaseAi):
                             order_dict[ram] = ram_damage
                             
                             order_dict_size+=1
+                if self.entity.ship_can_cloak and self.entity.cloak_status == CloakStatus.INACTIVE:
+                    cloak = CloakOrder(self.entity, deloak=False)
+                    order_dict[cloak] = (
+                        100 * self.entity.sys_cloak.get_effective_value * self.entity.ship_class.cloak_strength
+                    )
             else:
                 # if the player is not present:
                 
                 ships_in_same_system = self.game_data.grab_ships_in_same_sub_sector(
-                    self.entity, accptable_ship_statuses={STATUS_ACTIVE}
+                    self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED}
                 )
                 allied_ships_in_same_system = [ship for ship in ships_in_same_system if ship is not self.game_data.player]
                 
@@ -204,8 +211,10 @@ class HostileEnemy(BaseAi):
                         order_dict[warp_to] = self.entity.energy - round(energy_cost)
                         
                         order_dict_size+=1
-                    
-            if self.entity.sys_shield_generator.is_opperational:
+            
+            get_max_effective_shields = self.entity.get_max_effective_shields
+            
+            if self.entity.sys_shield_generator.is_opperational and self.entity.shields < get_max_effective_shields:
                 
                 recharge_amount = self.entity.get_max_effective_shields - self.entity.shields
                 
@@ -252,7 +261,7 @@ class HostileEnemy(BaseAi):
             
         order.perform()
 
-    def reactivateDerelict(self):
+    def reactivate_derelict(self):
         player_present = self.game_data.player.sector_coords == self.entity.sector_coords
         
         weight = 0

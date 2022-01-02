@@ -8,16 +8,15 @@ from math import ceil, inf
 from itertools import accumulate
 from functools import lru_cache
 from energy_weapon import ALL_ENERGY_WEAPONS
-from get_config import CONFIG_OBJECT
 
 from global_functions import get_first_group_in_pattern
-from nation import Nation, ALL_NATIONS
+from nation import ALL_NATIONS
 from space_objects import SubSector
 from torpedo import Torpedo, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
 from torpedo import ALL_TORPEDO_TYPES
 import colors
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
 def scan_assistant(v:IntOrFloat, precision:int):
     """This takes a value, v and devides it by the precision. Next, the quotent is rounded to the nearest intiger and then multiplied by the precision. The product is then returned. A lower precision value ensures more accurate results. If precision is 1, then v is returned
@@ -185,12 +184,14 @@ class ShipClass:
     nation_code:str
     system_names:Tuple[str]
     system_keys:Tuple[str]
+    detection_strength:float
     max_armor:int=0
     max_torpedos:int=0
     torp_types:Optional[List[str]]=None    
     torp_tubes:int=0
     warp_breach_dist:int=2
     cloak_strength:float=0.0
+    cloak_cooldown:int=2
 
     """
     def __init__(self, *,
@@ -245,8 +246,7 @@ to one.'''
         self.max_weap_energy = max_weap_energy
         self.warp_breach_dist = warp_breach_dist
     """
-        
-
+    
     @classmethod
     def create_ship_class(
         cla,
@@ -267,7 +267,9 @@ to one.'''
         warp_breach_dist:int=2, 
         energy_weapon_code:str,
         nation_code:str,
-        cloak_strength:float
+        cloak_strength:float=0.0,
+        detection_strength:float,
+        cloak_cooldown:int=2
     ):
         
         if (torp_types is None or len(torp_types) == 0) != (torp_tubes < 1) != (max_torpedos < 1):
@@ -285,6 +287,7 @@ to one.'''
         
         system_names, system_keys = get_system_names(
             has_torpedo_launchers=max_torpedos > 0 and torp_tubes > 0,
+            has_cloaking_device=cloak_strength > 0.0,
             beam_weapon_name=f"{short_beam_name_cap}s"
         )
             
@@ -307,7 +310,9 @@ to one.'''
             nation_code=nation_code,
             system_names=system_names, 
             system_keys=system_keys,
-            cloak_strength=cloak_strength
+            cloak_strength=cloak_strength,
+            cloak_cooldown=cloak_cooldown,
+            detection_strength=detection_strength
         )
 
     @property
@@ -358,6 +363,11 @@ to one.'''
 
     @property
     @lru_cache
+    def ship_type_can_cloak(self):
+        return self.cloak_strength > 0.0
+
+    @property
+    @lru_cache
     def get_stragic_values(self):
         """Determins the stragic value of the ship class for scoring purpousess.
 
@@ -392,6 +402,9 @@ energy_pattern = re.compile(r"ENERGY:([\d]+)\n")
 energy_weapon_pattern = re.compile(r"ENERGY_WEAPON:([A-Z_]+)\n")
 crew_pattern = re.compile(r"CREW:([\d]+)\n")
 torpedos_pattern = re.compile(r"TORPEDOS:([\d]+)\n")
+cloak_strength_pattern = re.compile(r"CLOAK_STRENGTH:([\d.]+)\n")
+cloak_cooldown_pattern = re.compile(r"CLOAK_COOLDOWN:([\d]+)\n")
+detection_strength_pattern = re.compile(r"DETECTION_STRENGTH:([\d.]+)")
 damage_control_pattern = re.compile(r"DAMAGE_CONTROL:([\d.]+)\n")
 torpedos_tubes_pattern = re.compile(r"TORPEDO_TUBES:([\d]+)\n")
 torpedos_types_pattern = re.compile(r"TORPEDO_TYPES:([A-Z\,\_]+)\n")
@@ -460,6 +473,20 @@ def create_ship_classes():
         
         energy_weapon = get_first_group_in_pattern(shipclass_txt, energy_weapon_pattern)
         
+        cloak_strength = get_first_group_in_pattern(
+            shipclass_txt, cloak_strength_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0,
+            type_to_convert_to=float
+        )
+        
+        cloak_cooldown = get_first_group_in_pattern(
+            shipclass_txt, cloak_cooldown_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=2,
+            type_to_convert_to=int
+        )
+        
+        detection_strength = get_first_group_in_pattern(
+            shipclass_txt, detection_strength_pattern, type_to_convert_to=float
+        )
+        
         damage_control = get_first_group_in_pattern(
             shipclass_txt, damage_control_pattern, 
             type_to_convert_to=float
@@ -486,6 +513,9 @@ def create_ship_classes():
             max_energy=energy,
             max_crew=crew,
             torp_types=torpedo_types,
+            cloak_strength=cloak_strength,
+            cloak_cooldown=cloak_cooldown,
+            detection_strength=detection_strength,
             warp_breach_dist=warp_core_breach_distance,
             nation_code=nation,
             energy_weapon_code=energy_weapon
@@ -544,7 +574,7 @@ class Starship:
         self.sys_beam_array = StarshipSystem(f'{self.ship_class.get_energy_weapon.short_beam_name_cap}s:')
         self.sys_shield_generator = StarshipSystem('Shield:')
         self.sys_sensors = StarshipSystem('Sensors:')
-        self.sysCloak = StarshipSystem("Cloak:")
+        self.sys_cloak = StarshipSystem("Cloak:")
         self.sys_warp_core = StarshipSystem('Warp Core:')
         self.override_nation_code = override_nation_code
 
@@ -650,7 +680,7 @@ class Starship:
 
     @property
     def ship_can_cloak(self):
-        return self.ship_class.ship_type_can_cloak and self.sysCloak.is_opperational
+        return self.ship_class.ship_type_can_cloak and self.sys_cloak.is_opperational and self.cloak_cooldown < 1
 
     @property
     def able_crew_percent(self):
@@ -880,6 +910,11 @@ It's actually value is {precision}."
             if status is STATUS_ACTIVE and not self.ship_class.is_automated and able_crew + injured_crew <= 0:
                 status = STATUS_DERLICT
 
+        ship_type_can_cloak = self.ship_type_can_cloak
+
+        if ship_type_can_cloak:
+            d["cloak_cooldown"] = self.cloak_cooldown
+
         ship_type_can_fire_torps = self.ship_class.ship_type_can_fire_torps
 
         if scan_for_systems:
@@ -890,8 +925,8 @@ It's actually value is {precision}."
             d["sys_sensors"] = self.sys_sensors.get_info(precision, False)# * 0.01,
             if ship_type_can_fire_torps:
                 d["sys_torpedos"] = self.sys_torpedos.get_info(precision, False)# * 0.01
-            if self.ship_type_can_cloak:
-                d["sys_cloak"] = self.sysCloak.getInfo(precision)
+            if ship_type_can_cloak:
+                d["sys_cloak"] = self.sys_cloak.get_info(precision, False)
             d["sys_warp_core"] = self.sys_warp_core.get_info(precision, False)
             
         d["status"] = status
@@ -989,7 +1024,7 @@ It's actually value is {precision}."
         
         for i in range(number_of_simulations):
         
-            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage = self.calculate_damage(
+            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage, cloak_sys_damage = self.calculate_damage(
                 amount, scan_dict=scan, precision=precision, calculate_crew=False, 
                 calculate_systems=False, damage_type=DAMAGE_EXPLOSION
             )
@@ -1021,10 +1056,12 @@ It's actually value is {precision}."
             return STATUS_OBLITERATED
         if self._hull <= 0:
             return STATUS_HULK
-        return STATUS_DERLICT if (
-            not self.ship_class.is_automated and self.able_crew + self.injured_crew < 1
-        ) else STATUS_ACTIVE
-
+        if not self.ship_class.is_automated and self.able_crew + self.injured_crew < 1:
+            return STATUS_DERLICT
+        if self.ship_can_cloak and self.cloak_status != CloakStatus.INACTIVE:
+            return STATUS_CLOAKED if self.cloak_status == CloakStatus.ACTIVE else STATUS_CLOAK_COMPRIMISED
+        return STATUS_ACTIVE
+            
     def ram(self, other_ship:Starship):
         """Prepare for RAMMING speed!
 
@@ -1082,25 +1119,30 @@ It's actually value is {precision}."
         
         old_scan = scan_dict if scan_dict else self.scan_this_ship(precision)
         
-        is_hulk = old_scan["hull"] <= 0
+        current_shields:int = old_scan["shields"]
+        
+        current_hull:int = old_scan["hull"]
+        
+        old_hull_as_a_percent = current_hull / self.ship_class.max_hull
+        
+        old_status = self.ship_status
+        
+        is_hulk = current_hull < 0
         
         try:
             is_derlict = old_scan["able_crew"] + old_scan["injured_crew"] <= 0
         except KeyError:
             is_derlict = False
         
-        current_shields:int = old_scan["shields"]
-        current_hull:int = old_scan["hull"]
-        
         shield_effectiveness = 0 if old_scan["sys_shield"] < 0.15 else min(old_scan["sys_shield"] * 1.25, 1.0)
         
-        shields_are_already_down = shield_effectiveness <= 0 or current_shields <= 0 or is_hulk or is_derlict or self.cloak_status != CloakStatus.INACTIVE
+        shields_are_already_down = shield_effectiveness <= 0 or current_shields <= 0 or not old_status.do_shields_work
         
         shields_dam = 0
         armorDam = amount
         hull_dam = amount
         
-        shieldDamMulti = damage_type.damage_vs_shields_multiplier
+        shield_dam_multi = damage_type.damage_vs_shields_multiplier
 
         armorHullDamMulti = (
             damage_type.damage_vs_no_shield_multiplier 
@@ -1118,7 +1160,7 @@ It's actually value is {precision}."
             hull_dam = amount * armorHullDamMulti
         else:
             to_add = 0
-            shields_dam = amount * bleedthru_factor * shieldDamMulti
+            shields_dam = amount * bleedthru_factor * shield_dam_multi
             if shields_dam > current_shields:
                 to_add = shields_dam - current_shields
                 
@@ -1169,6 +1211,7 @@ It's actually value is {precision}."
         sensors_sys_damage = 0
         torpedo_sys_damage = 0
         warp_core_sys_damage = 0
+        cloak_sys_damage = 0
         
         if calculate_systems and not is_hulk:
             chance_to_damage_system = damage_type.chance_to_damage_system
@@ -1180,6 +1223,7 @@ It's actually value is {precision}."
                 system_damage_chance = damage_type.damage_chance_vs_systems_multiplier
                 
                 def chance_of_system_damage():
+                    # this is cumbersome. A better way may be random() * chance_to_damage_system > (old_hull_as_a_percent + new_hull_as_a_percent) * 0.5
                     return uniform(
                         hull_damage_as_a_percent, chance_to_damage_system + hull_damage_as_a_percent
                         ) > new_hull_as_a_percent
@@ -1201,12 +1245,16 @@ It's actually value is {precision}."
                     torpedo_sys_damage = random_system_damage()
                 if chance_of_system_damage():
                     warp_core_sys_damage = random_system_damage()
+                if self.ship_class.ship_type_can_cloak and chance_of_system_damage():
+                    cloak_sys_damage = random_system_damage()
+                        
+                        
             
         return (
             new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, 
             new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, 
             energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, 
-            warp_core_sys_damage, torpedo_sys_damage
+            warp_core_sys_damage, torpedo_sys_damage, cloak_sys_damage
         )
 
     def take_damage(self, amount, text, *, damage_type:DamageType):
@@ -1218,7 +1266,7 @@ It's actually value is {precision}."
         
         ship_originaly_destroyed = old_ship_status in {STATUS_HULK, STATUS_OBLITERATED}
         
-        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage = self.calculate_damage(amount, damage_type=damage_type)
+        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage, cloak_sys_damage = self.calculate_damage(amount, damage_type=damage_type)
         
         ship_destroyed = new_hull < 0
         
@@ -1257,7 +1305,6 @@ It's actually value is {precision}."
             self.turn_repairing -= 1
         
         if not ship_destroyed:
-            
             
             old_shields = old_scan["shields"] if old_ship_status.do_shields_work else 0
             
@@ -1412,10 +1459,8 @@ It's actually value is {precision}."
                 if self.ship_type_can_fire_torps and torpedo_sys_damage > 0:
                     message_log.add_message('Torpedo launcher damaged.')
                 
-                if self.shipData.ship_type_can_cloak and randint(0, 3) == 0:
-                        if is_controllable:
-                            gd.engine.message_log.add_message("Cloaking device damaged. ")
-                        self.sysCloak.integrety -= randomSystemDamage()
+                if self.ship_class.ship_type_can_cloak and cloak_sys_damage > 0:
+                    message_log.add_message("Cloaking device damaged.")
                 
         elif not ship_originaly_destroyed:
             wc_breach = ((not old_ship_status.is_destroyed and new_ship_status is STATUS_OBLITERATED) or (
@@ -1466,10 +1511,12 @@ It's actually value is {precision}."
         system_repair_factor = (
             self.ship_class.damage_control * repair_factor.system_repair * self.crew_readyness * time_bonus
         )
+        
+        status = self.ship_status
 
         self.energy+= (
             repair_factor.energy_regeration * self.sys_warp_core.get_effective_value * energy_regeneration_bonus
-        )
+        ) - ((REPAIR_PER_TURN.energy_regeration * 0.5) if status.energy_drain else 0)
 
         if not self.ship_class.is_automated:
             heal_crew = min(self.injured_crew, ceil(self.injured_crew * 0.2) + randint(2, 5))
@@ -1508,9 +1555,13 @@ It's actually value is {precision}."
         
         distance_penalty += damage_type.flat_accuracy_loss
         
-        attack_value = crew_readyness * sum(systems_used_for_accuray) / len(systems_used_for_accuray)
+        deffence_value = (estimated_enemy_impulse + distance_penalty) * (1 if enemy.ship_status.is_visible else 8)
         
-        return attack_value + random() > estimated_enemy_impulse + distance_penalty
+        attack_value = crew_readyness * (
+            sum(systems_used_for_accuray) / len(systems_used_for_accuray)
+            ) * (1 if enemy.ship_status.is_visible else 0.125)
+        
+        return attack_value + random() > deffence_value
     
     def attack_energy_weapon(self, enemy:Starship, amount:float, energy_cost:float,  damage_type:DamageType):
         gd = self.game_data
@@ -1667,7 +1718,7 @@ It's actually value is {precision}."
                     crew_readyness=self.crew_readyness * 0.5 + 0.5
                 ):
                     
-                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage =self.calculate_damage(
+                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage, cloak_sys_damage =self.calculate_damage(
                         damage, precision=precision, calculate_crew=simulate_crew, 
                         calculate_systems=simulate_systems, scan_dict=target_scan, damage_type=DAMAGE_TORPEDO
                     )
@@ -1735,7 +1786,7 @@ It's actually value is {precision}."
                                 
             ):
                             
-                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage =self.calculate_damage(
+                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, energy_weapons_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, torpedo_sys_damage, cloak_sys_damage =self.calculate_damage(
                     amount, precision=precision, calculate_crew=False, 
                     calculate_systems=simulate_systems, scan_dict=targScan, damage_type=damage_type
                 )
@@ -1818,14 +1869,35 @@ It's actually value is {precision}."
         return total / number_of_ship_hits
 
     def detect_cloaked_ship(self, ship:Starship):
-        if ship.cloak_status != CloakStatus.INACTIVE:
+        if ship.cloak_status != CloakStatus.ACTIVE:
             raise AssertionError(f"The ship {self.name} is atempting to detect the ship {ship.name}, even though {ship.name} is not cloaked.")
 
-        if not self.sysSensors.isOpperational:
+        if not self.sys_sensors.is_opperational:
             return False
+        
+        detected = True
+        
+        detection_strength = self.ship_class.detection_strength * self.sys_sensors.get_effective_value
+        
+        cloak_strength = ship.ship_class.cloak_strength * ship.sys_cloak.get_effective_value
 
         for i in range(3):
 
-            if uniform(0.0, self.sysSensors.getEffectiveValue) * 0.2 > uniform(0.0, ship.sysCloak.getEffectiveValue):
-                return False
-        return True
+            if uniform(
+                0.0, detection_strength
+            ) < uniform(
+                0.0, cloak_strength
+            ):
+                detected = False
+                break
+            
+        player = self.game_data.player
+        
+        if detected and player.sector_coords == self.sector_coords:
+            
+            cr = player.nation.captain_rank_name
+            
+            self.game_data.engine.message_log.add_message(
+f'{f"{cr}, we have" if self is player else f"The {self.name} has"} detected {"us" if ship is player else ship.name}!'
+            )
+        return detected

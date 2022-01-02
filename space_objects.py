@@ -277,7 +277,7 @@ class SubSector:
         return choices(self.safe_spots, k=how_many)
     
     def add_ship_to_sec(self, ship:Starship):
-        if ship.ship_class.nation_code == "FEDERATION":
+        if ship is ship.game_data.player:
             self.player_present = True
         elif ship.ship_class.ship_type == "ESCORT":
             self.small_ships+= 1
@@ -285,7 +285,7 @@ class SubSector:
             self.big_ships+= 1
 
     def remove_ship_from_sec(self, ship:Starship):
-        if ship.ship_class.nation_code == "FEDERATION":
+        if ship is ship.game_data.player:
             self.player_present = False
         elif ship.ship_class.ship_type == "ESCORT":
             self.small_ships-= 1

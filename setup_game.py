@@ -117,8 +117,8 @@ class StartupScreen(input_handelers.BaseEventHandler):
         
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[input_handelers.BaseEventHandler]:
         #print("Main menu")
-        #return MainMenu()
-        return Debug()
+        return MainMenu()
+        #return Debug()
 
 class Debug(input_handelers.BaseEventHandler):
     

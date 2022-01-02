@@ -6,7 +6,7 @@ import tcod
 from coords import Coords
 from space_objects import Planet, Star, SubSector
 from starship import Starship
-from data_globals import STATUS_HULK, CloakStatus
+from data_globals import STATUS_HULK
 import colors
 from get_config import CONFIG_OBJECT
 from torpedo import ALL_TORPEDO_TYPES
@@ -261,76 +261,86 @@ def print_ship_info(
         )
     
     else:
+        
+        add_to_y = 4
+        
+        for i, n, d, m in zip(
+            range(3), 
+            (
+                "Shields:", "Hull:", "Energy:"
+            ),
+            (
+                scan['shields'],
+                scan['hull'],
+                scan['energy']
+            ),
+            (
+                self.ship_class.max_shields,
+                self.ship_class.max_hull,
+                self.ship_class.max_energy, 
+                
+            )
+        ):
+            console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}{d: =4}/{m: =4}")
+            
+        add_to_y+=3
+        
         if not self.ship_class.is_automated:
                 
             for i, n, d, m in zip(
-                range(4, 4+5), 
+                range(2), 
                 (
-                    "Shields:", "Hull:", "Energy:", "Able Crew:", "Injured Crew:"
+                    "Able Crew:", "Injured Crew:"
                 ),
                 (
-                    scan['shields'],
-                    scan['hull'],
-                    scan['energy'],
                     scan['able_crew'],
                     scan['injured_crew']
                 ),
                 (
-                    self.ship_class.max_shields,
-                    self.ship_class.max_hull,
-                    self.ship_class.max_energy, 
                     self.ship_class.max_crew,
                     self.ship_class.max_crew
                 )
             ):
-                console.print(x=x+3, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
-        else:
-            for i, n, d, m in zip(
-                range(4, 4+3), 
-                (
-                    "Shields:", "Hull:", "Energy:"
-                ),
-                (
-                    scan['shields'],
-                    scan['hull'],
-                    scan['energy']
-                ),
-                (
-                    self.ship_class.max_shields,
-                    self.ship_class.max_hull,
-                    self.ship_class.max_energy, 
-                    
-                )
-            ):
-                console.print(x=x+3, y=y+i, string=f"{n:>16}{d: =4}/{m: =4}")
+                console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}{d: =4}/{m: =4}")
+            add_to_y += 2
+            
+        if self.ship_type_can_cloak:
+            d = scan["cloak_cooldown"]
+            m = self.ship_class.cloak_cooldown
+            console.print(x=x+3, y=y+add_to_y, string=f"{'C. Cooldown':>16}{d: =4}/{m: =4}")
+            add_to_y+=1
         
-        s = 10
-
+        add_to_y+=2
+        
         if self.ship_class.ship_type_can_fire_torps:
             max_torps = self.ship_class.max_torpedos 
-            console.print(x=x+3+2, y=y+s, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}" )
-            console.print(x=x+3+3, y=y+s+1, string=f"Max Torpedos:{max_torps: =2}")
-            s+=2
+            console.print(x=x+3+2, y=y+add_to_y, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}" )
+            console.print(x=x+3+3, y=y+add_to_y+1, string=f"Max Torpedos:{max_torps: =2}")
+            add_to_y+=2
             for i, t in enumerate(self.ship_class.torp_types):
-                console.print(x=x+3, y=y+s, string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}"
+                console.print(
+                    x=x+3, y=y+add_to_y, 
+                    string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}"
                 )
-                s+=1
+                add_to_y+=1
         
         names, keys = self.ship_class.system_names, self.ship_class.system_keys
 
-        end = s+2
+        add_to_y+=2
         
         sys_x_position = (width - 2) // 2
 
-        console.print(x=x+sys_x_position, y=y+end-1, string="-- Systems --", alignment=tcod.CENTER)
+        console.print(x=x+sys_x_position, y=y+add_to_y, string="-- Systems --", alignment=tcod.CENTER)
+        
+        add_to_y+=1
         
         for n, k, i in zip(names, keys, range(len(keys))):
 
             scanned = scan[k]
             #k = keys[i-(s+3)]
-            n__n = f"{n:>16}"
+            n__n = f"{n:>17}"
             s__s = f"{scanned:7.2%}"
-            console.print(x=x+3, y=y+i+end, string=f"{n__n}{s__s}")
+            console.print(x=x+3, y=y+i+add_to_y, string=f"{n__n}{s__s}")
     
 def render_own_ship_info(console: Console, gamedata:GameData):
 

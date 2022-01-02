@@ -174,6 +174,8 @@ class ShipStatus:
     DERLICT: The ship is intact but has no living crew.
     HULK: The ship is wrecked but mostly intact. Think battle of Wolf 359
     OBLITERATED: The ship has been reduced to space dust.
+    STATUS_CLOAKED: The ship is cloaked and cannot be targeted or seen. However, it's shields are off line.
+    STATUS_CLOAK_COMPRIMISED: The ship has been detected can be targeted and seen. It.s shields are off line.
     
     Args:
             is_active (bool, optional): If this is True, the ship will be able to take action. Defaults to False.
@@ -193,6 +195,7 @@ class ShipStatus:
     do_shields_work:bool=False
     can_be_targeted:bool=True
     override_color:Optional[Tuple[int,int,int]]=None
+    energy_drain:bool=False
     
 STATUS_ACTIVE:Final = ShipStatus(
     is_active=True, 
@@ -211,6 +214,18 @@ STATUS_OBLITERATED:Final = ShipStatus(
     is_collidable=False, 
     is_destroyed=True, 
     can_be_targeted=False
+)
+
+STATUS_CLOAKED:Final = ShipStatus(
+    is_visible=False,
+    is_active=True,
+    can_be_targeted=False,
+    energy_drain=True
+)
+
+STATUS_CLOAK_COMPRIMISED = ShipStatus(
+    is_active=True,
+    energy_drain=True
 )
 
 class CloakStatus(Enum):

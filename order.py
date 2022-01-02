@@ -45,6 +45,8 @@ class OrderWarning(Enum):
     PLANET_AFRAID = auto()
     NO_REPAIRS_NEEDED = auto()
     CLOAK_COOLDOWN = auto()
+    DECLOAK_FIRST = auto()
+    UNDOCK_FIRST = auto()
     
 blocks_action = {
     OrderWarning.NOT_ENOUGHT_ENERGY : "Error: We possess insufficent energy reserves.",
@@ -61,8 +63,9 @@ blocks_action = {
     OrderWarning.ZERO_VALUE_ENTERED : "Error: You have entered a value of zero.",
     OrderWarning.NO_CHANGE_IN_POSITION : "Error: There is no change in our position.", # reword this later
     OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY : "Error: There is no change in shield energy.",
-    
-    OrderWarning.CLOAK_COOLDOWN : "Error: Our cloaking system is still colling down.",
+    OrderWarning.DECLOAK_FIRST : "Error: We must decloak first.",
+    OrderWarning.CLOAK_COOLDOWN : "Error: Our cloaking system is still cooling down.",
+    OrderWarning.UNDOCK_FIRST : "Error: We must undock first."
 }
 
 
@@ -429,8 +432,11 @@ class EnergyWeaponOrder(Order):
     def perform(self) -> None:
 
         actual_amount = floor(self.entity.sys_beam_array.get_effective_value * self.amount)
+        
+        if self.entity.cloak_status != CloakStatus.INACTIVE:
+            self.entity.cloak_cooldown = self.entity.ship_class.cloak_cooldown
+            
         self.entity.cloak_status = CloakStatus.INACTIVE
-        self.entity.cloak_cooldown = 5
 
         if self.multi_targets:
             
@@ -527,16 +533,31 @@ class TorpedoOrder(Order):
         return cls(entity, amount, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
 
     def perform(self) -> None:
-
+        
+        if self.entity.cloak_status != CloakStatus.INACTIVE:
+            
+            self.entity.cloak_cooldown = self.entity.ship_class.cloak_cooldown
+            
+            player = self.game_data.player
+            
+            if (
+                self.entity.cloak_status == CloakStatus.ACTIVE and 
+                self.entity is not player and self.entity.sector_coords == player.sector_coords
+            ):
+                self.game_data.engine.message_log.add_message(
+                    "Enemy ship decloaking!", colors.alert_red
+                )
+            
         self.entity.cloak_status = CloakStatus.INACTIVE
-        self.entity.cloak_cooldown = 5
-
+        
         #torpedo = torpedo_types[self.entity.torpedoLoaded]
 
         self.entity.game_data.handle_torpedo(
             shipThatFired=self.entity,torpsFired=self.amount, 
-            coords=self.coord_list, torpedo_type=self.entity.torpedo_loaded, 
-            ships_in_area=self.ships, heading=self.heading
+            coords=self.coord_list, 
+            torpedo_type=self.entity.torpedo_loaded, 
+            ships_in_area=self.ships, 
+            heading=self.heading
         )
         
         self.entity.turn_repairing = 0
@@ -601,7 +622,7 @@ class DockOrder(Order):
     def __init__(self, entity: Starship, planet:Planet) -> None:
         super().__init__(entity)
         self.planet = planet
-        self.undock = not entity.docked
+        self.undock = entity.docked
         self.ships = self.entity.game_data.grab_ships_in_same_sub_sector(
             self.entity, accptable_ship_statuses={STATUS_ACTIVE}
         )
@@ -623,6 +644,13 @@ class DockOrder(Order):
                 self.entity.torps[torp] += num
     
     def raise_warning(self):
+        
+        #dock = not self.undock
+        
+        #is_cloaked = self.entity.cloak_status != CloakStatus.INACTIVE
+        
+        if not self.undock and self.entity.cloak_status != CloakStatus.INACTIVE:
+            return OrderWarning.DECLOAK_FIRST
 
         if self.undock and self.ships:
             return OrderWarning.ENEMY_SHIPS_NEARBY
@@ -739,16 +767,32 @@ class CloakOrder(Order):
         self.deloak = deloak
     
     def perform(self) -> None:
+        
+        clo = "decloaked" if self.deloak else "cloaked"
+        
+        player = self.game_data.player
+        
+        if self.entity.sector_coords == player.sector_coords:
+            self.game_data.engine.message_log.add_message(
+                f"We have sucessfully {clo}, {player.nation.captain_rank_name}." 
+                if self.entity is player else 
+                f"The {self.entity.name} has {clo}!", fg=colors.alert_blue
+            )
 
         self.entity.cloak_status = CloakStatus.INACTIVE if self.deloak else CloakStatus.ACTIVE
 
     def raise_warning(self):
-
-        if not self.entity.shipData.ship_type_can_cloak:
-            return OrderWarning.SYSTEM_INOPERATIVE
         
-        if self.entity.cloak_cooldown > 0 and not self.deloak:
-            return OrderWarning.CLOAK_COOLDOWN
+        if not self.deloak:
+            if self.entity.docked:
+                return OrderWarning.UNDOCK_FIRST
+            
+            if self.entity.cloak_cooldown > 0:
+                return OrderWarning.CLOAK_COOLDOWN
+            
+            if not self.entity.ship_can_cloak:
+                return OrderWarning.SYSTEM_INOPERATIVE
+        
         return super().raise_warning()
 
 class SelfDestructOrder(Order):
