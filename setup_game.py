@@ -84,7 +84,6 @@ def set_up_game(
         current_datetime = scenario.create_date_time(),
         starting_stardate = stardate(scenario.create_date_time()),
         ending_stardate = stardate(scenario.enddate),
-        enemy_ship_dict = scenario.generate_ship_numbers(),
         scenerio=scenario
     )
 

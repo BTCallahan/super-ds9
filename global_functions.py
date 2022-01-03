@@ -1,6 +1,6 @@
 from datetime import datetime
 from math import floor, pi, sin, cos, atan2
-from typing import Final, Pattern
+from typing import Final, Iterable, Optional, Pattern
 import re
 from coords import IntOrFloat
 from decimal import Decimal
@@ -72,22 +72,21 @@ def get_first_group_in_pattern(
     aux_valute_to_return_if_no_match=None,
     type_to_convert_to:type=str
 ):
-    
     match = pattern.search(text_to_search)
-    
     
     if return_aux_if_no_match:
         try:
-            return type_to_convert_to(match.group(1))
+            r = type_to_convert_to(match.group(1))
+            return r
         except AttributeError:
             return aux_valute_to_return_if_no_match
-    match_ = match[1]
-    return type_to_convert_to(match.group(1))
+    r = type_to_convert_to(match.group(1))
+    return r
 
 def get_multiple_groups_in_pattern(
     text_to_search:str, pattern:Pattern[str],*, expected_number_of_groups:int=1, 
     return_aux_if_no_match:bool=False, aux_valute_to_return_if_no_match=None,
-    type_to_convert_to:type=str
+    type_to_convert_to:type=str, multiple_types_to_convert_to:Optional[Iterable[type]]=None
 ):
     match = pattern.search(text_to_search)
     
@@ -96,8 +95,12 @@ def get_multiple_groups_in_pattern(
     
     if return_aux_if_no_match:
         try:
-            #match_ = match[1:]
+            
             ma = tuple(
+                ty(match.group(grp + 1)) for grp, ty in enumerate(multiple_types_to_convert_to)
+                
+            ) if multiple_types_to_convert_to is not None else tuple(
+                
                 type_to_convert_to(match.group(grp)) for grp in range(1, expected_number_of_groups + 1)
             )
             if expected_number_of_groups > 0:
@@ -108,8 +111,10 @@ def get_multiple_groups_in_pattern(
             return aux_valute_to_return_if_no_match
         except IndexError:
             return aux_valute_to_return_if_no_match
-    #match_ = match[1:]
+    
     ma = tuple(
+        ty(match.group(grp + 1)) for grp, ty in enumerate(multiple_types_to_convert_to)
+    ) if multiple_types_to_convert_to is not None else tuple(
         type_to_convert_to(match.group(grp)) for grp in range(1, expected_number_of_groups + 1)
     )
     if expected_number_of_groups > 0:

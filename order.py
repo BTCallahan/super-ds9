@@ -5,7 +5,7 @@ from random import choice
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Iterable, Optional
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
-from data_globals import DAMAGE_BEAM, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
@@ -154,7 +154,7 @@ class WarpOrder(Order):
         self.entity.sector_coords.y = self.y
 
         ships = self.entity.game_data.grab_ships_in_same_sub_sector(
-            self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}
+            self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED}
         )
 
         subsector: SubSector = self.entity.game_data.grid[self.y][self.x]
@@ -631,7 +631,7 @@ class DockOrder(Order):
         return hash((self.planet, self.undock, self.ships))
     
     def perform(self) -> None:
-        self.entity.docked = self.undock
+        self.entity.docked = not self.undock
         if self.entity.is_controllable:
             self.game_data.engine.message_log.add_message(
                 "Docking procedures complete, captain." if self.entity.docked else "Undocking procedures complete, captain."

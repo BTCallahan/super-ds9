@@ -2,10 +2,11 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime, timedelta
 from decimal import Decimal
+from itertools import accumulate
 from ai import BaseAi, HostileEnemy
 from coords import Coords
 from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, CloakStatus, ShipStatus
-from random import choice, randrange
+from random import choice, choices, randrange
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set, OrderedDict
 
 from get_config import CONFIG_OBJECT
@@ -29,7 +30,6 @@ class GameData:
         self, 
         *, 
         subsecs_x:int, subsecs_y:int, subsec_size_x:int, subsec_size_y:int,
-        enemy_ship_dict:OrderedDict[str:int],
         current_datetime:datetime,
         starting_stardate:Decimal,
         ending_stardate:Decimal,
@@ -87,7 +87,6 @@ class GameData:
         self.condition = CONDITION_GREEN
 
         self.ships_in_same_sub_sector_as_player:List[Starship] = []
-        self.enemy_ship_dict:OrderedDict[str,int] = enemy_ship_dict
         self.visible_ships_in_same_sub_sector_as_player:List[Starship] = []
 
         self.captain_name = ""
@@ -151,79 +150,64 @@ class GameData:
                 self.grid[y][x].random_setup(self.star_number_weights, self.star_number_weights_len)
                 #self.sector_grid[x,y].random_setup()
 
-        total = max(tuple(self.enemy_ship_dict.values()))
-
-        sub_sectors = [self.grid[randrange(self.subsecs_y)][randrange(self.subsecs_x)].coords for i in range(total)]
-
-        sub_sector_dictionary = Counter(sub_sectors)
+        system_coords = tuple(
+            Coords(x=x,y=y) for x in self.subsecs_range_x for y in self.subsecs_range_y
+        )
         
-        def get_ship(ship_count:int):
+        all_encounters:List[Dict[str,int]] = []
+        
+        for a in self.scenerio.encounters:
             
-            for k,v in self.enemy_ship_dict.items():
-                
-                if ship_count < v:
-                    return ALL_SHIP_CLASSES[k]
+            l = list(a.generate_ships())
             
-            return ALL_SHIP_CLASSES[tuple(self.enemy_ship_dict.keys())[-1]]
-
+            all_encounters.extend(
+                l
+            )
+        
+        total = len(all_encounters)
+        
+        # we use k = total + 1 because the last coord in selected_coords will be used as the players starting point
+        selected_coords = choices(
+            system_coords, k=total+1
+        )
+        
         def generate_ships():
+        
+            for encounter, co in zip(all_encounters, selected_coords):
+                
+                star_system = self.grid[co.y][co.x]
+                
+                all_ships = []
+                
+                for k,v in encounter.items():
+                    all_ships.extend(
+                        [k] * v
+                    )
+                
+                safe_spots = star_system.find_random_safe_spots(
+                    how_many=len(all_ships)
+                )
+                
+                for k, local_co in zip(all_ships, safe_spots):
+                    
+                    ship_class = ALL_SHIP_CLASSES[k]
 
-            ship_count = 0
-
-            for sub_sector_co, i in sub_sector_dictionary.items():
-
-                sub_sector:SubSector = self.grid[sub_sector_co.y][sub_sector_co.x]
-
-                if i == 1:
-
-                    local_co = sub_sector.find_random_safe_spot()
-
-                    ship = get_ship(ship_count)
-
-                    ship_count += 1
-
-                    starship = Starship(ship, HostileEnemy, local_co.x, local_co.y, sub_sector_co.x, sub_sector_co.y)
+                    starship = Starship(
+                        ship_class, HostileEnemy, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
+                    )
 
                     starship.game_data = self
+
+                    if ship_class.ship_type == "ESCORT":
+                        star_system.small_ships+=1
+                    elif ship_class.ship_type in {"CRUISER", "WARSHIP"}:
+                        star_system.big_ships+=1
                     
-                    #if ship.nation is not game_data.scenerio.your_nation:
-                    if ship.ship_type == "ESCORT":
-                        sub_sector.small_ships+=1
-                    elif ship.ship_type in {"CRUISER", "WARSHIP"}:
-                        sub_sector.big_ships+=1
-
                     yield starship
-                
-                else:
-
-                    local_cos = sub_sector.find_random_safe_spots(i)
-
-                    for local_co in local_cos:
-
-                        ship = get_ship(ship_count)
-
-                        ship_count += 1
-
-                        starship = Starship(
-                            ship, HostileEnemy, local_co.x, local_co.y, sub_sector_co.x, sub_sector_co.y
-                        )
-
-                        starship.game_data = self
-
-                        if ship.nation_code != "FEDERATION":
-                            if ship.ship_type == "ESCORT":
-                                sub_sector.small_ships+=1
-                            elif ship.ship_type in {"CRUISER", "WARSHIP"}:
-                                sub_sector.big_ships+=1
-
-                        yield starship
-
+            
         self.all_enemy_ships = list(generate_ships())
-
-        # finds a sector coord 
-        all_sector_cos = set(sec.coords for line in self.grid for sec in line) - set(sub_sector_dictionary.keys())
-
-        xy = choice(tuple(all_sector_cos))
+        
+        xy = selected_coords[-1]
 
         randXsec = xy.x
         randYsec = xy.y

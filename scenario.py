@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from itertools import accumulate
 from math import floor
 import re
-from typing import Dict, Final, Tuple, TYPE_CHECKING
+from typing import Dict, Final, List, Tuple, TYPE_CHECKING
 from random import randint
 from datetime import datetime
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
@@ -20,7 +20,7 @@ class Scenerio:
     
     name:str
     description:str
-    hostile_ships:OrderedDict[str,Tuple[int,int]]
+    encounters:List[Encounter]
     star_generation:Tuple[int]
     percent_of_friendly_planets:float
     default_ship_name:str
@@ -36,12 +36,6 @@ class Scenerio:
     scenario_type:type[ScenerioEvaluation]
     victory_percent:float
     
-    def get_number_of_ships(self, ship_code:str):
-        
-        min_, max_ = self.hostile_ships[ship_code]
-        
-        return randint(min_, max_)
-
     def create_date_time(self):
         
         return datetime(
@@ -53,16 +47,6 @@ class Scenerio:
             second=self.startdate.second
         )
 
-    def generate_ship_numbers(self):
-        
-        ordered:OrderedDict[str,int] = OrderedDict()
-                
-        ns = accumulate(randint(v1, v2) for v1, v2 in self.hostile_ships.values())
-                
-        for k,v in zip(self.hostile_ships.keys(), ns):
-            ordered[k] = v
-
-        return ordered
 #scenario
 scenerio_pattern = re.compile(r"SCENARIO:([\w_]+)\n([^#]+)END_SCENARIO")
 name_pattern = re.compile(r"NAME:([\w\ .\-]+)\n" )
@@ -71,9 +55,12 @@ scenario_type_pattern = re.compile(r"SCENARIO_TYPE:([\w]+)\n" )
 
 description_pattern = re.compile(r"DESCRIPTION:([a-zA-Z \.\,\?\!]+)\nDESCRIPTIONEND")
 your_ship_pattern = re.compile(r"YOUR_SHIP:([a-zA-Z_]+)\n")
-enemy_ships_pattern = re.compile(r"ENEMY_SHIPS:([\w\,\n]+)ENEMY_SHIPSEND")
 
-ship_pattern = re.compile(r"([a-zA-Z_]+),(\d),(\d)\n")
+encouners_pattern = re.compile(r"ENCOUNTERS:\n([\w\n\:\, \!]+)END_ENCOUNTERS")
+
+enemy_ships_pattern = re.compile(r"    ENEMY_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ENEMY_SHIPS\n")
+
+ship_pattern = re.compile(r"([a-zA-Z_]+):(\d),(\d)\n")
 
 default_ship_name_pattern = re.compile(r"DEFAULT_SHIP_NAME:([a-zA-Z\-\'\ ]+)\n")
 
@@ -98,7 +85,6 @@ end_date_pattern = re.compile(r"END_DATE_TIME:([\d]+).([\d]+).([\d]+).([\d]+).([
 friendly_planet_pattern = re.compile(r"FRIENDLY_PLANET_PERCENT:([\d\.]+)\n")
 
 #the following is not used - yet, anyway!
-encouners_pattern = re.compile(r"ENOUNTERS:\n([\w\n\:\,]+)END_ENCOUNTERS")
 enc_pattern = re.compile(r"NO_OF_ENCS:([\d]+),([\d]+)\n([\w\n\,]+)END_NO_OF_ENCS")
 ship_enc_pattern = re.compile(r"SHIP:([\w]+),([\d]+),([\d]+)")
 
@@ -112,9 +98,25 @@ class Encounter:
     def __len__(self):
         return len(self.ships)
     
-    def roll_encouter(self):
+    def roll_number_of_encounters(self):
+        return randint(self.min_encounters, self.max_encounters)
+    
+    def roll_ships_in_encouter(self):
         r = {k:randint(v[0], v[1]) for k,v in self.ships.items()}
         return r
+    
+    def roll_both(self):
+        n, r = randint(self.min_encounters, self.max_encounters), {k:randint(v[0], v[1]) for k,v in self.ships.items()}
+        
+        return n, r
+    
+    def generate_ships(self):
+        
+        number_of_encounters = randint(self.min_encounters, self.max_encounters)
+        
+        for n in range(number_of_encounters):
+            r = {k:randint(v[0], v[1]) for k,v in self.ships.items()}
+            yield r
 
 def create_sceneraio():
         
@@ -142,11 +144,52 @@ def create_sceneraio():
 
         your_ship = get_first_group_in_pattern(scenario_txt, your_ship_pattern)
         
-        enemy_ships = get_first_group_in_pattern(scenario_txt, enemy_ships_pattern)
+        encounters = get_first_group_in_pattern(scenario_txt, encouners_pattern)
+        
+        all_encounters = []
+        
+        for encounter in enemy_ships_pattern.finditer(encounters):
+            
+            min_encs = encounter.group(1)
+            max_encs = encounter.group(2)
+            
+            ships = encounter.group(3)
+            
+            """
+            ship_dict = {
+                ship.group(1):(int(ship.group(2)), int(ship.group(3))) for ship in ship_pattern.finditer(ships)
+            }
+            """
+            ship_dict = {}
+            
+            for ship in ship_pattern.finditer(ships):
+                
+                sh = ship.group(1)
+                
+                ship_min = ship.group(2)
+                
+                ship_max = ship.group(2)
+                
+                ship_dict[sh] = (
+                    int(ship_min),
+                    int(ship_max)
+                )
+            
+            
+            all_encounters.append(
+                Encounter(
+                    min_encounters=int(min_encs),
+                    max_encounters=int(max_encs),
+                    ships=ship_dict
+                )
+            )
+        
+        #enemy_ships = get_first_group_in_pattern(scenario_txt, enemy_ships_pattern)
         
         victory_percent = get_first_group_in_pattern(scenario_txt, victory_percent_pattern, type_to_convert_to=float)
         
         #e_ships:Dict[str,Tuple[int,int]] = {}
+        """
         e_ships:OrderedDict[str,Tuple[int,int]] = OrderedDict()
         
         a_ships = ship_pattern.finditer(enemy_ships)
@@ -158,6 +201,7 @@ def create_sceneraio():
             max_ = s.group(3)
             
             e_ships[k] = (int(min_), int(max_))
+        """
         
         your_nation = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
         
@@ -165,12 +209,17 @@ def create_sceneraio():
         
         your_commanding_officer = get_first_group_in_pattern(scenario_txt, your_commanding_officer_pattern)
         
-        star_generation_ = get_first_group_in_pattern(scenario_txt, star_generation_pattern, return_aux_if_no_match=True)
+        star_generation_ = get_first_group_in_pattern(
+            scenario_txt, star_generation_pattern, return_aux_if_no_match=True
+        )
         
         try:
             split_stars = star_generation_.split(",")
+            
             stars_ = [int(s) for s in split_stars]
+            
             star_generation = tuple(accumulate(stars_))
+            
         except AttributeError:
             star_generation = stars_gen
             
@@ -233,7 +282,7 @@ def create_sceneraio():
             default_captain_name=default_captain_name,
             your_commanding_officer=your_commanding_officer,
             self_destruct_code=code,
-            hostile_ships=e_ships,
+            encounters=tuple(all_encounters),
             startdate=startdate,
             enddate=enddate,
             enemy_give_up_threshold=enemy_give_up_threshold,

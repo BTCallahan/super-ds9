@@ -119,7 +119,9 @@ class HostileEnemy(BaseAi):
                             self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
                         )
                         
-                        order_dict[torpedo] = round(100 * round(shield_damage + hull_damage + (1000 if kill else 0)) * (hits / 10))
+                        order_dict[torpedo] = (
+                                300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                            ) * (shield_damage + hull_damage + (1000 if kill else 0)) * (hits / 10)
                         
                         order_dict_size+=1
                     
@@ -132,15 +134,22 @@ class HostileEnemy(BaseAi):
                             
                             energy_weapon = EnergyWeaponOrder(self.entity, energy_to_use, target=self.target)
                             
-                            order_dict[energy_weapon] = 100 * round(shield_damage + hull_damage + (1000 if kill else 0))
+                            order_dict[energy_weapon] = (
+                                300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                            ) * round(shield_damage + hull_damage + (1000 if kill else 0))
                             
                             order_dict_size+=1
                         
-                    if self.entity.sys_impulse.is_opperational and self.entity.local_coords.distance(coords=self.target.local_coords) * 100 * self.entity.sys_impulse.affect_cost_multiplier <= self.entity.energy:
+                    if self.entity.sys_impulse.is_opperational and self.entity.local_coords.distance(
+                        coords=self.target.local_coords
+                        ) * 100 * self.entity.sys_impulse.affect_cost_multiplier <= self.entity.energy:
                         hull_percentage = scan["hull"] / self.target.ship_class.max_hull
                         shields_percentage = scan["shields"] / self.target.hull_percentage
                         
-                        ram_damage = round(self.entity.sys_impulse.get_effective_value / (self.entity.hull_percentage + self.entity.shields_percentage) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
+                        ram_damage = round(
+                            self.entity.sys_impulse.get_effective_value / (
+                                self.entity.hull_percentage + self.entity.shields_percentage
+                            ) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
                         
                         if ram_damage > 0:
                             
@@ -162,13 +171,16 @@ class HostileEnemy(BaseAi):
                     order_dict[cloak] = (
                         100 * self.entity.sys_cloak.get_effective_value * self.entity.ship_class.cloak_strength
                     )
+                    order_dict_size+=1
             else:
                 # if the player is not present:
                 
                 ships_in_same_system = self.game_data.grab_ships_in_same_sub_sector(
                     self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED}
                 )
-                allied_ships_in_same_system = [ship for ship in ships_in_same_system if ship is not self.game_data.player]
+                allied_ships_in_same_system = [
+                    ship for ship in ships_in_same_system if ship is not self.game_data.player
+                ]
                 
                 system = self.entity.get_sub_sector
                 
