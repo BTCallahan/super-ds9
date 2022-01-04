@@ -5,7 +5,7 @@ from decimal import Decimal
 from itertools import accumulate
 from ai import BaseAi, HostileEnemy
 from coords import Coords
-from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, CloakStatus, ShipStatus
+from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
 from random import choice, choices, randrange
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set, OrderedDict
 
@@ -214,16 +214,22 @@ class GameData:
 
         locPos = self.grid[randYsec][randXsec].find_random_safe_spot()
 
-        deff = ALL_SHIP_CLASSES["DEFIANT"]
+        player_ship_class = ALL_SHIP_CLASSES[self.scenerio.your_ship]
 
-        self.player = Starship(deff, BaseAi, locPos.x, locPos.y, randXsec, randYsec, name=ship_name)
+        self.player = Starship(player_ship_class, BaseAi, locPos.x, locPos.y, randXsec, randYsec, name=ship_name)
         self.player.game_data = self
         self.engine.player = self.player
 
         self.total_starships = [self.player] + self.all_enemy_ships
 
-        self.ships_in_same_sub_sector_as_player = self.grab_ships_in_same_sub_sector(self.player)
-        self.visible_ships_in_same_sub_sector_as_player = [ship for ship in self.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible]
+        self.ships_in_same_sub_sector_as_player = self.grab_ships_in_same_sub_sector(
+            self.player, accptable_ship_statuses={
+                STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK
+            }
+        )
+        self.visible_ships_in_same_sub_sector_as_player = [
+            ship for ship in self.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
+        ]
 
         self.set_condition()
         

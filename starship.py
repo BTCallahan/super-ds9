@@ -670,8 +670,12 @@ class Starship:
 
     @property
     def crew_readyness(self):
-        return 1.0 if self.ship_class.is_automated else (
-            (self.able_crew / self.ship_class.max_crew) + (self.injured_crew / self.ship_class.max_crew) * 0.25
+        return (
+            1.0 if self.ship_class.is_automated else (
+                self.able_crew / self.ship_class.max_crew
+            ) + (
+                self.injured_crew / self.ship_class.max_crew
+            ) * 0.25
         )
     
     @property
@@ -682,6 +686,7 @@ class Starship:
     def ship_can_cloak(self):
         return self.ship_class.ship_type_can_cloak and self.sys_cloak.is_opperational and self.cloak_cooldown < 1
 
+    """
     @property
     def able_crew_percent(self):
         return self.able_crew / self.ship_class.max_crew
@@ -689,6 +694,7 @@ class Starship:
     @property
     def injured_crew_percent(self):
         return self.injured_crew / self.ship_class.max_crew
+    """
 
     @property
     def get_total_torpedos(self):

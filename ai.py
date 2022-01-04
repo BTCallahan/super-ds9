@@ -43,7 +43,9 @@ class HostileEnemy(BaseAi):
         
         order_dict_size = 0
         
-        if not self.target.ship_status.is_active:
+        player_status = self.target.ship_status
+        
+        if not player_status.is_active:
             # player is not alive = do nothing
             return
         order:Optional[Order] = None
@@ -52,18 +54,18 @@ class HostileEnemy(BaseAi):
             order =  RepairOrder(self.entity, 1)
         else:
             #scan = self.target.scanThisShip(self.entity.determinPrecision)
-            scan = self.target.scan_this_ship(self.entity.determin_precision)
+            precision = self.entity.determin_precision
+            
+            scan = self.target.scan_this_ship(precision)
             
             player_is_present = self.target.sector_coords == self.entity.sector_coords
             
             has_energy = self.entity.energy > 0
             
-            player_is_not_cloaked = self.game_data.player.ship_status.is_visible
+            player_is_not_cloaked = player_status.is_visible
             
             if player_is_present and player_is_not_cloaked:
                 
-                precision = self.entity.determin_precision
-            
                 ajusted_impulse = self.target.sys_impulse.get_info(precision, True)
                 
                 nearbye_ships = [
@@ -84,7 +86,7 @@ class HostileEnemy(BaseAi):
                 
                     self_destruct = SelfDestructOrder(self.entity, tuple(nearbye_ships))
                     
-                    order_dict[self_destruct] = round(self_destruct_damage)
+                    order_dict[self_destruct] = self_destruct_damage
                     
                     order_dict_size+=1
             
@@ -168,8 +170,15 @@ class HostileEnemy(BaseAi):
                             order_dict_size+=1
                 if self.entity.ship_can_cloak and self.entity.cloak_status == CloakStatus.INACTIVE:
                     cloak = CloakOrder(self.entity, deloak=False)
+                    
+                    cloak_str = self.entity.sys_cloak.get_effective_value * self.entity.ship_class.cloak_strength
+                    
+                    detect_str = self.target.sys_cloak.get_info(
+                        precision=precision, effective_value=True
+                    ) * self.target.ship_class.detection_strength
+                    
                     order_dict[cloak] = (
-                        100 * self.entity.sys_cloak.get_effective_value * self.entity.ship_class.cloak_strength
+                        500 * (cloak_str - detect_str)
                     )
                     order_dict_size+=1
             else:

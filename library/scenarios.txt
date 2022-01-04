@@ -2,7 +2,7 @@
 # NAME: - The name that is desplayed in the scenario selection dialoge
 # SCENARIO_TYPE: - Determins the winning and losing objctives of the scenario. Currently, the only valid option is DESTROY
 # DESCRIPTION: - A text description of the scenario that tells the player what to expect
-# DESCRIPTIONEND
+# END_DESCRIPTION
 # YOUR_NATION: - The 'nation' code that the player will represent. This will determin what Nation codes can be found in the file library/nations.txt
 # ENEMY_NATION: - The nation code for the nation oposing the player.
 # YOUR_SHIP: - The code for the ship class that the player will be using. Codes can be found in the file library/ships.txt
@@ -24,7 +24,7 @@ SCENARIO:DEBUG
 NAME:Degugging
 SCENARIO_TYPE:DESTROY
 DESCRIPTION:Debugging
-DESCRIPTIONEND
+END_DESCRIPTION
 YOUR_SHIP:DEFIANT
 ENCOUNTERS:
     ENEMY_SHIPS:1,2
@@ -48,7 +48,7 @@ SCENARIO:CLOAK_DEBUG
 NAME:Cloak Degugging
 SCENARIO_TYPE:DESTROY
 DESCRIPTION:Debugging the cloaking device
-DESCRIPTIONEND
+END_DESCRIPTION
 YOUR_SHIP:DEFIANT
 ENCOUNTERS:
     ENEMY_SHIPS:1,2
@@ -77,7 +77,7 @@ SCENARIO:DOM_STRIKE
 NAME:Dominion Strike
 SCENARIO_TYPE:DESTROY
 DESCRIPTION:A Dominion task force has entered the Alpha Quadrent and has begun threating planets friendly to the Federation into submission. Currently, only the U.S.S. Defiant is close enought to intervine. As these planets play a crucial role in resupplying our ships, you are to destroy as much of the task force as possible.
-DESCRIPTIONEND
+END_DESCRIPTION
 YOUR_SHIP:DEFIANT
 ENCOUNTERS:
     ENEMY_SHIPS:6,9

@@ -58,7 +58,7 @@ class Engine:
                 if entity.cloak_cooldown > 0:
                     entity.cloak_cooldown -= 1
                 
-                if entity in self.game_data.ships_in_same_sub_sector_as_player:
+                if not self.player.ship_status.is_visible:
 
                     if self.player.cloak_status == CloakStatus.ACTIVE and entity.detect_cloaked_ship(self.player) :
                         

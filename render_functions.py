@@ -418,11 +418,12 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 height=height,
                 title="Star"
             )
-
+            x, y = ship_planet_or_star.local_coords.x, ship_planet_or_star.local_coords.y
+            
             console.print_rect(
                 x=start_x+3,
                 y=start_y+4,
-                string=f"{ship_planet_or_star.name} star at {ship_planet_or_star.local_coords.x}, {ship_planet_or_star.local_coords.y}",
+                string=f"{ship_planet_or_star.name} star at {x}, {y}",
                 height=4,
                 width=width - (3 + 2)
             )
@@ -516,7 +517,10 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
             except KeyError:
                 
                 for ship in game_data.ships_in_same_sub_sector_as_player:
-                    if ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted and ship.ship_status.is_visible:
+                    if (
+                        ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted and 
+                        ship.ship_status.is_visible
+                    ):
                         #if game_data.ship_scan is None or game_data.selected_ship_planet_or_star is not ship:
                             #game_data.selected_ship_planet_or_star = ship
                             

@@ -4,7 +4,7 @@ from decimal import Decimal
 import os
 from random import choice
 from textwrap import wrap
-from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, CloakStatus
+from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
 from engine import CONFIG_OBJECT
 from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 from nation import ALL_NATIONS
@@ -89,7 +89,11 @@ class EventHandler(BaseEventHandler):
         self.engine.player.repair()
 
         game_data = self.engine.game_data
-        game_data.ships_in_same_sub_sector_as_player = game_data.grab_ships_in_same_sub_sector(game_data.player)
+        game_data.ships_in_same_sub_sector_as_player = game_data.grab_ships_in_same_sub_sector(
+            game_data.player, accptable_ship_statuses={
+                STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK
+            }
+        )
         game_data.date_time = game_data.date_time + game_data.fifteen_seconds
         game_data.stardate = stardate(game_data.date_time)
         #game_data.stardate_text = f"{game_data.stardate:5.2}"

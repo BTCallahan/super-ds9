@@ -53,7 +53,7 @@ name_pattern = re.compile(r"NAME:([\w\ .\-]+)\n" )
 
 scenario_type_pattern = re.compile(r"SCENARIO_TYPE:([\w]+)\n" )
 
-description_pattern = re.compile(r"DESCRIPTION:([a-zA-Z \.\,\?\!]+)\nDESCRIPTIONEND")
+description_pattern = re.compile(r"DESCRIPTION:([a-zA-Z \.\,\?\!]+)\nEND_DESCRIPTION")
 your_ship_pattern = re.compile(r"YOUR_SHIP:([a-zA-Z_]+)\n")
 
 encouners_pattern = re.compile(r"ENCOUNTERS:\n([\w\n\:\, \!]+)END_ENCOUNTERS")
