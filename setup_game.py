@@ -2,6 +2,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from random import choice, randint
 import re
+from ai import EasyEnemy, HardEnemy, MediumEnemy
 from engine import Engine
 from get_config import CONFIG_OBJECT
 from game_data import GameData
@@ -596,6 +597,21 @@ class NewGame(input_handelers.BaseEventHandler):
             active_fg=colors.white,
             bg=colors.black
         )
+        
+        self.difficulty = Selector(
+            x=45, 
+            y=22,
+            width=30,
+            height=5,
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=True,
+            title="Difficulty",
+            index_items=("Easy", "Medium", "Hard"),
+            wrap_item=False,
+            keys=(EasyEnemy, MediumEnemy, HardEnemy)
+        )
 
         self.warp_button = BooleanBox(
             x=10,
@@ -796,12 +812,18 @@ class NewGame(input_handelers.BaseEventHandler):
             elif self.random_ship_name_button.cursor_overlap(event):
             
                 self.ship_name.set_text(choice(self.rand_ship_names))
+                
+            elif self.difficulty.cursor_overlap(event):
+                
+                self.difficulty.handle_click(event)
         
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[input_handelers.BaseEventHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
             return MainMenu()
         if event.sym in confirm:
+            
+            diff = self.difficulty.index_key
 
             return input_handelers.CommandEventHandler(set_up_game(
                 easy_aim=self.aim_button.is_active,

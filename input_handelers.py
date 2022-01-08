@@ -760,7 +760,9 @@ class CommandEventHandler(MainGameEventHandler):
                         ship_planet_or_star is not self.engine.player and 
                         ship_planet_or_star is not game_data.selected_ship_planet_or_star
                     ):    
-                        game_data.ship_scan = ship_planet_or_star.scan_this_ship(game_data.player.determin_precision)
+                        game_data.ship_scan = ship_planet_or_star.scan_this_ship(
+                            game_data.player.determin_precision, use_effective_values=False
+                        )
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
                     game_data.selected_ship_planet_or_star = None
@@ -1572,7 +1574,11 @@ class BeamArrayHandler(MinMaxInitator):
                 try:
                     ship = choice(okay_ships)
                     
-                    self.engine.game_data.ship_scan = ship.scan_this_ship(self.engine.player.determin_precision)
+                    self.engine.game_data.selected_ship_planet_or_star = ship
+                    
+                    self.engine.game_data.ship_scan = ship.scan_this_ship(
+                        self.engine.player.determin_precision, use_effective_values=False
+                    )
                     
                     self.engine.game_data.selected_ship_planet_or_star = ship
                     
@@ -2148,7 +2154,8 @@ class SelfDestructHandler(CancelConfirmHandler):
             
             for ship in ships:
                 
-                scan = ship.scan_this_ship(player.determin_precision)
+                scan = ship.scan_this_ship(player.determin_precision, use_effective_values=True)
+                
                 averaged_shield , averaged_hull, averaged_shield_damage, averaged_hull_damage, kill = player.calc_self_destruct_damage(
                     ship, scan=scan, number_of_simulations=10
                 )

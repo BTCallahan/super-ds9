@@ -3,11 +3,11 @@ from collections import Counter
 from datetime import datetime, timedelta
 from decimal import Decimal
 from itertools import accumulate
-from ai import BaseAi, HostileEnemy
+from ai import BaseAi, HardEnemy
 from coords import Coords
 from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
 from random import choice, choices, randrange
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, Set, OrderedDict
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Set, OrderedDict
 
 from get_config import CONFIG_OBJECT
 from global_functions import stardate
@@ -35,7 +35,8 @@ class GameData:
         ending_stardate:Decimal,
         easy_move:bool, easy_aim:bool, easy_warp:bool,
         torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
-        scenerio:Scenerio
+        scenerio:Scenerio,
+        difficulty:Type[BaseAi]
     ):
         self.subsecs_x = subsecs_x
         self.subsecs_y = subsecs_y
@@ -86,6 +87,8 @@ class GameData:
 
         self.condition = CONDITION_GREEN
 
+        self.difficulty = difficulty
+
         self.ships_in_same_sub_sector_as_player:List[Starship] = []
         self.visible_ships_in_same_sub_sector_as_player:List[Starship] = []
 
@@ -129,7 +132,7 @@ class GameData:
 
                 self.condition = CONDITION_RED if len(other_ships) > 0 else CONDITION_YELLOW
         
-        self.player_scan = player.scan_this_ship(1)
+        self.player_scan = player.scan_this_ship(1, use_effective_values=False)
         
         if (
             self.selected_ship_planet_or_star is not None and 
@@ -138,7 +141,9 @@ class GameData:
             self.selected_ship_planet_or_star = None
             
         if isinstance(self.selected_ship_planet_or_star, Starship):
-            self.ship_scan = self.selected_ship_planet_or_star.scan_this_ship(player.determin_precision)
+            self.ship_scan = self.selected_ship_planet_or_star.scan_this_ship(
+                player.determin_precision, use_effective_values=False
+            )
 
     def set_up_game(self, ship_name:str, captain_name:str):
         self.captain_name = captain_name
@@ -193,7 +198,7 @@ class GameData:
                     ship_class = ALL_SHIP_CLASSES[k]
 
                     starship = Starship(
-                        ship_class, HostileEnemy, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
+                        ship_class, HardEnemy, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
                     )
 
                     starship.game_data = self

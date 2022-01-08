@@ -983,7 +983,7 @@ It's actually value is {precision}."
     #shields, hull, energy, torps, sys_warp_drive, sysImpuls, sysPhaser, sys_shield_generator, sys_sensors, sys_torpedos
     
     def scan_this_ship(
-        self, precision: int=1, *, scan_for_crew:bool=True, scan_for_systems:bool=True
+        self, precision: int=1, *, scan_for_crew:bool=True, scan_for_systems:bool=True, use_effective_values=False
     )->Dict[str,Union[int,Tuple,ShipStatus]]:
         """Scans the ship based on the precision value.
 
@@ -1048,10 +1048,10 @@ It's actually value is {precision}."
             d["sys_shield"] = self.sys_shield_generator.get_info(precision, False)# * 0.01,
             d["sys_sensors"] = self.sys_sensors.get_info(precision, False)# * 0.01,
             if ship_type_can_fire_torps:
-                d["sys_torpedos"] = self.sys_torpedos.get_info(precision, False)# * 0.01
+                d["sys_torpedos"] = self.sys_torpedos.get_info(precision, use_effective_values)# * 0.01
             if ship_type_can_cloak:
-                d["sys_cloak"] = self.sys_cloak.get_info(precision, False)
-            d["sys_warp_core"] = self.sys_warp_core.get_info(precision, False)
+                d["sys_cloak"] = self.sys_cloak.get_info(precision, use_effective_values)
+            d["sys_warp_core"] = self.sys_warp_core.get_info(precision, use_effective_values)
             
         d["status"] = status
 
@@ -1257,7 +1257,8 @@ It's actually value is {precision}."
         precision:int=1, 
         calculate_crew:bool=True, 
         calculate_systems:bool=True,  
-        damage_type:DamageType
+        damage_type:DamageType,
+        use_effective_values:bool=True
     ):
         #assume damage is 64, current shields are 80, max shields are 200
         #armor is 75, max armor is 100
@@ -1446,7 +1447,9 @@ It's actually value is {precision}."
 
         pre = 1 if ship_is_player else self.game_data.player.determin_precision
         
-        old_scan = self.scan_this_ship(pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player)
+        old_scan = self.scan_this_ship(
+            pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player, use_effective_values=True
+        )
         
         self.shields = new_shields
         self.hull = new_hull
