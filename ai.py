@@ -77,10 +77,14 @@ class HostileEnemy(BaseAi):
                         coords=ship.local_coords
                     ) <= self.target.ship_class.warp_breach_dist
                 ]
+                
+                nearbye_enemy_ships = [ship for ship in nearbye_ships if ship.nation != self.entity.nation]
+                
+                #nearbye_friendly_ships = [ship for ship in nearbye_ships if ship.nation != self.entity.nation]
             
-                if len(nearbye_ships) > 0:
+                if len(nearbye_enemy_ships) > 0:
                     
-                    averaged_shield, averaged_hull, averaged_shield_damage, averaged_hull_damage, kill = self.entity.calc_self_destruct_damage(self.target, scan=scan)
+                    averaged_shield, averaged_hull, averaged_shield_damage, averaged_hull_damage, kill, crew_readyness = self.entity.calc_self_destruct_damage(self.target, scan=scan)
                 
                     self_destruct_damage = (averaged_hull_damage + (1000 if kill else 0)) * (1 - self.entity.hull_percentage)
                 
@@ -96,7 +100,8 @@ class HostileEnemy(BaseAi):
                     
                     if chance_of_hit > 0.0:
                         
-                        crew_readyness = self.entity.crew_readyness * 0.5 + 0.5
+                        crew_readyness = self.entity.crew_readyness# * 0.5 + 0.5
+                        target_crew_readyness = self.target.scan_crew_readyness(self.entity.determin_precision)
                         
                         hits = 0
                         for i in range(10):
@@ -109,11 +114,12 @@ class HostileEnemy(BaseAi):
                                 ),
                                 estimated_enemy_impulse=ajusted_impulse, 
                                 damage_type=DAMAGE_TORPEDO,
-                                crew_readyness=crew_readyness
+                                crew_readyness=crew_readyness,
+                                target_crew_readyness=target_crew_readyness
                             ):
                                 hits += 1
                             
-                        averaged_shields, averaged_hull, shield_damage, hull_damage, kill = self.entity.simulate_torpedo_hit(self.target, 10)
+                        averaged_shields, averaged_hull, shield_damage, hull_damage, kill, averaged_crew_readyness = self.entity.simulate_torpedo_hit(self.target, 10)
                         
                         torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes)
 
@@ -128,17 +134,47 @@ class HostileEnemy(BaseAi):
                         order_dict_size+=1
                     
                 if has_energy:
-                    if self.entity.sys_beam_array.is_opperational:
-                        energy_to_use = min(self.entity.ship_class.max_weap_energy, self.entity.energy)
-                        averaged_shields, averaged_hull, shield_damage, hull_damage, kill = self.entity.simulate_energy_hit(self.target, 10, energy_to_use)
+                    if self.entity.ship_can_fire_beam_arrays:
+                        energy_to_use = min(self.entity.ship_class.max_beam_energy, self.entity.energy)
+                        averaged_shields, averaged_hull, shield_damage, hull_damage, kill, averaged_crew_readyness = self.entity.simulate_energy_hit(self.target, 10, energy_to_use, simulate_systems=True, simulate_crew=True)
                         
                         if shield_damage + hull_damage > 0:
                             
-                            energy_weapon = EnergyWeaponOrder(self.entity, energy_to_use, target=self.target)
+                            energy_weapon = EnergyWeaponOrder.single_target_beam(
+                                self.entity, energy_to_use, self.target
+                            )
                             
                             order_dict[energy_weapon] = (
                                 300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
-                            ) * round(shield_damage + hull_damage + (1000 if kill else 0))
+                            ) * (
+                                shield_damage + hull_damage + (
+                                    1000 if kill else 0
+                                ) + (100 - 100 * averaged_crew_readyness)
+                            )
+                            
+                            order_dict_size+=1
+                    
+                    if self.entity.ship_can_fire_cannons:
+                        
+                        energy_to_use = min(self.entity.ship_class.max_cannon_energy, self.entity.energy)
+                        
+                        averaged_shields, averaged_hull, shield_damage, hull_damage, kill, averaged_crew_readyness = self.entity.simulate_energy_hit(
+                            self.target, 10, energy_to_use, cannon=True
+                        )
+                        
+                        if shield_damage + hull_damage > 0:
+                            
+                            energy_cannon = EnergyWeaponOrder.cannon(
+                                self.entity, energy_to_use, self.target
+                            )
+                            
+                            order_dict[energy_cannon] = (
+                                300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                            ) * (
+                                shield_damage + hull_damage + (
+                                    1000 if kill else 0
+                                ) + (100 - 100 * averaged_crew_readyness)
+                            )
                             
                             order_dict_size+=1
                         
@@ -168,7 +204,9 @@ class HostileEnemy(BaseAi):
                             order_dict[ram] = ram_damage
                             
                             order_dict_size+=1
+                            
                 if self.entity.ship_can_cloak and self.entity.cloak_status == CloakStatus.INACTIVE:
+                    
                     cloak = CloakOrder(self.entity, deloak=False)
                     
                     cloak_str = self.entity.sys_cloak.get_effective_value * self.entity.ship_class.cloak_strength

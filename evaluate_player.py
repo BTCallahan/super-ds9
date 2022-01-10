@@ -27,9 +27,11 @@ class DestroyEvaluation(ScenerioEvaluation):
     
     @staticmethod
     def is_game_over(game_data: GameData):
-        return not game_data.player.ship_status.is_active or game_data.is_time_up or not [
+        ships = [
             ship for ship in game_data.all_enemy_ships if ship.ship_status.is_active
         ]
+        
+        return not game_data.player.ship_status.is_active or game_data.is_time_up or not ships
     
     @staticmethod
     def generate_evaluation(game_data: GameData):

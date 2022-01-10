@@ -1,5 +1,6 @@
 # TORPEDO: - This is the code used for the torpedo. This can contain uppercase letters, numbers, and underscores.
 # NAME: - The name of the torpedo. This can contain letters, periods, and apostriphes.
+# COLOR: - The rbg color values of the code
 # DAMAGE: - The shorthand name of the torpedo. This can contain letters, periods, and apostriphes.
 # REQUIRED: - This is the minmum infrastructure a planet must have in order to resuply you with torpedos of this type. It should be a floating point number between 0 and 1.
 # PLANET_DAMAGE: - This is the amount of damage inflicted on a planets infrastructure. It sgould be a floating point number greater than 0.
@@ -7,6 +8,7 @@
 #
 TORPEDO:SPATIAL
 NAME:spatial
+COLOR:180,180,189
 DAMAGE:40
 REQUIRED:0.15
 PLANET_DAMAGE:0.25
@@ -14,13 +16,25 @@ END_TORPEDO
 #
 TORPEDO:PHOTONIC
 NAME:photonic
+COLOR:212,201,30
 DAMAGE:60
 REQUIRED:0.20
 PLANET_DAMAGE:0.25
 END_TORPEDO
 #
+# The torpedos used by klingon BoPs in ST:III anbd ST:G
+#
+TORPEDO:PHOTON_BOP
+NAME:photon
+COLOR:3,224,18
+DAMAGE:100
+REQUIRED:0.28
+PLANET_DAMAGE:0.275
+END_TORPEDO
+#
 TORPEDO:POLARON
 NAME:polaron
+COLOR:210,25,211
 DAMAGE:120
 REQUIRED:0.3
 PLANET_DAMAGE:0.35
@@ -28,6 +42,7 @@ END_TORPEDO
 #
 TORPEDO:PHOTON
 NAME:photon
+COLOR:251,54,8
 DAMAGE:150
 REQUIRED:0.38
 PLANET_DAMAGE:0.5
@@ -35,6 +50,7 @@ END_TORPEDO
 #
 TORPEDO:PLASMA
 NAME:plasma
+COLOR:60,237,13
 DAMAGE:180
 REQUIRED:0.5
 PLANET_DAMAGE:0.625
@@ -42,6 +58,7 @@ END_TORPEDO
 #
 TORPEDO:QUANTIUM
 NAME:quantium
+COLOR:214,214,255
 DAMAGE:200
 REQUIRED:0.6
 PLANET_DAMAGE:0.75
@@ -49,6 +66,7 @@ END_TORPEDO
 #
 TORPEDO:TRI_COLBALT
 NAME:tri-colbalt
+COLOR:103,103,254
 DAMAGE:220
 REQUIRED:0.725
 PLANET_DAMAGE:0.85

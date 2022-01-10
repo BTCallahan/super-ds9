@@ -100,30 +100,8 @@ class EventHandler(BaseEventHandler):
 
         self.engine.handle_enemy_turns()
         
-        for ship in game_data.ships_in_same_sub_sector_as_player:
-
-            if ship.cloak_status != CloakStatus.INACTIVE:
-                ship.cloak_status = CloakStatus.COMPRIMISED if game_data.player.detect_cloaked_ship(ship) else CloakStatus.ACTIVE
-                
-        game_data.visible_ships_in_same_sub_sector_as_player = [
-            ship for ship in game_data.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
-        ]
         
-        if isinstance(
-            self.engine.game_data.selected_ship_planet_or_star, Starship
-        ) and not self.engine.game_data.selected_ship_planet_or_star.ship_status.is_visible:
         
-            self.engine.game_data.selected_ship_planet_or_star = None
-        
-        if game_data.player.cloak_cooldown > 0:
-        
-            game_data.player.cloak_cooldown -= 1
-        
-            if game_data.player.cloak_cooldown == 0:
-        
-                game_data.engine.message_log.add_message(
-                    f"The cloaking device is readly, {game_data.player.nation.captain_rank_name}."
-                )
         return True
 
     def handle_events(self, event: tcod.event.Event) -> BaseEventHandler:
@@ -229,10 +207,7 @@ class MinMaxInitator(CancelConfirmHandler):
             inactive_fg=colors.grey,
             bg=colors.black
         )
-
         
-
-
     def on_render(self, console: tcod.Console) -> None:
         
         super().on_render(console)
@@ -408,7 +383,7 @@ class CoordBasedHandler(CancelConfirmHandler):
         ) -> None:
         
         super().__init__(engine)
-        
+                
         self.x_button = NumberHandeler(
             limit=2, 
             max_value=max_x, min_value=0, 
@@ -466,10 +441,15 @@ class CommandEventHandler(MainGameEventHandler):
         #print("CommandEventHandler")
         super().__init__(engine)
         
+        self.ship_type_can_fire_beam_arrays = self.engine.player.ship_type_can_fire_beam_arrays
+        self.ship_type_can_fire_cannons = self.engine.player.ship_type_can_fire_cannons
+        self.ship_type_can_cloak = self.engine.player.ship_type_can_cloak
+        self.ship_type_can_fire_torps = self.engine.player.ship_type_can_fire_torps
+        
         self.warp_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x, 
             y=2+CONFIG_OBJECT.command_display_y,
-            width=10,
+            width=11,
             height=3,
             text="(W)arp",
             active_fg=colors.white,
@@ -480,7 +460,7 @@ class CommandEventHandler(MainGameEventHandler):
         self.move_button = SimpleElement(
             x=2+13+CONFIG_OBJECT.command_display_x,
             y=2+CONFIG_OBJECT.command_display_y,
-            width=10,
+            width=11,
             height=3,
             text="(M)ove",
             active_fg=colors.white,
@@ -490,8 +470,8 @@ class CommandEventHandler(MainGameEventHandler):
 
         self.shields_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=6+CONFIG_OBJECT.command_display_y,
-            width=10,
+            y=5+CONFIG_OBJECT.command_display_y,
+            width=11,
             height=3,
             text="(S)hields",
             active_fg=colors.white,
@@ -501,8 +481,8 @@ class CommandEventHandler(MainGameEventHandler):
 
         self.repair_button = SimpleElement(
             x=2+13+CONFIG_OBJECT.command_display_x,
-            y=6+CONFIG_OBJECT.command_display_y,
-            width=10,
+            y=5+CONFIG_OBJECT.command_display_y,
+            width=11,
             height=3,
             text="(R)epair",
             active_fg=colors.white,
@@ -512,8 +492,8 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.cloak_button = BooleanBox(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=10+CONFIG_OBJECT.command_display_y,
-            width=10,
+            y=8+CONFIG_OBJECT.command_display_y,
+            width=11,
             height=3,
             active_text="(C)loak",
             inactive_text="De(C)loak",
@@ -524,8 +504,8 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.dock_button = BooleanBox(
             x=2+13+CONFIG_OBJECT.command_display_x,
-            y=10+CONFIG_OBJECT.command_display_y,
-            width=10,
+            y=8+CONFIG_OBJECT.command_display_y,
+            width=11,
             height=3,
             active_text="(D)ock",
             inactive_text="Un(D)ock",
@@ -535,15 +515,26 @@ class CommandEventHandler(MainGameEventHandler):
             alignment=tcod.CENTER,
             initally_active= not self.engine.player.docked
         )
-        
-        p = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
+        beam_name_cap = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
 
         self.phasers_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=14+CONFIG_OBJECT.command_display_y,
-            width=23,
+            y=11+CONFIG_OBJECT.command_display_y,
+            width=24,
             height=3,
-            text=f"(F)ire {p}s",
+            text=f"(F)ire {beam_name_cap}s",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
+        )
+        cannon_name_cap = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
+        
+        self.cannons_buttons = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=14+CONFIG_OBJECT.command_display_y,
+            width=24,
+            height=3,
+            text=f"F(i)re {cannon_name_cap}s",
             active_fg=colors.white,
             bg=colors.black,
             alignment=tcod.CENTER
@@ -551,8 +542,8 @@ class CommandEventHandler(MainGameEventHandler):
 
         self.torpedos_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=18+CONFIG_OBJECT.command_display_y,
-            width=23,
+            y=17+CONFIG_OBJECT.command_display_y,
+            width=24,
             height=3,
             text="Fire (T)orpedos",
             active_fg=colors.white,
@@ -562,8 +553,8 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.auto_destruct_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=22+CONFIG_OBJECT.command_display_y,
-            width=23,
+            y=20+CONFIG_OBJECT.command_display_y,
+            width=24,
             height=3,
             text="(A)uto-Destruct",
             active_fg=colors.white,
@@ -572,57 +563,104 @@ class CommandEventHandler(MainGameEventHandler):
         )        
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
+        
         captain = self.engine.player.ship_class.nation.captain_rank_name
+        
         if self.warp_button.cursor_overlap(event):
+            
             self.warned_once = False
+            
             if not self.engine.player.sys_warp_drive.is_opperational:
+                
                 self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
+                
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+                
             elif self.engine.player.docked:
+                
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
         
         elif self.move_button.cursor_overlap(event):
+            
             self.warned_once = False
+            
             if not self.engine.player.sys_impulse.is_opperational:
+                
                 self.engine.message_log.add_message(
                     f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
                 )
 
             elif self.engine.player.energy <= 0:
+                
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+                
             elif self.engine.player.docked:
+                
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
         
         elif self.shields_button.cursor_overlap(event):
+            
             self.warned_once = False
+            
             if not self.engine.player.sys_shield_generator.is_opperational:
+                
                 self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
 
             elif self.engine.player.energy <= 0:
+                
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             #elif self.engine.player.docked:
             #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
                 return ShieldsHandler(self.engine)
             
-        elif self.phasers_button.cursor_overlap(event):
+        elif self.phasers_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_beam_arrays:
+            
             self.warned_once = False
+            
             if not self.engine.player.sys_beam_array.is_opperational:
-                p = self.engine.player.ship_class.get_energy_weapon.name_cap
-                self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
-
+                
+                p = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
+                
+                self.engine.message_log.add_message(
+                    f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
+                )
             elif self.engine.player.energy <= 0:
+                
                 self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+                
             elif self.engine.player.docked:
+                
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
-                return EnergyWeaponHandler(self.engine)
+                return BeamArrayHandler(self.engine)
+
+        elif self.cannons_buttons.cursor_overlap(event) and self.engine.player.ship_can_fire_cannons:
+            
+            self.warned_once = False
+            
+            if not self.engine.player.sys_cannon_weapon.is_opperational:
+                
+                p = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
+                
+                self.engine.message_log.add_message(
+                    f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
+                )
+            elif self.engine.player.energy <= 0:
+                
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+                
+            elif self.engine.player.docked:
+                
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            else:
+                return CannonHandler(self.engine)
 
         elif self.dock_button.cursor_overlap(event):
             planet = self.engine.game_data.selected_ship_planet_or_star
@@ -804,7 +842,7 @@ class CommandEventHandler(MainGameEventHandler):
             
             self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             
-        elif event.sym == tcod.event.K_f:
+        elif event.sym == tcod.event.K_f and self.engine.player.ship_type_can_fire_beam_arrays:
             
             self.warned_once = False
             
@@ -821,7 +859,29 @@ class CommandEventHandler(MainGameEventHandler):
                 
                 self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
             else:
-                return EnergyWeaponHandler(self.engine)
+                return BeamArrayHandler(self.engine)
+            
+        elif event.sym == tcod.event.K_i and self.engine.player.ship_type_can_fire_cannons:
+            
+            self.warned_once = False
+            
+            if not self.engine.player.sys_cannon_weapon.is_opperational:
+                
+                p = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
+                
+                self.engine.message_log.add_message(
+                    f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
+                )
+            elif self.engine.player.energy <= 0:
+                
+                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+                
+            elif self.engine.player.docked:
+                
+                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+            else:
+                return CannonHandler(self.engine)
+            
         elif event.sym == tcod.event.K_d:
 
             planet = self.engine.game_data.selected_ship_planet_or_star
@@ -894,12 +954,21 @@ class CommandEventHandler(MainGameEventHandler):
         self.move_button.render(console)
         self.dock_button.render(console)
         self.shields_button.render(console)
-        self.phasers_button.render(console)
+        
+        if self.ship_type_can_fire_beam_arrays:
+            self.phasers_button.render(console)
+            
+        if self.ship_type_can_fire_cannons:
+            self.cannons_buttons.render(console)
+            
         self.repair_button.render(console)
-        if self.engine.player.ship_type_can_fire_torps:
+        
+        if self.ship_type_can_fire_torps:
             self.torpedos_button.render(console)
+            
         self.auto_destruct_button.render(console)
-        if self.engine.player.ship_type_can_cloak:
+        
+        if self.ship_type_can_cloak:
             self.cloak_button.render(console)
         
 class WarpHandler(HeadingBasedHandler):
@@ -1423,13 +1492,13 @@ class ShieldsHandler(MinMaxInitator):
         else:
             self.amount_button.handle_key(event)
 
-class EnergyWeaponHandler(MinMaxInitator):
+class BeamArrayHandler(MinMaxInitator):
 
     def __init__(self, engine: Engine) -> None:
         player = engine.player
         super().__init__(
             engine, 
-            max_value=player.get_max_effective_firepower,
+            max_value=player.get_max_effective_beam_firepower,
             starting_value=0
         )
         
@@ -1503,9 +1572,9 @@ class EnergyWeaponHandler(MinMaxInitator):
                 try:
                     ship = choice(okay_ships)
                     
-                    self.engine.game_data.selected_ship_planet_or_star = ship
-                    
                     self.engine.game_data.ship_scan = ship.scan_this_ship(self.engine.player.determin_precision)
+                    
+                    self.engine.game_data.selected_ship_planet_or_star = ship
                     
                 except IndexError:
                     captain_rank_name = self.engine.player.ship_class.nation.captain_rank_name
@@ -1513,21 +1582,21 @@ class EnergyWeaponHandler(MinMaxInitator):
                     self.engine.message_log.add_message(
                         f"There are no hostile ships in the system, {captain_rank_name}."
                     )
-                
         elif self.confirm_button.cursor_overlap(event):
 
             if self.fire_all_button.is_active:
                 
+                ships_in_same_sub_sector = self.engine.game_data.grab_ships_in_same_sub_sector(
+                    self.engine.player,
+                    accptable_ship_statuses={STATUS_ACTIVE}
+                )
                 fire_order = EnergyWeaponOrder.multiple_targets(
                     self.engine.player,
                     self.amount_button.add_up(),
-                    self.engine.game_data.grab_ships_in_same_sub_sector(
-                        self.engine.player,
-                        accptable_ship_statuses={STATUS_ACTIVE}
-                    )
+                    ships_in_same_sub_sector
                 )
             else:
-                fire_order = EnergyWeaponOrder.single_target(
+                fire_order = EnergyWeaponOrder.single_target_beam(
                     self.engine.player,
                     self.amount_button.add_up(),
                     self.engine.game_data.selected_ship_planet_or_star
@@ -1535,7 +1604,9 @@ class EnergyWeaponHandler(MinMaxInitator):
             warning = fire_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
-                self.amount_button.max_value = self.engine.player.get_max_effective_firepower
+                self.amount_button.max_value = min(
+                    self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+                )
                 if self.amount_button.add_up() > self.amount_button.max_value:
                     self.amount_button.set_text(self.amount_button.max_value)
                 return fire_order
@@ -1561,7 +1632,170 @@ class EnergyWeaponHandler(MinMaxInitator):
             
             ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
         ):
+
+            self.engine.game_data.ship_scan = ship_planet_or_star.scan_this_ship(self.engine.player.determin_precision)
             
+            self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
+            
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
+
+        if event.sym == tcod.event.K_ESCAPE:
+            return CommandEventHandler(self.engine)
+        if event.sym == tcod.event.K_a:
+        
+            sel = self.engine.game_data.selected_ship_planet_or_star
+            
+            local_ships = self.engine.game_data.ships_in_same_sub_sector_as_player
+            
+            if (not isinstance(sel, Starship) or sel.ship_status.is_active) and local_ships:
+                
+                okay_ships = [s for s in local_ships if s.ship_status.is_active]
+                
+                self.engine.game_data.selected_ship_planet_or_star = choice(okay_ships)
+        
+        if event.sym in confirm:
+            if self.fire_all_button.is_active:
+                
+                ships_in_same_sub_sector = self.engine.game_data.grab_ships_in_same_sub_sector(
+                    self.engine.player,
+                    accptable_ship_statuses={STATUS_ACTIVE}
+                )
+                fire_order = EnergyWeaponOrder.multiple_targets(
+                    self.engine.player,
+                    self.amount_button.add_up(),
+                    ships_in_same_sub_sector
+                )
+            else:
+                fire_order = EnergyWeaponOrder.single_target_beam(
+                    self.engine.player,
+                    self.amount_button.add_up(),
+                    self.engine.game_data.selected_ship_planet_or_star
+                )
+            warning = fire_order.raise_warning()
+
+            if warning == OrderWarning.SAFE:
+                self.amount_button.max_value = min(
+                    self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+                )
+                if self.amount_button.add_up() > self.amount_button.max_value:
+                    self.amount_button.set_text(self.amount_button.max_value)
+                return fire_order
+            
+            self.engine.message_log.add_message(
+                blocks_action[warning], colors.red
+            )
+        else:
+            self.amount_button.handle_key(event)
+
+class CannonHandler(MinMaxInitator):
+
+    def __init__(self, engine: Engine) -> None:
+        
+        player = engine.player
+        
+        super().__init__(
+            engine, 
+            max_value=min(player.get_max_effective_cannon_firepower, player.energy),
+            starting_value=0
+        )
+        self.auto_target_button = SimpleElement(
+            x=4+12+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=14,
+            height=3,
+            text="Auto-Target",
+            active_fg=colors.white,
+            bg=colors.black
+        )
+        
+    def on_render(self, console: tcod.Console) -> None:
+        
+        render_command_box(
+            console=console,
+            gameData=self.engine.game_data,
+            title="Input energy to use:"
+        )
+        super().on_render(console)
+        
+        self.amount_button.render(console)
+        
+        self.min_button.render(console)
+        
+        self.max_button.render(console)
+        
+        self.auto_target_button.render(console)
+
+        self.confirm_button.render(console)
+
+        self.cancel_button.render(console)
+
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
+        
+        if self.max_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(self.amount_button.max_value)
+            
+        elif self.min_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(0)
+            
+        if self.auto_target_button.cursor_overlap(event):
+            
+            sel = self.engine.game_data.selected_ship_planet_or_star
+            
+            local_ships = self.engine.game_data.ships_in_same_sub_sector_as_player
+            
+            if (not isinstance(sel, Starship) or not sel.ship_status.is_active) and local_ships:
+                
+                okay_ships = [s for s in local_ships if s.ship_status.is_active]
+                
+                try:
+                    ship = choice(okay_ships)
+                    
+                    self.engine.game_data.selected_ship_planet_or_star = ship
+                    
+                    self.engine.game_data.ship_scan = ship.scan_this_ship(self.engine.player.determin_precision)
+                    
+                except IndexError:
+                    captain_rank_name = self.engine.player.ship_class.nation.captain_rank_name
+                    
+                    self.engine.message_log.add_message(
+                        f"There are no hostile ships in the system, {captain_rank_name}."
+                    )
+        elif self.confirm_button.cursor_overlap(event):
+
+            fire_order = EnergyWeaponOrder.cannon(
+                self.engine.player,
+                self.amount_button.add_up(),
+                self.engine.game_data.selected_ship_planet_or_star
+            )
+            warning = fire_order.raise_warning()
+
+            if warning == OrderWarning.SAFE:
+                self.amount_button.max_value = min(
+                    self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
+                )
+                if self.amount_button.add_up() > self.amount_button.max_value:
+                    self.amount_button.set_text(self.amount_button.max_value)
+                return fire_order
+            
+            self.engine.message_log.add_message(
+                blocks_action[warning], colors.red
+            )
+        elif self.cancel_button.cursor_overlap(event):
+
+            return CommandEventHandler(self.engine)
+        
+        ship_planet_or_star = select_ship_planet_star(self.engine.game_data, event)
+        
+        if (isinstance(
+            
+            ship_planet_or_star, Starship
+            
+        ) and ship_planet_or_star is not self.engine.player and 
+            
+            ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
+        ):
             self.engine.game_data.ship_scan = ship_planet_or_star.scan_this_ship(self.engine.player.determin_precision)
             
             self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
@@ -1584,15 +1818,19 @@ class EnergyWeaponHandler(MinMaxInitator):
         
         if event.sym in confirm:
             
-            fire_order = EnergyWeaponOrder(
+            fire_order = EnergyWeaponOrder.cannon(
                 self.engine.player,
                 self.amount_button.add_up(),
                 target=self.engine.game_data.selected_ship_planet_or_star
             )
-
             warning = fire_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
+                self.amount_button.max_value = min(
+                    self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
+                )
+                if self.amount_button.add_up() > self.amount_button.max_value:
+                    self.amount_button.set_text(self.amount_button.max_value)
                 return fire_order
             
             self.engine.message_log.add_message(
@@ -1604,6 +1842,7 @@ class EnergyWeaponHandler(MinMaxInitator):
 class TorpedoHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
+        
         super().__init__(engine)
         
         self.number_button = NumberHandeler(
@@ -1619,7 +1858,6 @@ class TorpedoHandler(HeadingBasedHandler):
             bg=colors.black,
             initally_active=False
         )
-        
         torpedos = self.engine.player.ship_class.torp_types
         
         self.torpedo_select = Selector(
@@ -1643,7 +1881,6 @@ class TorpedoHandler(HeadingBasedHandler):
             gameData=self.engine.game_data,
             title="Input torpedo heading"
         )
-        
         super().on_render(console)
         
         self.number_button.render(console)
@@ -1703,7 +1940,10 @@ class TorpedoHandler(HeadingBasedHandler):
                     game_data.selected_ship_planet_or_star = ship_planet_or_star
                 elif isinstance(ship_planet_or_star, Starship):
                     
-                    if ship_planet_or_star is not self.engine.player and ship_planet_or_star is not game_data.selected_ship_planet_or_star:
+                    if (
+                        ship_planet_or_star is not self.engine.player and 
+                        ship_planet_or_star is not game_data.selected_ship_planet_or_star
+                    ):
                         game_data.ship_scan = ship_planet_or_star.scan_this_ship(game_data.player.determin_precision)
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
@@ -1716,7 +1956,9 @@ class TorpedoHandler(HeadingBasedHandler):
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            torpedo_order = TorpedoOrder.from_heading(self.engine.player, self.heading_button.add_up(), self.number_button.add_up())
+            torpedo_order = TorpedoOrder.from_heading(
+                self.engine.player, self.heading_button.add_up(), self.number_button.add_up()
+            )
             warning = torpedo_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1745,7 +1987,6 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             starting_x=local_coords.x,
             starting_y=local_coords.y
         )
-        
         self.number_button = NumberHandeler(
             limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1,
             x=3+CONFIG_OBJECT.command_display_x,
@@ -1758,7 +1999,6 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             inactive_fg=colors.grey,
             bg=colors.black
         )
-        
         torpedos = self.engine.player.ship_class.torp_types
         
         self.torpedo_select = Selector(
@@ -1782,7 +2022,6 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             gameData=self.engine.game_data,
             title="Input torpedo coordants"
         )
-        
         super().on_render(console)
         
         self.number_button.render(console)
@@ -1845,7 +2084,10 @@ class TorpedoHandlerEasy(CoordBasedHandler):
                     game_data.selected_ship_planet_or_star = ship_planet_or_star
                 elif isinstance(ship_planet_or_star, Starship):
                     
-                    if ship_planet_or_star is not self.engine.player and ship_planet_or_star is not game_data.selected_ship_planet_or_star:
+                    if (
+                        ship_planet_or_star is not self.engine.player and 
+                        ship_planet_or_star is not game_data.selected_ship_planet_or_star
+                    ):
                         game_data.ship_scan = ship_planet_or_star.scan_this_ship(game_data.player.determin_precision)
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:

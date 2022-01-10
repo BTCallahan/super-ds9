@@ -24,8 +24,8 @@ class Coords(namedtuple("Coords_", ("x", "y"))):
     def randomPositiveCoords(cls, x:int, y:int):
         return cls(randrange(0, x), randrange(0, y))
 
-    def __str__(self) -> str:
-        return f"{self.x} {self.y}"
+    #def __str__(self) -> str:
+    #    return f"{self.x} {self.y}"
 
     def __hash__(self) -> int:
         return hash((self.x, self.y))

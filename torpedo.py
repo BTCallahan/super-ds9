@@ -10,14 +10,12 @@ class Torpedo:
     #__slots__ = ("cap_name", "name", "damage", "infrastructure", "infrastructure_damage")
     
     name:str
+    cap_name:str
     damage:int
     infrastructure:float
     infrastructure_damage:float
+    valid:bool=True
     
-    @property
-    def cap_name(self):
-        return self.name.capitalize()
-
     def __lt__(self, t: "Torpedo"):
 
         return (self.damage < t.damage) if self.infrastructure == t.infrastructure else (self.infrastructure < t.infrastructure) 
@@ -43,9 +41,11 @@ def create_torpedos() -> Dict[str,Torpedo]:
     torpedo_dict = {
         "NONE" : Torpedo(
             name="",
+            cap_name="",
             damage=0,
             infrastructure=10000.0,
-            infrastructure_damage=0.0
+            infrastructure_damage=0.0,
+            valid=False
         )
     }
         
@@ -56,6 +56,8 @@ def create_torpedos() -> Dict[str,Torpedo]:
         torpedo_txt = torpedo.group(2)
                 
         name = get_first_group_in_pattern(torpedo_txt, name_pattern)
+        
+        cap_name = name.capitalize()
                 
         damage = get_first_group_in_pattern(torpedo_txt, damage_pattern, type_to_convert_to=int)
                 
@@ -63,17 +65,18 @@ def create_torpedos() -> Dict[str,Torpedo]:
             torpedo_txt, req_infrastructure_pattern, type_to_convert_to=float
         )
                 
-        planet_damage_ = get_first_group_in_pattern(torpedo_txt, planet_damage_pattern)
+        planet_damage = get_first_group_in_pattern(torpedo_txt, planet_damage_pattern, type_to_convert_to=float)
         
-        try:
-            planet_damage = float(planet_damage_)
-        except TypeError:
-            planet_damage = float(planet_damage_[0])
+        #try:
+        #    planet_damage = float(planet_damage_)
+        #except TypeError:
+        #    planet_damage = float(planet_damage_[0])
         
         torp = Torpedo(
             name=name,
-            damage=int(damage),
-            infrastructure=float(req_infrastructure),
+            cap_name=cap_name,
+            damage=damage,
+            infrastructure=req_infrastructure,
             infrastructure_damage=planet_damage
         )
         

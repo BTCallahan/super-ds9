@@ -5,7 +5,7 @@ from string import digits
 import re
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class Nation:
     
     nation_color:Tuple[int,int,int]

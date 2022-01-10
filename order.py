@@ -3,9 +3,9 @@ from enum import Enum, auto
 from math import atan2, ceil, floor
 from random import choice
 from coords import Coords, IntOrFloat
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
-from data_globals import DAMAGE_BEAM, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
@@ -154,7 +154,9 @@ class WarpOrder(Order):
         self.entity.sector_coords.y = self.y
 
         ships = self.entity.game_data.grab_ships_in_same_sub_sector(
-            self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED}
+            self.entity, accptable_ship_statuses={
+                STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED,
+            }
         )
 
         subsector: SubSector = self.entity.game_data.grid[self.y][self.x]
@@ -162,8 +164,10 @@ class WarpOrder(Order):
         safe_spots = subsector.safe_spots.copy()
 
         for ship in ships:
-
-            safe_spots.remove(ship.local_coords.create_coords())
+            try:
+                safe_spots.remove(ship.local_coords.create_coords())
+            except ValueError:
+                pass
 
         spot = choice(safe_spots)
         
@@ -173,8 +177,16 @@ class WarpOrder(Order):
         energy_cost = self.cost
 
         self.entity.energy -= energy_cost
+        
+        is_controllable = self.entity.is_controllable
+        
+        player_sector_coords = self.game_data.player.sector_coords
+        
+        player_in_departure_system = player_sector_coords.x == old_x and player_sector_coords.y == old_y
+        
+        player_in_destination_system = player_sector_coords == self.entity.sector_coords
 
-        if self.entity.is_controllable:
+        if is_controllable:
             
             self.game_data.player_record["energy_used"] += energy_cost
             self.game_data.player_record["times_gone_to_warp"] += 1
@@ -182,8 +194,17 @@ class WarpOrder(Order):
             self.game_data.engine.message_log.add_message(
                 "Engage!", colors.cyan
             )
+        elif player_in_departure_system:
+            
             self.game_data.engine.message_log.add_message(
-                f"The {self.entity.name} has come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", colors.cyan
+                f"The {self.entity.name} has come out of warp.", colors.cyan
+            )
+            
+        if player_in_destination_system or is_controllable:
+            
+            self.game_data.engine.message_log.add_message(
+                f"The {self.entity.name} has come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", 
+                colors.cyan
             )
                 
         self.entity.turn_repairing = 0
@@ -290,7 +311,9 @@ class MoveOrder(Order):
 
                     try:
                         ship = self.ships[co]
-                        crew_readyness = self.entity.crew_readyness * 0.5 + 0.5
+                        crew_readyness = self.entity.crew_readyness
+                        target_crew_readyness = ship.crew_readyness
+                        
                         hit = self.entity.roll_to_hit(
                             ship, 
                             systems_used_for_accuray=(
@@ -298,7 +321,8 @@ class MoveOrder(Order):
                                 self.entity.sys_sensors.get_effective_value
                             ),
                             damage_type=DAMAGE_RAMMING,
-                            crew_readyness=crew_readyness
+                            crew_readyness=crew_readyness,
+                            target_crew_readyness=target_crew_readyness
                         )
                         self.entity.ram(ship)
 
@@ -320,7 +344,9 @@ class MoveOrder(Order):
 
                         try:
                             ship = self.ships[co]
-                            crew_readyness = self.entity.crew_readyness * 0.5 + 0.5
+                            crew_readyness = self.entity.crew_readyness
+                            target_crew_readyness = ship.crew_readyness
+                            
                             hit = self.entity.roll_to_hit(
                                 ship, 
                                 systems_used_for_accuray=(
@@ -328,7 +354,8 @@ class MoveOrder(Order):
                                     self.entity.sys_sensors.get_effective_value
                                 ),
                                 damage_type=DAMAGE_RAMMING,
-                                crew_readyness=crew_readyness
+                                crew_readyness=crew_readyness,
+                                target_crew_readyness=target_crew_readyness
                             )
                             self.entity.ram(ship)
 
@@ -407,23 +434,45 @@ class EnergyWeaponOrder(Order):
 
     def __init__(
         self, entity:Starship, amount:int, *, 
-        target:Optional[Starship]=None, targets:Optional[Iterable[Starship]]=None
+        target:Optional[Starship]=None, targets:Optional[Tuple[Starship]]=None, use_cannons:bool
     ) -> None:
         super().__init__(entity)
-        self.amount = min(entity.energy, amount, entity.ship_class.max_weap_energy)
+        self.amount = min(entity.energy, amount, entity.ship_class.max_beam_energy)
         self.target = target
         self.targets = targets
+        self.use_cannons = use_cannons
+        if self.targets:
+            if use_cannons:
+                raise ValueError(
+                    "Cannons can only be used to target a single ship. If the parameter 'use_cannons' is True, then the parameter 'targets' must be None"
+                )
+            
+            self.targets
     
     def __hash__(self):
-        return hash((self.entity, self.amount, self.target, self.targets))
+        return hash((self.entity, self.amount, self.target, self.targets, self.use_cannons))
     
     @classmethod
-    def single_target(cls, entity:Starship, amount:int, target:Starship):
-        return cls(entity, amount, target=target)
+    def cannon(cls, entity:Starship, amount:int, target:Starship):
+        return cls(entity, amount, target=target, use_cannons=True)
+    
+    @classmethod
+    def single_target_beam(cls, entity:Starship, amount:int, target:Starship):
+        return cls(entity, amount, target=target, use_cannons=False)
 
     @classmethod
-    def multiple_targets(cls, entity:Starship, amount:int, targets:Iterable[Starship]):
-        return cls(entity, amount, targets=targets)
+    def multiple_targets(cls, entity:Starship, amount:int, targets:List[Starship]):
+        targets.sort(key=lambda a: entity.local_coords.distance(coords=a.local_coords))
+        
+        max_targets = min(
+            entity.ship_class.max_beam_targets, len(targets)
+        )
+        
+        return cls(
+            entity, amount, 
+            targets=tuple(targets[:max_targets]), 
+            use_cannons=False
+        )
 
     @property
     def multi_targets(self):
@@ -448,9 +497,11 @@ class EnergyWeaponOrder(Order):
 
             for ship in self.targets:
 
-                self.entity.attack_energy_weapon(ship, actual_amount, cost, DAMAGE_BEAM)
+                self.entity.attack_energy_weapon(ship, amount, cost, DAMAGE_BEAM)
         else:
-            self.entity.attack_energy_weapon(self.target, actual_amount, self.amount, DAMAGE_BEAM)
+            dam_type = DAMAGE_CANNON if self.use_cannons else DAMAGE_BEAM
+            
+            self.entity.attack_energy_weapon(self.target, actual_amount, self.amount, dam_type)
             
         if self.entity.is_controllable:
             self.game_data.player_record["energy_used"] += self.amount
@@ -459,7 +510,11 @@ class EnergyWeaponOrder(Order):
 
     def raise_warning(self):
 
-        if not self.entity.sys_beam_array.is_opperational:
+        if (
+            not self.use_cannons and not self.entity.sys_beam_array.is_opperational
+        ) or (
+            self.use_cannons and not self.entity.sys_cannon_weapon.is_opperational
+        ):
             return OrderWarning.SYSTEM_INOPERATIVE
         
         if self.multi_targets and not self.targets:
@@ -496,9 +551,9 @@ class TorpedoOrder(Order):
             co.y+entity.local_coords.y < CONFIG_OBJECT.subsector_height
         )
         
-        entity.game_data.engine.message_log.add_message(
-            ", ".join([str(c) for c in self.coord_list])
-        )
+        #entity.game_data.engine.message_log.add_message(
+        #    ", ".join([str(c) for c in self.coord_list])
+        #)
         
         self.ships = {
             ship.local_coords.create_coords() : ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(
@@ -819,7 +874,7 @@ class SelfDestructOrder(Order):
         
         ships_in_range = [
             ship for ship in sector_ships if self.entity.local_coords.distance(
-                ship.local_coords
+                coords=ship.local_coords
             ) <= self.entity.ship_class.warp_breach_dist
         ]
 
@@ -837,7 +892,7 @@ class ReactivateDerlict(Order):
         ]
 
         if self.delrict_ships:
-            self.delrict_ships.sort(lambda ship: ship.sector_coords.distance(self.entity.sector_coords))
+            self.delrict_ships.sort(lambda ship: ship.sector_coords.distance(coords=self.entity.sector_coords))
 
     def raise_warning(self):
         

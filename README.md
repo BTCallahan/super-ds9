@@ -338,7 +338,14 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         As with the Shields command, the buttons Max and Min are present, with the same functionality.
 
-    G. Fire Torpedoes:
+    G. Fire Cannons:
+
+        Some ships possess cannons in addition to or instead of beam arrays. Cannons are significantly more powerful then beam arrays, but are less 
+        accuract, especially at a distance. Cannons can only target a singel enemy ship.
+        
+        As with beam arrays, the amound of power to use can be ajusted by inputting it directly, or by clicking on the Min and Max buttons.
+
+    H. Fire Torpedoes:
 
         If the player has checked the option "Easy Aim", then they will only need to enter the coordinates of the target, otherwise they will need to 
         enter the heading. 
@@ -346,7 +353,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         By default, one torpedo will be fired. Should the player's ship have more then one torpedo tube, then they can select the number of torpedoes 
         they want to fire.
 
-    H. Auto Destruct:
+    I. Auto Destruct:
 
         In times of desperation, the player may want to self destruct their space craft. Because of the severity of this situation, the player is 
         required to input a password to confirm. The password is displayed below the text entry element.
@@ -359,10 +366,14 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         i. Beams:
 
-            Beam arrays have a greater chance of incliting damage on starship systems, and will don a greater amount of damage to systems, however they 
+            Beam arrays have a greater chance of incliting damage on starship systems, and will do a greater amount of damage to systems, however they 
             suffer from a small accuracy penalty.
 
-        ii. Torpedoes:
+        ii. Cannons:
+
+            Cannons inflict much more damage per unit of energy then beam weapons, however their accuracy suffers at long range.
+
+        iii. Torpedoes:
 
             Because of their detonation mechinism, torpedoes do one quarter less damage to shields. Conversly, damage that manadges to 'bleed through' 
             the shields is increased by fifteen percent. And should a torpedo hit a ship with it's shields down, then damge is increased by three 
@@ -418,3 +429,5 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 7. Bugs: 
 
     Sometimes, when an enemy ships shield is down, and it's hull is badly depleated, it will not appear on the system map.
+
+    The AI has trouble calculating torpedo trajectories.

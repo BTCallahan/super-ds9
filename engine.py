@@ -3,13 +3,13 @@ from __future__ import annotations
 from coords import Coords, AnyCoords
 from typing import Dict, Tuple, TYPE_CHECKING
 import lzma, pickle
-from data_globals import CloakStatus
+from data_globals import STATUS_CLOAKED, CloakStatus
 from message_log import MessageLog
 from game_data import GameData
 from get_config import CONFIG_OBJECT
 
-if TYPE_CHECKING:
-    from starship import Starship
+#if TYPE_CHECKING:
+from starship import Starship
 
 class Engine:
 
@@ -66,7 +66,35 @@ class Engine:
                         
                 entity.ai.perform()
                 entity.repair()
+        
+        if self.game_data.player.cloak_cooldown > 0:
+        
+            self.game_data.player.cloak_cooldown -= 1
+        
+            if self.game_data.player.cloak_cooldown == 0:
+        
+                self.game_data.engine.message_log.add_message(
+                    f"The cloaking device is readly, {self.game_data.player.nation.captain_rank_name}."
+                )
+        
+        self.game_data.visible_ships_in_same_sub_sector_as_player = [
+            ship for ship in self.game_data.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
+        ]
+        
+        for ship in self.game_data.ships_in_same_sub_sector_as_player:
+                        
+            if ship.cloak_status == CloakStatus.ACTIVE and self.game_data.player.detect_cloaked_ship(ship):
                 
+                ship.cloak_status = CloakStatus.COMPRIMISED
+        
+        selected_ship_planet_or_star = self.game_data.selected_ship_planet_or_star
+        
+        if isinstance(
+            selected_ship_planet_or_star, Starship
+        ) and not selected_ship_planet_or_star.ship_status.is_visible:
+        
+            self.game_data.selected_ship_planet_or_star = None
+        
         self.game_data.set_condition()
         self.game_data.update_mega_sector_display()
 

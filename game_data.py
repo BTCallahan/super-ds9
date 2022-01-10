@@ -358,7 +358,8 @@ class GameData:
                         try:
                             ship = shipsInArea[co]
                             #hitSomething = shipThatFired.attack_torpedo(self, ship, torpedo)
-                            crew_readyness = shipThatFired.crew_readyness * 0.5 + 0.5
+                            crew_readyness = shipThatFired.crew_readyness# * 0.5 + 0.5
+                            target_crew_readyness = ship.crew_readyness
                             
                             hitSomething = shipThatFired.roll_to_hit(
                                 ship, 
@@ -367,7 +368,8 @@ class GameData:
                                     shipThatFired.sys_sensors.get_effective_value,
                                     shipThatFired.sys_torpedos.get_effective_value
                                 ),
-                                crew_readyness=crew_readyness
+                                crew_readyness=crew_readyness,
+                                target_crew_readyness=target_crew_readyness
                             )
                             
                             if hitSomething:

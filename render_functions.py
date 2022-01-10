@@ -372,6 +372,12 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
 
         if isinstance(ship_planet_or_star, Starship):
 
+            if not gamedata.ship_scan:
+                
+                gamedata.ship_scan = gamedata.selected_ship_planet_or_star.scan_this_ship(
+                    gamedata.player.determin_precision
+                )
+
             print_ship_info(
                 console=console,
                 x=start_x,
@@ -564,7 +570,7 @@ def select_sector_space(event: "tcod.event.MouseButtonDown"):
     if tile.x in x_range and tile.y in y_range:
         x_ajusted = (tile.x - (x + 1)) // 5
         y_ajusted = (tile.y - (y + 1)) // 4
-        print(f"{tile.x} {tile.y} {x_ajusted} {y_ajusted}")
+        #print(f"{tile.x} {tile.y} {x_ajusted} {y_ajusted}")
         return x_ajusted, y_ajusted
     return False, False
 
