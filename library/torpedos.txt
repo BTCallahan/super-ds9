@@ -22,7 +22,7 @@ REQUIRED:0.20
 PLANET_DAMAGE:0.25
 END_TORPEDO
 #
-# The torpedos used by klingon BoPs in ST:III anbd ST:G
+# The green torpedos used by klingon BoPs in ST:III anbd ST:G
 #
 TORPEDO:PHOTON_BOP
 NAME:photon

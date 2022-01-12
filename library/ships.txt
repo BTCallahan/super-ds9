@@ -5,17 +5,19 @@
 # SHIELDS: - The maximum shield strength of the ship. Must be in intiger.
 # HULL: - The maximum hull strength of the ship. Must be in intiger.
 # TORPEDOS: - The maximum number of torpedos the ship class can carry. Must be in intiger. Optional, defaults to 0 if missing.
-# CREW: - The maximum crew of the ship. Must be in intiger.
+# CREW: - The maximum crew of the ship. Must be in intiger. Optional, defaults to 0 is missing. If missing the ship will be treated as automated.
 # ENERGY: The maximum energy of the ship. Must be in intiger.
 # TORPEDO_TYPES: - Codes for the torpedos that the ship can carry. This can contain uppercase letters, numbers, and underscores. Optional, can be omitted. Valid codes can be found in the file library/torpdeos.txt.
 # TORPEDO_TUBES: - This set the maximum number of torpedos that can be fired at once. Must be in intiger. Optional, defaults to 0 if missing.
 # DAMAGE_CONTROL: - Damage control. Used to determin how much of a ships is repaired. This must be a floating point value greater then 0.
-# MAX_BEAM_ENERGY: - The maximum amount of energy that that can be fired from the ships beam arrays. Optional. Must be an intiger.
-# CLOAK_STRENGTH: - The ability of a ship to evade detection using a cloaking device. Optional, must be a float.
-# CLOAK_COOLDOWN: - If the ship preforms a fast 'decloak-and-fire', then this is the number of turns that must pass before it can cloak. Optional, must be an intiger.
+# MAX_CANNON_ENERGY: - The maximum amount of energy that that can be fired from the ships cannons. Must be an intiger. Optional, defaults to 0 if missing.
+# MAX_BEAM_ENERGY: - The maximum amount of energy that that can be fired from the ships beam arrays. Must be an intiger. Optional, defaults to 0 if missing.
+# MAX_BEAM_TARGETS: - If the ship is capiable of firing beam arrays, this defins the maximum nutber of targets it can hit at once. Must be an intiger. Optional, defaults to 1.
+# CLOAK_STRENGTH: - The ability of a ship to evade detection using a cloaking device. Must be a float. Optional, defaults to 0.0 if missing.
+# CLOAK_COOLDOWN: - If the ship preforms a fast 'decloak-and-fire', then this is the number of turns that must pass before it can cloak. Must be an intiger. Optional, defaults to 1 if missing.
 # DETECTION_STRENGTH: - The ability of a ship to detect cloaked vessels. Must be a float.
 # SIZE: - The 'bulk' of a ship. A higher value makes it easy to hit. Must be a float.
-# EVASION
+# EVASION: - How well the ship can avoid enemy shots. Must be a float.
 # WARP_CORE_BREACH_DISTANCE: - If the ship suffers a warp core breach, any ships within this distance will be damaged. Must be an intiger.
 # NATION: - The code for the nation that this ship class belongs to. This can contain uppercase letters, numbers, and underscores. Valid codes can be found in the file library/nations.txt.
 # END_SHIPCLASS
@@ -30,6 +32,7 @@ ENERGY:500
 ENERGY_WEAPON:DISTRUPTOR
 DAMAGE_CONTROL:0.1
 MAX_BEAM_ENERGY:400
+MAX_BEAM_TARGETS:2
 DETECTION_STRENGTH:0.4
 SIZE:1.0
 TARGETING:0.6

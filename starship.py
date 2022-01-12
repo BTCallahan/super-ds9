@@ -1897,12 +1897,16 @@ It's actually value is {precision}."
 
         times_to_fire = min(self.get_no_of_avalible_torp_tubes(), torpedos)
 
-        shield_damage = 0
-        hull_damage = 0
+        total_shield_dam = 0
+        total_hull_dam = 0
         
         averaged_hull = 0
         averaged_shields = 0
         averaged_crew_readyness = 0
+        
+        number_of_ship_kills = 0
+        
+        number_of_crew_kills = 0
         
         crew_readyness = self.crew_readyness
         
@@ -1911,7 +1915,9 @@ It's actually value is {precision}."
         target_crew_readyness = target.scan_crew_readyness(precision) if scan_target_crew else 1.0
 
         for s in range(number_of_simulations):
-                        
+            
+            new_hull = target_scan["hull"]
+            
             for attack in range(times_to_fire):
                 hull_dam  = 0
                 shield_dam = 0
@@ -1954,16 +1960,22 @@ It's actually value is {precision}."
                             target_scan["able_crew"], target_scan["injured_crew"]
                         )
             
-            shield_damage += shield_dam
-            hull_damage += hull_dam
+            total_shield_dam += shield_dam
+            total_hull_dam += hull_dam
+            
+            if new_hull <= 0:
+                number_of_ship_kills +=1
             
             averaged_hull += target_scan["hull"]
             averaged_shields += target_scan["shields"]
             
             if scan_target_crew:
-                averaged_crew_readyness += target.caluclate_crew_readyness(
+                _crew_readyness = target.caluclate_crew_readyness(
                     target_scan["able_crew"], target_scan["injured_crew"]
                 )
+                
+                if _crew_readyness == 0.0:
+                    number_of_crew_kills += 1
                 
             target_crew_readyness = target.scan_crew_readyness(precision) if scan_target_crew else 1.0
             
@@ -1971,15 +1983,15 @@ It's actually value is {precision}."
         
         averaged_shields /= number_of_simulations
         averaged_hull /= number_of_simulations
-        shield_damage /= number_of_simulations
-        hull_damage /= number_of_simulations
+        total_shield_dam /= number_of_simulations
+        total_hull_dam /= number_of_simulations
         
         if scan_target_crew:
             averaged_crew_readyness /= number_of_simulations
         else:
             averaged_crew_readyness = 1.0
         
-        return averaged_shields, averaged_hull, shield_damage, hull_damage, averaged_hull <= 0, averaged_crew_readyness
+        return averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, number_of_ship_kills / number_of_simulations, number_of_crew_kills / number_of_simulations, averaged_crew_readyness
 
     def simulate_energy_hit(
         self, target:Starship, number_of_simulations:int, energy:float, cannon:bool=False, 
@@ -1999,6 +2011,10 @@ It's actually value is {precision}."
         averaged_hull = 0
         
         averaged_crew_readyness = 0
+        
+        number_of_ship_kills = 0
+        
+        number_of_crew_kills = 0
         
         damage_type = DAMAGE_CANNON if cannon else DAMAGE_BEAM
 
@@ -2034,12 +2050,18 @@ It's actually value is {precision}."
                 total_shield_dam += shields_dam
                 total_hull_dam += hull_dam
                 
+                if new_hull <= 0:
+                    number_of_ship_kills+=1
+                
                 if scan_target_crew:
-                    averaged_crew_readyness += (
-                        (targScan["able_crew"] - (wounded + killed_outright)) + (
-                            (targScan["injured_crew"] - killed_in_sickbay) * 0.25
-                        ) / target.ship_class.max_crew
-                    )
+                    able_crew = targScan["able_crew"] - (wounded + killed_outright)
+                    injured_crew = targScan["injured_crew"] - killed_in_sickbay
+                    
+                    averaged_crew_readyness += target.caluclate_crew_readyness(able_crew, injured_crew)
+                    
+                    if able_crew + injured_crew == 0:
+                        
+                        number_of_crew_kills += 1
             else:
                 averaged_shields += targ_shield
                 averaged_hull += targ_hull
@@ -2054,7 +2076,7 @@ It's actually value is {precision}."
         else:
             averaged_crew_readyness = 1.0
         
-        return averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, averaged_hull <= 0, averaged_crew_readyness
+        return averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, number_of_ship_kills / number_of_simulations, number_of_crew_kills / number_of_simulations, averaged_crew_readyness
 
     def check_torpedo_los(self, target:Starship):
         """Returns a float that examins the chance of a torpedo hitting an intended target.

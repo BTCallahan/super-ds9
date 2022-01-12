@@ -198,7 +198,7 @@ class GameData:
                     ship_class = ALL_SHIP_CLASSES[k]
 
                     starship = Starship(
-                        ship_class, HardEnemy, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
+                        ship_class, self.difficulty, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
                     )
 
                     starship.game_data = self

@@ -2,7 +2,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from random import choice, randint
 import re
-from ai import EasyEnemy, HardEnemy, MediumEnemy
+from ai import BaseAi, EasyEnemy, HardEnemy, MediumEnemy
 from engine import Engine
 from get_config import CONFIG_OBJECT
 from game_data import GameData
@@ -64,7 +64,8 @@ def load_game(filename: str) -> Engine:
 def set_up_game(
         *,
         easy_aim:bool, easy_move:bool, easy_warp:bool, torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
-        ship_name:str, captain_name:str, scenario:Scenerio
+        ship_name:str, captain_name:str, scenario:Scenerio, difficulty:type[BaseAi]
+
     ):
     #print('beginning setup')
     #global GRID, PLAYER, TOTAL_STARSHIPS
@@ -85,7 +86,8 @@ def set_up_game(
         current_datetime = scenario.create_date_time(),
         starting_stardate = stardate(scenario.create_date_time()),
         ending_stardate = stardate(scenario.enddate),
-        scenerio=scenario
+        scenerio=scenario,
+        difficulty=difficulty
     )
 
     engine = Engine(
@@ -731,6 +733,8 @@ class NewGame(input_handelers.BaseEventHandler):
         self.warn_crash_button.render(
             console=console,
         )
+        
+        self.difficulty.render(console=console)
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[input_handelers.BaseEventHandler]:
 
@@ -751,18 +755,22 @@ class NewGame(input_handelers.BaseEventHandler):
                 self.warning_text = self.__please_enter_ship_name
             else:
                 
-                return input_handelers.CommandEventHandler(set_up_game(
-                    easy_aim=self.aim_button.is_active,
-                    easy_move=self.move_button.is_active,
-                    easy_warp=self.warp_button.is_active,
-                    torpedo_warning=self.warn_torpedo_button.is_active,
-                    crash_warning=self.warn_crash_button.is_active,
-                    three_d_movment=self.three_d_movement_button.is_active,
-                    ship_name=self.ship_name.send(),
-                    captain_name=self.captain_name.send(),
-                    scenario=self.scenario
-                    #captain_rank_name=self.scenario.your_nation
-                ))
+                difficulty = self.difficulty.index_key
+                
+                return input_handelers.CommandEventHandler(
+                    set_up_game(
+                        easy_aim=self.aim_button.is_active,
+                        easy_move=self.move_button.is_active,
+                        easy_warp=self.warp_button.is_active,
+                        torpedo_warning=self.warn_torpedo_button.is_active,
+                        crash_warning=self.warn_crash_button.is_active,
+                        three_d_movment=self.three_d_movement_button.is_active,
+                        ship_name=self.ship_name.send(),
+                        captain_name=self.captain_name.send(),
+                        scenario=self.scenario,
+                        difficulty=difficulty
+                    )
+                )
 
         if self.captain_name.cursor_overlap(event):
             
@@ -823,19 +831,22 @@ class NewGame(input_handelers.BaseEventHandler):
             return MainMenu()
         if event.sym in confirm:
             
-            diff = self.difficulty.index_key
+            difficulty = self.difficulty.index_key
 
-            return input_handelers.CommandEventHandler(set_up_game(
-                easy_aim=self.aim_button.is_active,
-                easy_move=self.move_button.is_active,
-                easy_warp=self.warp_button.is_active,
-                torpedo_warning=self.warn_torpedo_button.is_active,
-                crash_warning=self.warn_crash_button.is_active,
-                three_d_movment=self.three_d_movement_button.is_active,
-                ship_name=self.ship_name.send(),
-                captain_name=self.captain_name.send(),
-                scenario=self.scenario
-            ))
+            return input_handelers.CommandEventHandler(
+                set_up_game(
+                    easy_aim=self.aim_button.is_active,
+                    easy_move=self.move_button.is_active,
+                    easy_warp=self.warp_button.is_active,
+                    torpedo_warning=self.warn_torpedo_button.is_active,
+                    crash_warning=self.warn_crash_button.is_active,
+                    three_d_movment=self.three_d_movement_button.is_active,
+                    ship_name=self.ship_name.send(),
+                    captain_name=self.captain_name.send(),
+                    scenario=self.scenario,
+                    difficulty=difficulty
+                )
+            )
 
         if self.text_handeler:
             self.text_handeler.handle_key(event)
