@@ -9,7 +9,7 @@ from itertools import accumulate
 from functools import lru_cache
 from energy_weapon import ALL_ENERGY_WEAPONS
 
-from global_functions import get_first_group_in_pattern
+from global_functions import get_first_group_in_pattern, inverse_square_law
 from nation import ALL_NATIONS
 from space_objects import SubSector
 from torpedo import Torpedo, find_most_powerful_torpedo
@@ -202,7 +202,7 @@ class ShipClass:
     max_torpedos:int=0
     torp_types:Optional[List[str]]=None    
     torp_tubes:int=0
-    warp_breach_dist:int=2
+    warp_breach_damage:int=2
     cloak_strength:float=0.0
     cloak_cooldown:int=2
 
@@ -221,7 +221,7 @@ class ShipClass:
         torp_types:Optional[List[str]]=None, 
         torp_tubes:int=0,
         max_beam_energy:int, 
-        warp_breach_dist:int=2, 
+        warp_breach_damage:int=2, 
         energy_weapon_code:str,
         nation_code:str,
         system_names:Tuple[str],
@@ -257,7 +257,7 @@ to one.'''
         self.max_torpedos = max_torps
         self.torp_tubes = torp_tubes
         self.max_beam_energy = max_beam_energy
-        self.warp_breach_dist = warp_breach_dist
+        self.warp_breach_damage = warp_breach_damage
     """
     
     @classmethod
@@ -279,14 +279,14 @@ to one.'''
         max_beam_energy:int=0,
         max_beam_targets:int=1,
         max_cannon_energy:int=0, 
-        warp_breach_dist:int=2, 
+        warp_breach_damage:int=2, 
         energy_weapon_code:str,
         nation_code:str,
         cloak_strength:float=0.0,
         detection_strength:float,
         size:float,
         targeting:float,
-        evasion:float=0,
+        evasion:float=0.0,
         cloak_cooldown:int=2
     ):
         
@@ -327,7 +327,7 @@ to one.'''
             max_beam_energy=max_beam_energy,
             max_beam_targets=max_beam_targets,
             max_cannon_energy=max_cannon_energy,
-            warp_breach_dist=warp_breach_dist,
+            warp_breach_damage=warp_breach_damage,
             energy_weapon_code=energy_weapon_code,
             nation_code=nation_code,
             system_names=system_names, 
@@ -458,7 +458,7 @@ torpedos_types_pattern = re.compile(r"TORPEDO_TYPES:([A-Z\,\_]+)\n")
 max_beam_energy_pattern = re.compile(r"MAX_BEAM_ENERGY:([\d]+)\n")
 max_beam_targets_pattern = re.compile(r"MAX_BEAM_TARGETS:([\d])\n")
 max_cannon_energy_pattern = re.compile(r"MAX_CANNON_ENERGY:([\d]+)\n")
-warp_core_breach_distance_pattern = re.compile(r"WARP_CORE_BREACH_DISTANCE:([\d]+)\n")
+warp_core_breach_damage_pattern = re.compile(r"WARP_CORE_BREACH_DAMAGE:([\d]+)\n")
 nation_types_pattern = re.compile(r"NATION:([A-Z\_]+)\n")
 
 def create_ship_classes():
@@ -565,8 +565,8 @@ def create_ship_classes():
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0
         )
         
-        warp_core_breach_distance = get_first_group_in_pattern(
-            shipclass_txt, warp_core_breach_distance_pattern, type_to_convert_to=int
+        warp_core_breach_damage = get_first_group_in_pattern(
+            shipclass_txt, warp_core_breach_damage_pattern, type_to_convert_to=int
         )
         
         shipclass_dict[shipclass_code] = ShipClass.create_ship_class(
@@ -590,7 +590,7 @@ def create_ship_classes():
             size=size,
             targeting=targeting,
             evasion=evasion,
-            warp_breach_dist=warp_core_breach_distance,
+            warp_breach_damage=warp_core_breach_damage,
             nation_code=nation,
             energy_weapon_code=energy_weapon
         )
@@ -1118,8 +1118,8 @@ It's actually value is {precision}."
             damage = self.warp_core_breach_damage_based_on_distance(s, self_destruct)
 
             distance = self.local_coords.distance(coords=s.local_coords)
-
-            damPercent = 1 - (distance / self.ship_class.warp_breach_dist)
+            
+            damPercent = 1 - (distance / self.ship_class.warp_breach_damage)
 
             if damPercent > 0.0 and s.hull < 0:
 
@@ -1133,13 +1133,12 @@ It's actually value is {precision}."
         
         distance = self.local_coords.distance(coords=target.local_coords)
         
-        damPercent = 1 - (distance / self.ship_class.warp_breach_dist)
+        damage = inverse_square_law(
+            base=self.ship_class.warp_breach_damage * ((4/3) if self_destruct else 1), 
+            distance=distance
+        )
         
-        one_or_two = 2 if self_destruct else 1
-        
-        damage = self.ship_class.max_hull * (one_or_two / 3)
-        
-        return round(damPercent * damage)
+        return round(damage)
 
     def calc_self_destruct_damage(
         self, target:Starship, *, scan:Optional[Dict]=None, number_of_simulations:int=1, 

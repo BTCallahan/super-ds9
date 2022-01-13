@@ -875,7 +875,7 @@ class SelfDestructOrder(Order):
         ships_in_range = [
             ship for ship in sector_ships if self.entity.local_coords.distance(
                 coords=ship.local_coords
-            ) <= self.entity.ship_class.warp_breach_dist
+            ) <= self.entity.ship_class.warp_breach_damage
         ]
 
         return OrderWarning.SAFE if ships_in_range else OrderWarning.NO_ENEMY_SHIPS_NEARBY

@@ -2141,7 +2141,7 @@ class SelfDestructHandler(CancelConfirmHandler):
         nearbye_ships = [
             ship for ship in engine.game_data.grab_ships_in_same_sub_sector(
                 player, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}
-                ) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_class.warp_breach_dist
+                ) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_class.warp_breach_damage
         ]
         
         nearbye_ships.sort(key=lambda ship: ship.local_coords.distance(coords=player.local_coords), reverse=True)
