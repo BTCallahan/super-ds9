@@ -53,6 +53,9 @@ def heading_to_coords(
         #    return retX, retY
     return retX, retY
 
+def inverse_square_law(base:float, distance:float):
+    return base / (4 * pi * pow(distance, 2))
+
 #------- ui related --------
 
 beam_chars: Final = ('|', '/', '-', '\\', '|', '/', '-', '\\')

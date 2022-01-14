@@ -326,16 +326,14 @@ class HardEnemy(BaseAi):
             
             if player_is_present and player_is_not_cloaked:
                 
-                ajusted_impulse = self.target.sys_impulse.get_info(precision, True)
+                #ajusted_impulse = self.target.sys_impulse.get_info(precision, True)
                 
                 nearbye_ships = [
                     ship for ship in self.game_data.grab_ships_in_same_sub_sector(
                         self.target, accptable_ship_statuses={
                             STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED
                         }
-                    ) if self.target.local_coords.distance(
-                        coords=ship.local_coords
-                    ) <= self.target.ship_class.warp_breach_dist
+                    )
                 ]
                 
                 nearbye_enemy_ships = [ship for ship in nearbye_ships if ship.nation != self.entity.nation]
@@ -351,13 +349,17 @@ class HardEnemy(BaseAi):
                     self.calc_torpedos()
                     
                 if has_energy:                    
-                    if self.entity.sys_beam_array.is_opperational:
+                    if self.entity.ship_can_fire_beam_arrays:
                         
                         self.calc_beam_weapon()
+                    
+                    if self.entity.ship_can_fire_cannons:
                         
-                    if self.entity.sys_impulse.is_opperational and self.entity.local_coords.distance(
+                        self.calc_cannon_waepon()
+                        
+                    if self.entity.can_move_stl and self.entity.local_coords.distance(
                         coords=self.target.local_coords
-                        ) * LOCAL_ENERGY_COST * self.entity.sys_impulse.affect_cost_multiplier <= self.entity.energy:
+                    ) * LOCAL_ENERGY_COST * self.entity.sys_impulse.affect_cost_multiplier <= self.entity.energy:
                         
                         self.calc_ram()
                         

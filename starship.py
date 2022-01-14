@@ -130,8 +130,10 @@ def randomNeumeral(n:int) -> str:
 
 @lru_cache
 def get_system_names(
+    *,
     has_torpedo_launchers:bool=False,
     has_cloaking_device:bool=False,
+    mobile:bool=True,
     beam_weapon_name:str="",
     cannon_weapon_name:str=""
 ):
@@ -139,18 +141,25 @@ def get_system_names(
         "Warp Core:",
         "Sensors:",
         "Shield Gen.:",
-        "Impulse Eng.:", 
-        "Warp Drive:",      
     ]
-
     keys = [
         "sys_warp_core",
         "sys_sensors",
         "sys_shield",
-        "sys_impulse",
-        "sys_warp_drive",
     ]
-
+    if mobile:
+        names.extend(
+            [
+                "Impulse Eng.:", 
+                "Warp Drive:",    
+            ]
+        )
+        keys.extend(
+            [
+                "sys_impulse",
+                "sys_warp_drive",
+            ]
+        )
     if beam_weapon_name:
         names.append(f"{beam_weapon_name}:")
         keys.append("sys_beam_array")
@@ -173,7 +182,9 @@ VALID_SHIP_TYPES:Final = {
     "ESCORT",
     "CRUISER",
     "WARSHIP",
-    "RESUPPLY"
+    "RESUPPLY",
+    "PLATFORM",
+    "STATION"
 }
 
 @dataclass(frozen=True)
@@ -309,7 +320,8 @@ to one.'''
             has_torpedo_launchers=max_torpedos > 0 and torp_tubes > 0,
             has_cloaking_device=cloak_strength > 0.0,
             beam_weapon_name=f"{short_beam_name_cap}s",
-            cannon_weapon_name=f"{short_can_name_cap}"
+            cannon_weapon_name=f"{short_can_name_cap}",
+            mobile=evasion > 0.0
         )
         return cla(
             ship_type=ship_type,
@@ -761,6 +773,18 @@ class Starship:
         return self.ship_class.is_automated
 
     @property
+    def is_mobile(self):
+        return self.ship_class.evasion > 0.0
+
+    @property
+    def can_be_docked_with(self):
+        return not self.is_mobile and not self.ship_class.is_automated
+
+    @property
+    def can_move_stl(self):
+        return self.is_mobile and self.sys_impulse.is_opperational
+
+    @property
     def crew_readyness(self):
         
         return self.caluclate_crew_readyness(
@@ -1036,14 +1060,16 @@ It's actually value is {precision}."
         if ship_type_can_cloak:
             d["cloak_cooldown"] = self.cloak_cooldown
 
-        ship_type_can_fire_torps = self.ship_class.ship_type_can_fire_torps
+        ship_type_can_fire_torps = self.ship_type_can_fire_torps
 
         if scan_for_systems:
-            d["sys_warp_drive"] = self.sys_warp_drive.get_info(precision, False)# * 0.01,
-            d["sys_impulse"] = self.sys_impulse.get_info(precision, False)# * 0.01,
-            if self.ship_class.ship_type_can_fire_beam_arrays:
+            
+            if self.is_mobile:
+                d["sys_warp_drive"] = self.sys_warp_drive.get_info(precision, False)# * 0.01,
+                d["sys_impulse"] = self.sys_impulse.get_info(precision, False)# * 0.01,
+            if self.ship_type_can_fire_beam_arrays:
                 d["sys_beam_array"] = self.sys_beam_array.get_info(precision, False)# * 0.01,
-            if self.ship_class.ship_type_can_fire_cannons:
+            if self.ship_type_can_fire_cannons:
                 d["sys_cannon_weapon"] = self.sys_cannon_weapon.get_info(precision, False)
             d["sys_shield"] = self.sys_shield_generator.get_info(precision, False)# * 0.01,
             d["sys_sensors"] = self.sys_sensors.get_info(precision, False)# * 0.01,
@@ -1704,9 +1730,10 @@ It's actually value is {precision}."
         repair_amount = hull_repair_factor * uniform(0.5, 1.25) * self.ship_class.max_hull
 
         self.hull += repair_amount
-        self.sys_warp_drive.integrety += system_repair_factor * (0.5 + random() * 0.5)
         self.sys_sensors.integrety += system_repair_factor * (0.5 + random() * 0.5)
-        self.sys_impulse.integrety += system_repair_factor * (0.5 + random() * 0.5)
+        if self.is_mobile:
+            self.sys_warp_drive.integrety += system_repair_factor * (0.5 + random() * 0.5)
+            self.sys_impulse.integrety += system_repair_factor * (0.5 + random() * 0.5)
         if self.ship_type_can_fire_beam_arrays:
             self.sys_beam_array.integrety += (0.5 + random() * 0.5)
         if self.ship_type_can_fire_cannons:
