@@ -15,6 +15,15 @@ if TYPE_CHECKING:
 star_number_weights = tuple(accumulate((5, 12, 20, 9, 6, 3)))
 star_number_weights_len = len(star_number_weights)
 
+class CanDockWith:
+    
+    def can_dock_with(self, starship:Starship, require_adjacent:bool=True):
+        raise NotImplementedError
+
+    @property
+    def get_dock_repair_factor(self):
+        raise NotImplementedError
+
 class InterstellerObject:
     
     def __init__(self, local_coords:Coords, sector_coords:Coords) -> None:
@@ -292,7 +301,7 @@ class SubSector:
         else:
             self.big_ships-= 1
 
-class Planet(InterstellerObject):
+class Planet(InterstellerObject, CanDockWith):
 
     def __init__(self, planet_habbitation:PlanetHabitation, local_coords:Coords, sector_coords:Coords):
         
@@ -308,17 +317,22 @@ class Planet(InterstellerObject):
         return self.infastructure > p.infastructure
 
     def __eq__(self, p: "Planet") -> bool:
-        return self.local_coords == p.local_coords and self.sector_coords == p.sector_coords and self.planet_habbitation == p.planet_habbitation and self.infastructure == p.infastructure
-
-    def can_supply_ship(self, ship:Starship):
-        """
-        self.nation_relations[ship.ship_class.nation].resuply
-        """
         return (
-            self.planet_habbitation is PLANET_FRIENDLY and self.sector_coords == ship.sector_coords and 
-            self.local_coords.is_adjacent(ship.local_coords) and 
-            len(ship.game_data.grab_ships_in_same_sub_sector(ship)) < 1
+            self.local_coords == p.local_coords and self.sector_coords == p.sector_coords and 
+            self.planet_habbitation == p.planet_habbitation and self.infastructure == p.infastructure
         )
+    
+    def can_dock_with(self, starship: Starship, require_adjacent:bool=True):
+        return (
+            self.planet_habbitation is PLANET_FRIENDLY and self.local_coords.is_adjacent(other=starship.local_coords)
+        ) if require_adjacent else (
+            self.planet_habbitation is PLANET_FRIENDLY
+        )
+        
+    @property
+    def get_dock_repair_factor(self):
+        
+        return self.infastructure
 
     def can_supply_torpedos(self, ship:Starship):
         

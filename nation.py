@@ -21,9 +21,9 @@ class Nation:
     name_possesive:Optional[str]=None
     ship_names:Optional[Tuple[str]]=None
 
-    def generate_ship_name(self):
+    def generate_ship_name(self, number:bool=False):
         
-        if not self.ship_names:
+        if not self.ship_names or number:
             return "".join([choice(digits) for a in range(8)])
         
         return choice(self.ship_names)

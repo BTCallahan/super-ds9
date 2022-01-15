@@ -3,7 +3,7 @@ from enum import Enum, auto
 from math import atan2, ceil, floor
 from random import choice
 from coords import Coords, IntOrFloat
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
 from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
 from space_objects import Planet, SubSector
@@ -674,7 +674,7 @@ class TorpedoOrder(Order):
         
 class DockOrder(Order):
 
-    def __init__(self, entity: Starship, planet:Planet) -> None:
+    def __init__(self, entity: Starship, planet:Union[Planet, Starship]) -> None:
         super().__init__(entity)
         self.planet = planet
         self.undock = entity.docked

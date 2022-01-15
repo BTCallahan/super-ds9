@@ -623,7 +623,7 @@ def create_ship_classes():
     
 ALL_SHIP_CLASSES = create_ship_classes()
     
-class Starship:
+class Starship(CanDockWith):
     """
     """
 
@@ -791,6 +791,20 @@ class Starship:
     @property
     def can_be_docked_with(self):
         return not self.is_mobile and not self.ship_class.is_automated
+
+    def can_dock_with(self, starship: Starship, require_adjacent:bool=True):
+        
+        return (
+            not self.is_mobile and not self.ship_class.is_automated and starship.nation is self.nation and 
+            starship.local_coords.is_adjacent(other=self.local_coords)
+        ) if require_adjacent else (
+            not self.is_mobile and not self.ship_class.is_automated and starship.nation is self.nation
+        )
+    
+    @property
+    def get_dock_repair_factor(self):
+        
+        return self.ship_class.damage_control
 
     @property
     def can_move_stl(self):
