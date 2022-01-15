@@ -517,7 +517,7 @@ class CommandEventHandler(MainGameEventHandler):
         )
         beam_name_cap = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
 
-        self.phasers_button = SimpleElement(
+        self.beam_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
             y=11+CONFIG_OBJECT.command_display_y,
             width=24,
@@ -566,181 +566,41 @@ class CommandEventHandler(MainGameEventHandler):
         
         captain = self.engine.player.ship_class.nation.captain_rank_name
         
-        if self.warp_button.cursor_overlap(event):
+        if self.warp_button.cursor_overlap(event) and self.engine.player.is_mobile:
             
-            self.warned_once = False
-            
-            if not self.engine.player.sys_warp_drive.is_opperational:
-                
-                self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
-
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
+            return self.warp(captain)
         
-        elif self.move_button.cursor_overlap(event):
+        elif self.move_button.cursor_overlap(event) and self.engine.player.is_mobile:
             
-            self.warned_once = False
+            return self.move(captain)
             
-            if not self.engine.player.sys_impulse.is_opperational:
-                
-                self.engine.message_log.add_message(
-                    f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
-                )
-
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
-        
         elif self.shields_button.cursor_overlap(event):
             
-            self.warned_once = False
+            return self.shields(captain)
             
-            if not self.engine.player.sys_shield_generator.is_opperational:
-                
-                self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
-
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-            #elif self.engine.player.docked:
-            #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return ShieldsHandler(self.engine)
+        elif self.beam_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_beam_arrays:
             
-        elif self.phasers_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_beam_arrays:
-            
-            self.warned_once = False
-            
-            if not self.engine.player.sys_beam_array.is_opperational:
-                
-                p = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
-                
-                self.engine.message_log.add_message(
-                    f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
-                )
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return BeamArrayHandler(self.engine)
+            return self.beam_arrays(captain)
 
         elif self.cannons_buttons.cursor_overlap(event) and self.engine.player.ship_can_fire_cannons:
             
-            self.warned_once = False
+            return self.cannons(captain)
             
-            if not self.engine.player.sys_cannon_weapon.is_opperational:
-                
-                p = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
-                
-                self.engine.message_log.add_message(
-                    f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
-                )
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return CannonHandler(self.engine)
-
-        elif self.dock_button.cursor_overlap(event):
-            planet = self.engine.game_data.selected_ship_planet_or_star
-
-            if not planet and not isinstance(planet, Planet):
-                player = self.engine.player
-                
-                nearby_planets = [
-                    planet_ for planet_ in player.get_sub_sector.planets_dict.values() if 
-                    planet_.local_coords.is_adjacent(
-                        other=player.local_coords
-                    ) and planet_.planet_habbitation.can_ressuply
-                ]
-                
-                nearby_planets.sort(reverse=True)
-                
-                try:
-                    planet = nearby_planets[0]
-                    
-                except IndexError:
-                    planet = None
-
+        elif self.dock_button.cursor_overlap(event) and self.engine.player.is_mobile:
             
-            self.warned_once = False
-            dock_order = DockOrder(self.engine.player, planet)
-
-            warning = dock_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                self.dock_button.is_active = not self.dock_button.is_active
-                #self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
-                return dock_order
-            if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
-                if self.warned_once:
-                    return dock_order
-                self.engine.message_log.add_message("Warning: There are hostile ships nearby.", fg=colors.orange)
+            return self.dock()
                 
-            else:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-
         elif self.repair_button.cursor_overlap(event):
             
-            repair = RepairOrder(self.engine.player, 1)
-            warning = repair.raise_warning()
-            
-            if self.warned_once:
-                return repair
-            try:
-                self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
-                self.warned_once = True
-            except KeyError:
-                
-                return repair
+            return self.repair()
             
         elif self.cloak_button.cursor_overlap(event) and self.engine.player.ship_type_can_cloak:
-                player = self.engine.player
-                cloak_order = CloakOrder(player, player.cloak_status != CloakStatus.INACTIVE)
-                warning = cloak_order.raise_warning()
-
-                if warning == OrderWarning.SAFE:
-                    self.cloak_button.is_active = not self.cloak_button.is_active
-                    return cloak_order
                 
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+            return self.cloak()
 
         elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
             
-            self.warned_once = False
-            
-            if not self.engine.player.ship_can_fire_torps:
-                self.engine.message_log.add_message(
-                    text=f"Error: Torpedo systems are inoperative, {captain}." 
-                    if not self.engine.player.sys_torpedos.is_opperational else 
-                    f"Error: This ship has no remaining torpedos, {captain}.", fg=colors.red
-                )
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
+            return self.torpedos(captain)
             
         elif self.auto_destruct_button.cursor_overlap(event):
             
@@ -771,176 +631,249 @@ class CommandEventHandler(MainGameEventHandler):
         
         captain = self.engine.player.ship_class.nation.captain_rank_name
         
-        if event.sym == tcod.event.K_w:
+        if event.sym == tcod.event.K_w and self.engine.player.is_mobile:
             
-            self.warned_once = False
+            return self.warp(captain)
             
-            if not self.engine.player.sys_warp_drive.is_opperational:
-                
-                self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
-
-            elif self.engine.player.energy <= 0:
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-            elif self.engine.player.docked:
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
-        elif event.sym == tcod.event.K_m:
-            self.warned_once = False
-            if not self.engine.player.sys_impulse.is_opperational:
-                self.engine.message_log.add_message(
-                    f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
-                )
-
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
+        elif event.sym == tcod.event.K_m and self.engine.player.is_mobile:
+            
+            return self.move(captain)
             
         elif event.sym == tcod.event.K_s:
             
-            self.warned_once = False
-            
-            if not self.engine.player.sys_shield_generator.is_opperational:
-                self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
-
-            elif self.engine.player.energy <= 0:
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-            
-            else:
-                return ShieldsHandler(self.engine)
+            return self.shields(captain)
             
         elif event.sym == tcod.event.K_r:
             
-            repair = RepairOrder(self.engine.player, 1)
-            
-            warning = repair.raise_warning()
-            
-            if self.warned_once:
-                return repair
-            try:
-                
-                self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
-                self.warned_once = True
-                
-            except KeyError:
-                
-                return repair
+            return self.repair(captain)
             
         elif event.sym == tcod.event.K_c and self.engine.player.ship_type_can_cloak:
 
-            player = self.engine.player
-            cloak_order = CloakOrder(player, player.cloak_status != CloakStatus.INACTIVE)
-            warning = cloak_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                self.cloak_button.is_active = not self.cloak_button.is_active
-                return cloak_order
-            
-            self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+            return self.cloak()
             
         elif event.sym == tcod.event.K_f and self.engine.player.ship_type_can_fire_beam_arrays:
             
-            self.warned_once = False
-            
-            if not self.engine.player.sys_beam_array.is_opperational:
-                
-                p = self.engine.player.ship_class.get_energy_weapon.beam_name
-                self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
-
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return BeamArrayHandler(self.engine)
+            return self.beam_arrays(captain)
             
         elif event.sym == tcod.event.K_i and self.engine.player.ship_type_can_fire_cannons:
             
-            self.warned_once = False
+            return self.cannons(captain)
             
-            if not self.engine.player.sys_cannon_weapon.is_opperational:
-                
-                p = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
-                
-                self.engine.message_log.add_message(
-                    f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
-                )
-            elif self.engine.player.energy <= 0:
-                
-                self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-                
-            elif self.engine.player.docked:
-                
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return CannonHandler(self.engine)
-            
-        elif event.sym == tcod.event.K_d:
+        elif event.sym == tcod.event.K_d and self.engine.player.is_mobile:
 
-            planet = self.engine.game_data.selected_ship_planet_or_star
-
-            if not planet and not isinstance(planet, Planet):
-                
-                player = self.engine.player
-                
-                nearby_planets = [
-                    planet_ for planet_ in player.get_sub_sector.planets_dict.values() if 
-                    planet_.local_coords.is_adjacent(
-                        other=player.local_coords
-                    ) and planet_.planet_habbitation.can_ressuply
-                ]
-                
-                nearby_planets.sort(reverse=True)
-                
-                try:
-                    planet = nearby_planets[0]
-                    
-                except IndexError:
-                    planet = None
-                
-            if planet and isinstance(planet, Planet):
-                dock_order = DockOrder(self.engine.player, planet)
-                self.warned_once = False
-                warning = dock_order.raise_warning()
-
-                if warning == OrderWarning.SAFE:
-                    self.dock_button.is_active = not self.dock_button.is_active
-                    #self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
-                    return dock_order
-                if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
-                    #if self.warned_once:
-                    #    return dock_order
-                    self.engine.message_log.add_message("Warning: There are hostile ships nearby", fg=colors.orange)
-                    
-                else:
-                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-            else:
-                self.engine.message_log.add_message(f"Error: No suitable planet nearbye, {captain}.", fg=colors.red)
+            return self.dock()
                 
         elif event.sym == tcod.event.K_t and self.engine.player.ship_type_can_fire_torps:
-            self.warned_once = False
-            if not self.engine.player.ship_can_fire_torps:
-                self.engine.message_log.add_message(
-                    text=f"Error: Torpedo systems are inoperative, {captain}." 
-                    if not self.engine.player.sys_torpedos.is_opperational else 
-                    f"Error: This ship has not remaining torpedos, {captain}.", fg=colors.red
-                )
-            elif self.engine.player.docked:
-                self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
-            else:
-                return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
+            
+            return self.torpedos()
+            
         elif event.sym == tcod.event.K_a:
             return SelfDestructHandler(self.engine)
 
+    def cloak(self):
+        
+        player = self.engine.player
+        cloak_order = CloakOrder(player, player.cloak_status != CloakStatus.INACTIVE)
+        warning = cloak_order.raise_warning()
+
+        if warning == OrderWarning.SAFE:
+            self.cloak_button.is_active = not self.cloak_button.is_active
+            return cloak_order
+        
+        self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+
+    def dock(self):
+        
+        planet = self.engine.game_data.selected_ship_planet_or_star
+        
+        dock_with_this = None
+        if (
+            (
+                isinstance(planet, Planet) and planet.planet_habbitation.can_ressuply
+            ) or (
+                isinstance(planet, Starship) and planet.can_be_docked_with
+            )
+        ) and self.engine.player.local_coords.is_adjacent(other=planet.local_coords):
+            
+            dock_with_this = planet
+        
+        if not dock_with_this:
+            
+            player = self.engine.player
+            
+            nearby_planets = [
+                planet_ for planet_ in player.get_sub_sector.planets_dict.values() if 
+                planet_.can_dock_with(player)
+            ]
+            
+            nearby_planets.sort(reverse=True)
+            
+            try:
+                dock_with_this = nearby_planets[0]
+                
+            except IndexError:
+                
+                nearby_stations = [
+                    ship for ship in player.game_data.grab_ships_in_same_sub_sector(
+                        player, 
+                        accptable_ship_statuses={STATUS_ACTIVE}
+                    ) if ship.can_dock_with(player)
+                ]
+                
+                nearby_stations.sort(
+                    key=lambda station: station.get_dock_repair_factor
+                )
+                
+                try:
+                    dock_with_this = nearby_stations[0]
+                except IndexError:
+                    pass
+                
+        if dock_with_this:
+            
+            self.warned_once = False
+            
+            dock_order = DockOrder(self.engine.player, dock_with_this)
+
+            warning = dock_order.raise_warning()
+
+            if warning == OrderWarning.SAFE:
+                self.dock_button.is_active = not self.dock_button.is_active
+                #self.dock_button.text = "(D)ock" if self.engine.player.docked else "Un(D)ock"
+                return dock_order
+            if warning == OrderWarning.ENEMY_SHIPS_NEARBY:
+                if self.warned_once:
+                    return dock_order
+                self.engine.message_log.add_message("Warning: There are hostile ships nearby.", fg=colors.orange)
+            else:
+                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+        else:
+            self.engine.message_log.add_message(
+                f"Error: No suitable planet nearbye, {player.nation.captain_rank_name}.", fg=colors.red
+            )
+        
+    def torpedos(self, captain:str):
+        
+        self.warned_once = False
+        if not self.engine.player.ship_can_fire_torps:
+            self.engine.message_log.add_message(
+                text=f"Error: Torpedo systems are inoperative, {captain}." 
+                if not self.engine.player.sys_torpedos.is_opperational else 
+                f"Error: This ship has not remaining torpedos, {captain}.", fg=colors.red
+            )
+        elif self.engine.player.docked:
+            self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+        else:
+            return TorpedoHandlerEasy(self.engine) if self.engine.easy_aim else TorpedoHandler(self.engine)
+        
+    def beam_arrays(self, captain:str):
+        
+        self.warned_once = False
+            
+        if not self.engine.player.sys_beam_array.is_opperational:
+            
+            p = self.engine.player.ship_class.get_energy_weapon.beam_name
+            self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
+
+        elif self.engine.player.energy <= 0:
+            
+            self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            
+        elif self.engine.player.docked:
+            
+            self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+        else:
+            return BeamArrayHandler(self.engine)
+        
+    def cannons(self, captain:str):
+        
+        self.warned_once = False
+            
+        if not self.engine.player.sys_cannon_weapon.is_opperational:
+            
+            p = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
+            
+            self.engine.message_log.add_message(
+                f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
+            )
+        elif self.engine.player.energy <= 0:
+            
+            self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            
+        elif self.engine.player.docked:
+            
+            self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+        else:
+            return CannonHandler(self.engine)
+        
+    def warp(self, captain:str):
+        
+        self.warned_once = False
+            
+        if not self.engine.player.sys_warp_drive.is_opperational:
+            
+            self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
+
+        elif self.engine.player.energy <= 0:
+            self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+        elif self.engine.player.docked:
+            self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+        else:
+            return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
+        
+    def move(self, captain:str):
+        
+        self.warned_once = False
+        
+        if not self.engine.player.sys_impulse.is_opperational:
+            
+            self.engine.message_log.add_message(
+                f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
+            )
+
+        elif self.engine.player.energy <= 0:
+            
+            self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            
+        elif self.engine.player.docked:
+            
+            self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+        else:
+            return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
+            
+    def shields(self, captain:str):
+        
+        self.warned_once = False
+            
+        if not self.engine.player.sys_shield_generator.is_opperational:
+            
+            self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
+
+        elif self.engine.player.energy <= 0:
+            
+            self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+        #elif self.engine.player.docked:
+        #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
+        else:
+            return ShieldsHandler(self.engine)
+            
+    def repair(self):
+        
+        repair = RepairOrder(self.engine.player, 1)
+        
+        warning = repair.raise_warning()
+        
+        if self.warned_once:
+            return repair
+        try:
+            
+            self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
+            self.warned_once = True
+            
+        except KeyError:
+            
+            return repair
+            
     def on_render(self, console: tcod.Console) -> None:
         super().on_render(console)
 
@@ -952,13 +885,15 @@ class CommandEventHandler(MainGameEventHandler):
             title=f"Your orders, {captain}?"
             )
         
-        self.warp_button.render(console)
-        self.move_button.render(console)
-        self.dock_button.render(console)
+        if self.engine.player.is_mobile:
+            self.warp_button.render(console)
+            self.move_button.render(console)
+            self.dock_button.render(console)
+            
         self.shields_button.render(console)
         
         if self.ship_type_can_fire_beam_arrays:
-            self.phasers_button.render(console)
+            self.beam_button.render(console)
             
         if self.ship_type_can_fire_cannons:
             self.cannons_buttons.render(console)
@@ -2140,41 +2075,52 @@ class SelfDestructHandler(CancelConfirmHandler):
         
         nearbye_ships = [
             ship for ship in engine.game_data.grab_ships_in_same_sub_sector(
-                player, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}
-                ) if player.local_coords.distance(coords=ship.local_coords) <= player.ship_class.warp_breach_damage
+                player, accptable_ship_statuses={
+                    STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED
+                }
+            )
         ]
-        
-        nearbye_ships.sort(key=lambda ship: ship.local_coords.distance(coords=player.local_coords), reverse=True)
         
         self.all_nearbye_ships = tuple(nearbye_ships)
         
-        nearbye_active_foes = [ship for ship in nearbye_ships if ship.ship_status.is_active]
+        nearbye_detectable_ships_and_distances = [
+            (ship, ship.local_coords.distance(coords=player.local_coords)) for ship in nearbye_ships if ship.ship_status not in {STATUS_CLOAKED, STATUS_HULK}
+        ]
         
-        def scan_ship(ships:Iterable[Starship]):
-            
-            for ship in ships:
-                
-                scan = ship.scan_this_ship(player.determin_precision, use_effective_values=True)
-                
-                averaged_shield , averaged_hull, averaged_shield_damage, averaged_hull_damage, kill = player.calc_self_destruct_damage(
-                    ship, scan=scan, number_of_simulations=10
-                )
-                #scan["shields"], scan["hull"], 
-                yield ship.name, averaged_shield_damage, averaged_hull_damage, kill
-        
-        self.nearbye_active_foes = tuple(
-            scan_ship(nearbye_active_foes)
+        nearbye_detectable_ships_and_distances.sort(
+            key=lambda distance: distance[1]
         )
         
-        nearbye_derlicts = [ship for ship in nearbye_ships if ship.ship_status.is_recrewable]
+        self.nearbye_active_foes = [
+            (ship, distance) for ship, distance in nearbye_detectable_ships_and_distances if 
+            ship.ship_status in {STATUS_CLOAK_COMPRIMISED, STATUS_ACTIVE} and 
+            ship.nation is not self.engine.player.nation
+        ]
         
-        self.nearbye_derlicts = tuple(
-            scan_ship(nearbye_derlicts)
-        )
+        self.nearbye_active_friends = [
+            (ship, distance) for ship, distance in nearbye_detectable_ships_and_distances if 
+            ship.ship_status in {STATUS_CLOAK_COMPRIMISED, STATUS_ACTIVE, STATUS_CLOAKED} and 
+            ship.nation is self.engine.player.nation
+        ]
         
-        self.any_foes_nearby = len(self.nearbye_active_foes) > 0
+        self.nearbye_derlicts = [
+            (ship, distance) for ship, distance in nearbye_detectable_ships_and_distances if 
+            ship.ship_status is STATUS_DERLICT
+        ]
+        
+        y_foes = len(self.nearbye_active_foes)
+        
+        self.any_foes_nearby = y_foes > 0
+        
+        self.y_foes_begin = 7
+        
+        y_friends = len(self.nearbye_active_friends)
+        
+        self.any_friends_nearby = y_friends > 0
+        
+        self.y_friends_begin = self.y_foes_begin + 2
 
-        self.any_derlicts_nearbye = len(self.nearbye_derlicts) > 0
+        self.any_ship_nearbye = self.any_friends_nearby or self.any_foes_nearby
 
         self.code_handler = TextHandeler(
             limit=12,
@@ -2208,33 +2154,44 @@ class SelfDestructHandler(CancelConfirmHandler):
             string=f"Code: {self.code}"
         )
         
-        if self.any_foes_nearby:
+        if not self.any_foes_nearby:
             console.print(
                 x=2+CONFIG_OBJECT.command_display_x,
-                y=7+CONFIG_OBJECT.command_display_y,
-                string="Ships in radius of a-destruct:"
+                y=self.y_foes_begin+CONFIG_OBJECT.command_display_y,
+                string="Warning: No enemy ships in system"
             )
-            
-            console.print(
-                x=2+CONFIG_OBJECT.command_display_x,
-                y=8+CONFIG_OBJECT.command_display_y,
-                string="Name    S. Dam.  H. Dam.  Kill"
-            )
-            for i, ship_info in enumerate(self.nearbye_active_foes):
-                ship, shield_dam, hull_dam, kill = ship_info
+        
+        if self.any_ship_nearbye:
+            if self.any_foes_nearby:
                 console.print(
                     x=2+CONFIG_OBJECT.command_display_x,
-                    y=i+9+CONFIG_OBJECT.command_display_y,
-                    string=f"{ship: <8}  {shield_dam: <7}  {hull_dam: <7} {'Yes' if kill else 'No'}"
+                    y=self.y_foes_begin+CONFIG_OBJECT.command_display_y,
+                    string="Enemy ships in system:"
                 )
-        else:
-            console.print_box(
-                x=2+CONFIG_OBJECT.command_display_x,
-                y=7+CONFIG_OBJECT.command_display_y,
-                width=(CONFIG_OBJECT.command_display_end_x - 2) - (2 + CONFIG_OBJECT.command_display_x),
-                height=5,
-                string="No ships in radius of auto destruct"
-            )
+                
+                for i, ship_info in enumerate(self.nearbye_active_foes):
+                    ship, distance = ship_info
+                    console.print(
+                        x=2+CONFIG_OBJECT.command_display_x,
+                        y=i+self.y_foes_begin+1+CONFIG_OBJECT.command_display_y,
+                        string=f"{ship.name: <10}  {distance: <.2f}"
+                    )
+            
+            if self.any_friends_nearby:
+                
+                console.print(
+                    x=2+CONFIG_OBJECT.command_display_x,
+                    y=self.y_friends_begin+CONFIG_OBJECT.command_display_y,
+                    string="Allied ships in system:"
+                )
+                
+                for i, ship_info in enumerate(self.nearbye_active_friends):
+                    ship, distance = ship_info
+                    console.print(
+                        x=2+CONFIG_OBJECT.command_display_x,
+                        y=i+self.y_friends_begin+1+CONFIG_OBJECT.command_display_y,
+                        string=f"{ship.name: <10}  {distance: <.2f}"
+                    )
             
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
