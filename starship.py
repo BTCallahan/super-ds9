@@ -7,14 +7,14 @@ from random import choice, uniform, random, randint
 from math import ceil, inf
 from itertools import accumulate
 from functools import lru_cache
+from string import digits
 from energy_weapon import ALL_ENERGY_WEAPONS
 
 from global_functions import get_first_group_in_pattern, inverse_square_law
 from nation import ALL_NATIONS
-from space_objects import SubSector
+from space_objects import SubSector, CanDockWith, ALL_TORPEDO_TYPES
 from torpedo import Torpedo, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
-from torpedo import ALL_TORPEDO_TYPES
 import colors
 from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
@@ -353,6 +353,7 @@ to one.'''
         )
 
     @property
+    @lru_cache
     def nation(self):
         if self.nation_code not in ALL_NATIONS:
             raise KeyError(
@@ -361,6 +362,7 @@ to one.'''
         return ALL_NATIONS[self.nation_code]
         
     @property
+    @lru_cache
     def get_energy_weapon(self):
         if self.energy_weapon_code not in ALL_ENERGY_WEAPONS:
             raise KeyError(
@@ -368,7 +370,17 @@ to one.'''
         return ALL_ENERGY_WEAPONS[self.energy_weapon_code]
 
     def create_name(self):
-        return self.nation.generate_ship_name()
+        return choice(self.nation.ship_names) if self.has_proper_name else "".join([choice(digits) for a in range(8)])
+
+    @property
+    @lru_cache
+    def has_proper_name(self):
+        """Does this ship/station have a propper name, or just a sequence of numbers?
+
+        Returns:
+            bool: True if the ship's nation has names AND it has crew, False otherwise
+        """        
+        return self.nation.ship_names and self.max_crew > 0
 
     @property
     @lru_cache
@@ -642,7 +654,7 @@ class Starship:
         
         self.ship_class:ShipClass = ship_class
         
-        self.name = name if name else self.ship_class.nation.generate_ship_name()
+        self.name = name if name else self.ship_class.create_name()
         
         self.proper_name = (
             f"{self.ship_class.nation.ship_prefix} {self.name}" if self.ship_class.nation.ship_prefix else self.name
@@ -1501,7 +1513,7 @@ It's actually value is {precision}."
         
         #name_first_occ = "Our" if ship_is_player else f"The {self.name}'s"
         #name_second_occ = "our" if ship_is_player else f"the {self.name}'s"
-        
+                
         if self.turn_repairing > 0:
             self.turn_repairing -= 1
         

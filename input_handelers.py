@@ -2379,7 +2379,7 @@ class ScoreHandler(EventHandler):
         
         self.player_record = SimpleElement(
             x=5, y=5 + self.evalu.y + self.evalu.height,
-            height=len(reccord_lines), width=max_reccord_len,
+            height=len(reccord_lines), width=max_reccord_len+4,
             title="Player Record:", 
             text="\n".join(reccord_lines), alignment=tcod.LEFT
         )
@@ -2397,7 +2397,10 @@ class ScoreHandler(EventHandler):
         self.player_record.render(console)
         self.score_record.render(console)
     
-    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[T]:
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[BaseEventHandler]:
+        self.on_quit()
+    
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[BaseEventHandler]:
         self.on_quit()
     
     def on_quit(self) -> None:
