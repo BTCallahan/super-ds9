@@ -182,20 +182,20 @@ def print_mega_sector(console:Console, gamedata:GameData):
                 string=f"*{sector_x.total_stars}", fg=colors.yellow
             )
 
-            big_ships = sector_x.big_ships
+            hostile_ships = sector_x.hostile_ships
             
-            if big_ships > 0:
+            if hostile_ships > 0:
                 console.print(
                     x=x+j2+2, y=y+i2+1,
-                    string=f"C{big_ships}", fg=colors.red if big_ships > 0 else colors.cyan
+                    string=f"E{hostile_ships}", fg=colors.red if hostile_ships > 0 else colors.cyan
                 )
 
-            small_ships = sector_x.small_ships
+            allied_ships = sector_x.allied_ships
 
-            if small_ships > 0:
+            if allied_ships > 0:
                 console.print(
                     x=x+j2+2, y=y+i2+2,
-                    string=f"F{small_ships}", fg=colors.red if small_ships > 0 else colors.cyan
+                    string=f"F{allied_ships}", fg=colors.green if allied_ships > 0 else colors.cyan
                 )
             
 def get_system_color(percentage:float, reverse:bool):

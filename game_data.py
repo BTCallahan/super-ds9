@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union,
 
 from get_config import CONFIG_OBJECT
 from global_functions import stardate
+from nation import ALL_NATIONS, Nation
 from scenario import Scenerio
 from starship import Starship
 from ship_class import ALL_SHIP_CLASSES
@@ -172,7 +173,7 @@ class GameData:
         
         all_encounters:List[Dict[str,int]] = []
         
-        for a in self.scenerio.encounters:
+        for a in self.scenerio.enemy_encounters:
             
             l = list(a.generate_ships())
             
@@ -187,7 +188,7 @@ class GameData:
             system_coords, k=total+1
         )
         
-        def generate_ships():
+        def generate_ships(enemy_nation:Nation, player_nation:Nation):
         
             for encounter, co in zip(all_encounters, selected_coords):
                 
@@ -214,14 +215,19 @@ class GameData:
 
                     starship.game_data = self
 
-                    if ship_class.ship_type == "ESCORT":
-                        star_system.small_ships+=1
-                    elif ship_class.ship_type in {"CRUISER", "WARSHIP"}:
-                        star_system.big_ships+=1
+                    if starship.nation is player_nation:
+                        star_system.allied_ships+=1
+                    elif starship.nation is enemy_nation:
+                        star_system.hostile_ships+=1
                     
                     yield starship
             
-        self.all_enemy_ships = list(generate_ships())
+        self.all_enemy_ships = list(
+            generate_ships(
+                ALL_NATIONS[self.scenerio.enemy_nation],
+                ALL_NATIONS[self.scenerio.your_nation]
+            )
+        )
         
         xy = selected_coords[-1]
 
@@ -305,8 +311,8 @@ class GameData:
                 
                 subsec = self.grid[y][x]
                 
-                subsec.big_ships = 0
-                subsec.small_ships = 0
+                subsec.hostile_ships = 0
+                subsec.allied_ships = 0
                 
         for ship in self.all_enemy_ships:
             
@@ -317,9 +323,9 @@ class GameData:
                 subsec:SubSector = self.grid[y][x]
                 
                 if ship.ship_class.ship_type in {"CRUISER", "BATTLESHIP"}:
-                    subsec.big_ships += 1
+                    subsec.hostile_ships += 1
                 elif ship.ship_class.ship_type == "ESCORT":
-                    subsec.small_ships += 1
+                    subsec.allied_ships += 1
 
     def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:Torpedo, ships_in_area:Dict[Coords, Starship]):
         #global PLAYER

@@ -218,8 +218,8 @@ class SubSector:
         self.barren_planets = 0
     
         
-        self.big_ships = 0
-        self.small_ships = 0
+        self.hostile_ships = 0
+        self.allied_ships = 0
         self.player_present = False
 
     def random_setup(self, star_number_weights:Iterable[int], star_number_weights_len:int):
@@ -289,17 +289,17 @@ class SubSector:
         if ship is ship.game_data.player:
             self.player_present = True
         elif ship.ship_class.ship_type == "ESCORT":
-            self.small_ships+= 1
+            self.allied_ships+= 1
         else:
-            self.big_ships+= 1
+            self.hostile_ships+= 1
 
     def remove_ship_from_sec(self, ship:Starship):
         if ship is ship.game_data.player:
             self.player_present = False
         elif ship.ship_class.ship_type == "ESCORT":
-            self.small_ships-= 1
+            self.allied_ships-= 1
         else:
-            self.big_ships-= 1
+            self.hostile_ships-= 1
 
 class Planet(InterstellerObject, CanDockWith):
 
