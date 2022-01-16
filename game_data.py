@@ -83,6 +83,15 @@ class GameData:
         self.ship_scan:Optional[Dict[str,Any] ] = None
 
         self.all_enemy_ships:List[Starship] = []
+        
+        # Ships that must be destroyed
+        self.target_enemy_ships:List[Starship] = []
+        
+        self.all_allied_ships:List[Starship] = []
+        
+        # Ships that the player must prevent from being destroyed
+        self.target_allied_ships:List[Starship] = []
+        
         self.total_starships:List[Starship] = []
         self.cause_of_damage = ''
 
