@@ -322,10 +322,17 @@ class GameData:
                 x,y = ship.sector_coords.x, ship.sector_coords.y
                 subsec:SubSector = self.grid[y][x]
                 
-                if ship.ship_class.ship_type in {"CRUISER", "BATTLESHIP"}:
-                    subsec.hostile_ships += 1
-                elif ship.ship_class.ship_type == "ESCORT":
-                    subsec.allied_ships += 1
+                subsec.hostile_ships += 1
+                
+        for ship in self.all_allied_ships:
+            
+            status = ship.ship_status
+            
+            if status.is_active:# and status.is_visible:
+                x,y = ship.sector_coords.x, ship.sector_coords.y
+                subsec:SubSector = self.grid[y][x]
+                
+                subsec.allied_ships += 1
 
     def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:Torpedo, ships_in_area:Dict[Coords, Starship]):
         #global PLAYER
