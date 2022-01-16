@@ -21,7 +21,8 @@ class Scenerio:
     
     name:str
     description:str
-    encounters:List[Encounter]
+    enemy_encounters:Tuple[Encounter]
+    allied_encounters:Tuple[Encounter]
     star_generation:Tuple[int]
     percent_of_friendly_planets:float
     default_ship_name:str
@@ -57,9 +58,13 @@ scenario_type_pattern = re.compile(r"SCENARIO_TYPE:([\w]+)\n" )
 description_pattern = re.compile(r"DESCRIPTION:([a-zA-Z \.\,\?\!]+)\nEND_DESCRIPTION")
 your_ship_pattern = re.compile(r"YOUR_SHIP:([a-zA-Z_]+)\n")
 
-encouners_pattern = re.compile(r"ENCOUNTERS:\n([\w\n\:\, \!]+)END_ENCOUNTERS")
+enemy_encounters_pattern = re.compile(r"ENEMY_ENCOUNTERS:\n([\w\n\:\, \!]+)END_ENEMY_ENCOUNTERS")
 
 enemy_ships_pattern = re.compile(r"    ENEMY_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ENEMY_SHIPS\n")
+
+allied_encounters_pattern = re.compile(r"ALLIED_ENCOUNTERS:\n([\w\n\:\, \!]+)END_ALLIED_ENCOUNTERS")
+
+allied_ships_pattern = re.compile(r"    ALLIED_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ALLIED_SHIPS\n")
 
 ship_pattern = re.compile(r"([a-zA-Z_]+):(\d),(\d)\n")
 
@@ -145,22 +150,17 @@ def create_sceneraio():
 
         your_ship = get_first_group_in_pattern(scenario_txt, your_ship_pattern)
         
-        encounters = get_first_group_in_pattern(scenario_txt, encouners_pattern)
+        enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
         
-        all_encounters = []
+        all_enemy_encounters = []
         
-        for encounter in enemy_ships_pattern.finditer(encounters):
+        for encounter in enemy_ships_pattern.finditer(enemy_encounters):
             
             min_encs = encounter.group(1)
             max_encs = encounter.group(2)
             
             ships = encounter.group(3)
             
-            """
-            ship_dict = {
-                ship.group(1):(int(ship.group(2)), int(ship.group(3))) for ship in ship_pattern.finditer(ships)
-            }
-            """
             ship_dict = {}
             
             for ship in ship_pattern.finditer(ships):
@@ -176,16 +176,51 @@ def create_sceneraio():
                     int(ship_max)
                 )
             
-            
-            all_encounters.append(
+            all_enemy_encounters.append(
                 Encounter(
                     min_encounters=int(min_encs),
                     max_encounters=int(max_encs),
                     ships=ship_dict
                 )
             )
+            
+        allied_encounters = get_first_group_in_pattern(
+            scenario_txt, allied_encounters_pattern, return_aux_if_no_match=True
+        )
         
-        #enemy_ships = get_first_group_in_pattern(scenario_txt, enemy_ships_pattern)
+        all_allied_encounters = []
+        
+        if allied_encounters:
+            
+            for encounter in allied_ships_pattern.finditer(allied_encounters):
+                
+                min_encs = encounter.group(1)
+                max_encs = encounter.group(2)
+                
+                ships = encounter.group(3)
+                
+                ship_dict = {}
+                
+                for ship in ship_pattern.finditer(ships):
+                    
+                    sh = ship.group(1)
+                    
+                    ship_min = ship.group(2)
+                    
+                    ship_max = ship.group(2)
+                    
+                    ship_dict[sh] = (
+                        int(ship_min),
+                        int(ship_max)
+                    )
+                
+                all_allied_encounters.append(
+                    Encounter(
+                        min_encounters=int(min_encs),
+                        max_encounters=int(max_encs),
+                        ships=ship_dict
+                    )
+                )
         
         victory_percent = get_first_group_in_pattern(scenario_txt, victory_percent_pattern, type_to_convert_to=float)
         
@@ -283,7 +318,8 @@ def create_sceneraio():
             default_captain_name=default_captain_name,
             your_commanding_officer=your_commanding_officer,
             self_destruct_code=code,
-            encounters=tuple(all_encounters),
+            enemy_encounters=tuple(all_enemy_encounters),
+            allied_encounters=tuple(all_allied_encounters),
             startdate=startdate,
             enddate=enddate,
             enemy_give_up_threshold=enemy_give_up_threshold,

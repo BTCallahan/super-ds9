@@ -171,26 +171,45 @@ class GameData:
             Coords(x=x,y=y) for x in self.subsecs_range_x for y in self.subsecs_range_y
         )
         
-        all_encounters:List[Dict[str,int]] = []
+        all_enemy_encounters:List[Dict[str,int]] = []
         
         for a in self.scenerio.enemy_encounters:
             
             l = list(a.generate_ships())
             
-            all_encounters.extend(
+            all_enemy_encounters.extend(
                 l
             )
         
-        total = len(all_encounters)
+        total_enemy = len(all_enemy_encounters)
         
-        # we use k = total + 1 because the last coord in selected_coords will be used as the players starting point
+        all_allied_encounters:List[Dict[str,int]] = []
+        
+        for a in self.scenerio.allied_encounters:
+            
+            l = list(a.generate_ships())
+            
+            all_allied_encounters.extend(
+                l
+            )
+        
+        total_allied = len(all_allied_encounters)
+        
         selected_coords = choices(
-            system_coords, k=total+1
+            system_coords, k=total_enemy + total_allied + 1
         )
         
-        def generate_ships(enemy_nation:Nation, player_nation:Nation):
+        # we use k = total + 1 because the last coord in selected_coords will be used as the players starting point
+        selected_enemy_coords = selected_coords[:total_enemy]
         
-            for encounter, co in zip(all_encounters, selected_coords):
+        # we use k = total + 1 because the last coord in selected_coords will be used as the players starting point
+        selected_allied_coords = selected_coords[total_enemy:total_enemy+total_allied]
+        
+        player_starting_coord = choice(selected_allied_coords)
+        
+        def generate_ships(enemy_nation:Nation, player_nation:Nation, selected_encounters:List[Dict[str,int]]):
+        
+            for encounter, co in zip(selected_encounters, selected_enemy_coords):
                 
                 star_system = self.grid[co.y][co.x]
                 
@@ -225,11 +244,20 @@ class GameData:
         self.all_enemy_ships = list(
             generate_ships(
                 ALL_NATIONS[self.scenerio.enemy_nation],
-                ALL_NATIONS[self.scenerio.your_nation]
+                ALL_NATIONS[self.scenerio.your_nation], 
+                all_enemy_encounters
             )
         )
         
-        xy = selected_coords[-1]
+        self.all_allied_ships = list(
+            generate_ships(
+                ALL_NATIONS[self.scenerio.enemy_nation],
+                ALL_NATIONS[self.scenerio.your_nation], 
+                all_allied_encounters
+            )
+        )
+        
+        xy = selected_allied_coords[-1]
 
         randXsec = xy.x
         randYsec = xy.y
