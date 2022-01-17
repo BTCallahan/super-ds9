@@ -100,6 +100,7 @@ class DamageType:
     chance_to_damage_system:float = 0.75
     accuracy_loss_per_distance_unit:float = 0.0
     flat_accuracy_loss:float = 0.0
+    autohit_if_target_cant_move:bool = False
     
     ''''
     __slots__ = ("damage_vs_shields_multiplier", "damage_vs_hull_multiplier", "damage_vs_no_shield_multiplier", "damage_vs_systems_multiplier", "damage_chance_vs_systems_multiplier", "damage_variation", "chance_to_damage_system", "accuracy_loss_per_distance_unit", "flat_accuracy_loss")
@@ -135,8 +136,7 @@ DAMAGE_RAMMING:Final = DamageType(
     damage_vs_hull_multiplier=1.2,
     damage_vs_no_shield_multiplier=1.35,
     damage_variation=0.05,
-    accuracy_loss_per_distance_unit=0.005,
-    flat_accuracy_loss=0.08,
+    autohit_if_target_cant_move=True
 )
 
 @dataclass(eq=True, frozen=True)
