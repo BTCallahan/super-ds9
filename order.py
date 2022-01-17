@@ -324,7 +324,7 @@ class MoveOrder(Order):
                             crew_readyness=crew_readyness,
                             target_crew_readyness=target_crew_readyness
                         )
-                        self.entity.ram(ship)
+                        self.entity.ram(ship, False)
 
                     except KeyError:
                         pass
@@ -357,7 +357,7 @@ class MoveOrder(Order):
                                 crew_readyness=crew_readyness,
                                 target_crew_readyness=target_crew_readyness
                             )
-                            self.entity.ram(ship)
+                            self.entity.ram(ship, True)
 
                         except KeyError:
                             pass

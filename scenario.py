@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections import OrderedDict
 from dataclasses import dataclass
+from functools import lru_cache
 from itertools import accumulate
 from math import floor
 import re
@@ -36,6 +37,7 @@ class Scenerio:
     scenario_type:type[ScenerioEvaluation]
     victory_percent:float
     
+    @lru_cache
     def create_date_time(self):
         
         return datetime(

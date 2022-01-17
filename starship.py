@@ -17,7 +17,7 @@ from space_objects import SubSector, CanDockWith, ALL_TORPEDO_TYPES
 from torpedo import Torpedo, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
 import colors
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
 def scan_assistant(v:IntOrFloat, precision:int):
     """This takes a value, v and devides it by the precision. Next, the quotent is rounded to the nearest intiger and then multiplied by the precision. The product is then returned. A lower precision value ensures more accurate results. If precision is 1, then v is returned
@@ -88,6 +88,11 @@ class StarshipSystem:
 
     @property
     def is_comprimised(self):
+        """Has this system taken sufficent damage in impaire is performance?
+
+        Returns:
+            bool: Returns True if its integrety times 1.25 is less then 1, False otherwise.
+        """
         return self._integrety * 1.25 < 1.0
 
     @property
@@ -95,7 +100,7 @@ class StarshipSystem:
         try:
             return 1 / self.get_effective_value
         except DivisionByZero:
-            return SMALLEST
+            return inf
 
     #def __add__(self, value):
 
@@ -1121,6 +1126,13 @@ It's actually value is {precision}."
         return choice(a2)
 
     def destroy(self, cause:str, *, warp_core_breach:bool=False, self_destruct:bool=False):
+        """Destroys the ship. I hope this wasn't you!
+
+        Args:
+            cause (str): A description of the cause of destruction.
+            warp_core_breach (bool, optional): If True, the ship will be totaly destroyed and will damage neabye craft. If False, it will leave behind wreckage. Defaults to False.
+            self_destruct (bool, optional): Similar to the above, but more damaging. Defaults to False.
+        """
         gd = self.game_data
         #gd.grid[self.sector_coords.y][self.sector_coords.x].removeShipFromSec(self)
         is_controllable = self.is_controllable
@@ -1191,7 +1203,18 @@ It's actually value is {precision}."
         self, target:Starship, *, scan:Optional[Dict]=None, number_of_simulations:int=1, 
         simulate_systems:bool=False, simulate_crew:bool=False
         ):
-        #TODO - write an proper method to look at factors such as current and max hull strength to see if using a self destruct is worthwhile
+        """Calculates the damage that this ship would inflict on the target if it were auto-destructed.
+
+        Args:
+            target (Starship): The ship that is going to be 'attacked'.
+            scan (Optional[Dict], optional): A scan of the ship, if not present, one will be generated. Defaults to None.
+            number_of_simulations (int, optional): How many times the simulation will be preformed. Defaults to 1.
+            simulate_systems (bool, optional): If true, damage to the systems will be taken into account. Defaults to False.
+            simulate_crew (bool, optional): If True, crew fatalities and injuries will be taken into account. Defaults to False.
+
+        Returns:
+            Tuple[float, float, float, float, float, float]: A tuple containing floats
+        """
         
         precision = self.determin_precision
         
@@ -1264,18 +1287,17 @@ It's actually value is {precision}."
             return STATUS_CLOAKED if self.cloak_status == CloakStatus.ACTIVE else STATUS_CLOAK_COMPRIMISED
         return STATUS_ACTIVE
             
-    def ram(self, other_ship:Starship):
+    def ram(self, other_ship:Starship, intentional_ram_attempt:bool):
         """Prepare for RAMMING speed!
 
-        The ship will attempt to ram another
+        The ship will attempt to ram another ship.
 
         Args:
-            otherShip (Starship): [description]
+            other_ship (Starship): The ship that the attacker will atempt to ram.
+            intentional_ram_attempt (bool): If True,
         """
         self_status = self.ship_status
         other_status = other_ship.ship_status
-        
-        
         
         self_hp = (self.shields if self_status.do_shields_work else 0) + self.hull
         other_hp = (other_ship.shields if other_status.do_shields_work else 0) + other_ship.hull
@@ -1283,19 +1305,45 @@ It's actually value is {precision}."
         self_damage = self_hp + self.ship_class.max_hull * 0.5
         #other_damage = other_hp + other_ship.ship_class.max_hull * 0.5
 
-        if (other_status.is_active and 
-            self.sys_impulse.get_effective_value <= other_ship.sys_impulse.get_effective_value
+        hit_roll = self.roll_to_hit(
+            other_ship, 
+            systems_used_for_accuray=[self.sys_impulse.get_effective_value, self.ship_class.evasion],
+            damage_type=DAMAGE_RAMMING,
+            crew_readyness=self.crew_readyness,
+            target_crew_readyness=other_ship.crew_readyness
+        )
+        if hit_roll:
+
+            self.take_damage(
+                other_hp, f'Rammed the {self.name}', damage_type=DAMAGE_EXPLOSION
+            )
+            other_ship.take_damage(
+                self_damage, f'Rammed by the {self.name}', damage_type=DAMAGE_EXPLOSION
+            )
+        if intentional_ram_attempt and (
+            not hit_roll or (
+                self.ship_status is not STATUS_OBLITERATED and other_ship.ship_status is not STATUS_OBLITERATED
+            )
         ):
-            return False
+            ships_in_same_sector = self.game_data.grab_ships_in_same_sub_sector(
+                other_ship, accptable_ship_statuses={
+                    STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK
+                }
+            )
+            bad_spots = [
+                ship.local_coords.create_coords() for ship in ships_in_same_sector if 
+                other_ship.local_coords.is_adjacent(other=ship.local_coords)
+            ]
+            safe_spots = [
+                spot for spot in self.get_sub_sector.safe_spots if other_ship.local_coords.is_adjacent(other=spot) and
+                spot not in bad_spots
+            ]
+            spot = choice(safe_spots)
+            
+            self.local_coords.x = spot.x
+            self.local_coords.y = spot.y
 
-        self.take_damage(
-            other_hp, f'Rammed the {self.name}', damage_type=DAMAGE_EXPLOSION
-        )
-        other_ship.take_damage(
-            self_damage, f'Rammed by the {self.name}', damage_type=DAMAGE_EXPLOSION
-        )
-
-        return True
+        return hit_roll
 
     def calculate_damage(
         self, amount:int, *, 
@@ -1321,7 +1369,9 @@ It's actually value is {precision}."
             amount = round(amount * uniform(1.0 - random_varation, 1.0))
         
         old_scan = scan_dict if scan_dict else self.scan_this_ship(
-            precision, scan_for_crew=calculate_crew, scan_for_systems=calculate_systems
+            precision, scan_for_crew=calculate_crew, 
+            scan_for_systems=calculate_systems, 
+            use_effective_values=use_effective_values
         )
         
         current_shields:int = old_scan["shields"]
@@ -1730,12 +1780,11 @@ It's actually value is {precision}."
         time_bonus = 1.0 + (self.turn_repairing / 25.0)
         energy_regeneration_bonus = 1.0 + (self.turn_repairing / 5.0)
 
-        hull_repair_factor = (
-            self.ship_class.damage_control * repair_factor.hull_repair * self.crew_readyness * time_bonus
-        )
-        system_repair_factor = (
-            self.ship_class.damage_control * repair_factor.system_repair * self.crew_readyness * time_bonus
-        )
+        repair_amount = self.ship_class.damage_control * self.crew_readyness * time_bonus
+
+        hull_repair_factor = repair_amount * repair_factor.hull_repair
+        
+        system_repair_factor = repair_amount * repair_factor.system_repair
         
         status = self.ship_status
 
@@ -1767,8 +1816,22 @@ It's actually value is {precision}."
     def roll_to_hit(
         self, enemy:Starship, *, 
         systems_used_for_accuray:Iterable[float], precision:int=1, 
-        estimated_enemy_impulse:float=-1.0, damage_type:DamageType, crew_readyness:float, target_crew_readyness:float
+        estimated_enemy_impulse:Optional[float]=None, damage_type:DamageType, crew_readyness:float, target_crew_readyness:float
     ):
+        """A method that preforms a number of calcuations to see if an attack roll succeded or not.
+
+        Args:
+            enemy (Starship): The target that the attacker will be rolling against.
+            systems_used_for_accuray (Iterable[float]): An iterable of floats. Often, these will be the effective value of the sensors system, and another system such as cannons, torpedos, or beam arrays.
+            damage_type (DamageType): The type of damage. This must be onw of the DamageType constants.
+            crew_readyness (float): The readyness of the crew of the attacking ship.
+            target_crew_readyness (float): The readyness of the crew of the defending ship.
+            precision (int, optional): The precision that is used to determin the enemy impulse (see below). Defaults to 1.
+            estimated_enemy_impulse (Optional[float], optional): This value is used to determin the defenders chance of evading the attack. If not present, then it will be estimated using the precision argument. Defaults to None.
+
+        Returns:
+            bool: Returns True if the attack hit the target ship, False if it missed.
+        """
         assert damage_type is not DAMAGE_EXPLOSION
         
         enemy_ship_status = enemy.ship_status
@@ -1777,14 +1840,18 @@ It's actually value is {precision}."
             
             estimated_enemy_impulse = 0.0
         
-        elif estimated_enemy_impulse == -1.0:
+        elif estimated_enemy_impulse is None:
             
             estimated_enemy_impulse = enemy.sys_impulse.get_info(
                 precision, True
             ) * enemy.ship_class.evasion * target_crew_readyness
         else:
             estimated_enemy_impulse *= enemy.ship_class.evasion * target_crew_readyness
-            
+        
+        # ramming an imobile object always works!
+        if damage_type.autohit_if_target_cant_move and estimated_enemy_impulse == 0.0:
+            return True
+        
         enemy_size = enemy.ship_class.size
         
         distance_penalty = (
@@ -1804,54 +1871,56 @@ It's actually value is {precision}."
         return attack_value + random() > deffence_value
     
     def attack_energy_weapon(self, enemy:Starship, amount:float, energy_cost:float,  damage_type:DamageType):
+        
+        assert damage_type in {DAMAGE_BEAM, DAMAGE_CANNON}
+        
+        assert self.sys_beam_array.is_opperational
+        
         gd = self.game_data
-        if self.sys_beam_array.is_opperational:
-            
-            attacker_is_player = self is self.game_data.player
-            target_is_player = not attacker_is_player and enemy is self.game_data.player
-
-            self.energy-=energy_cost
-                            
-            gd.engine.message_log.add_message(
-                f"Firing on the {enemy.name}!" 
-                if attacker_is_player else 
-                f"The {self.name} has fired on {'us' if target_is_player else f'the {enemy.name}'}!"
-            )
-            
-            hit = self.roll_to_hit(
-                enemy, 
-                estimated_enemy_impulse=-1.0, 
-                systems_used_for_accuray=(
-                    self.sys_beam_array.get_effective_value,
-                    self.sys_sensors.get_effective_value
-                ),
-                damage_type=damage_type,
-                crew_readyness=self.crew_readyness,# * 0.5 + 0.5
-                target_crew_readyness=enemy.crew_readyness
-            )
-            
-            if hit:
                 
-                target_name = "We're" if target_is_player else f'The {enemy.name} is'
+        attacker_is_player = self is self.game_data.player
+        target_is_player = not attacker_is_player and enemy is self.game_data.player
 
-                gd.engine.message_log.add_message(
-                    f"Direct hit on {enemy.name}!" if attacker_is_player else
-                    f"{target_name} hit!", fg=colors.orange
-                )
+        self.energy-=energy_cost
+                        
+        gd.engine.message_log.add_message(
+            f"Firing on the {enemy.name}!" 
+            if attacker_is_player else 
+            f"The {self.name} has fired on {'us' if target_is_player else f'the {enemy.name}'}!"
+        )
+        if self.roll_to_hit(
+            enemy, 
+            estimated_enemy_impulse=-1.0, 
+            systems_used_for_accuray=(
+                self.sys_beam_array.get_effective_value,
+                self.sys_sensors.get_effective_value
+            ),
+            damage_type=damage_type,
+            crew_readyness=self.crew_readyness,# * 0.5 + 0.5
+            target_crew_readyness=enemy.crew_readyness
+        ):
+            
+            target_name = "We're" if target_is_player else f'The {enemy.name} is'
 
-                enemy.take_damage(
-                    amount * self.sys_beam_array.get_effective_value, 
-                    f'Destroyed by a {self.ship_class.get_energy_weapon.beam_name} hit from the {self.name}.', 
-                    damage_type=damage_type
-                )
-                return True
-            else:
-                gd.engine.message_log.add_message("We missed!" if attacker_is_player else "A miss!")
-                #f"{self.name} misses {enemy.name}!"
+            gd.engine.message_log.add_message(
+                f"Direct hit on {enemy.name}!" if attacker_is_player else
+                f"{target_name} hit!", fg=colors.orange
+            )
+
+            enemy.take_damage(
+                amount * self.sys_beam_array.get_effective_value, 
+                f'Destroyed by a {self.ship_class.get_energy_weapon.beam_name} hit from the {self.name}.', 
+                damage_type=damage_type
+            )
+            return True
+        else:
+            gd.engine.message_log.add_message("We missed!" if attacker_is_player else "A miss!")
 
         return False
 
     def attack_torpedo(self, gd:GameData, enemy:Starship, torp:Torpedo):
+        
+        assert self.sys_torpedos.is_opperational
         
         gd = self.game_data
         
@@ -2044,9 +2113,24 @@ It's actually value is {precision}."
         self, target:Starship, number_of_simulations:int, energy:float, cannon:bool=False, 
         *, simulate_systems:bool=False, simulate_crew:bool=False
     ):
+        """Run a number of simulations of energy weapon hits against the target ship and returns the avaraged result.
+
+        Args:
+            target (Starship): The target ship.
+            number_of_simulations (int): How many simulations will be run. High is mroe accurate.
+            energy (float): The amound of energy used in the attack.
+            cannon (bool, optional): If true, it will simulat a cannon attack. Defaults to False.
+            simulate_systems (bool, optional): If true, systems damage will be taken into account. Defaults to False.
+            simulate_crew (bool, optional): If true, crew deaths and injuries will be taken into account. Defaults to False.
+
+        Returns:
+            tuple[float, float, float, float, float, float, float]: A tuple containing float values for the following: averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, averaged_number_of_ship_kills, averaged_number_of_crew_kills, averaged_crew_readyness
+        """
         precision = self.determin_precision
 
-        targScan = target.scan_this_ship(precision, scan_for_systems=simulate_systems, scan_for_crew=simulate_crew)
+        targScan = target.scan_this_ship(
+            precision, scan_for_systems=simulate_systems, scan_for_crew=simulate_crew, use_effective_values=True
+        )
         
         targ_shield = targScan["shields"]
         targ_hull = targScan["hull"]
@@ -2113,17 +2197,19 @@ It's actually value is {precision}."
                 averaged_shields += targ_shield
                 averaged_hull += targ_hull
                 
-                #if targ_shield > 0:
         averaged_shields /= number_of_simulations
         averaged_hull /= number_of_simulations
         total_shield_dam /= number_of_simulations
         total_hull_dam /= number_of_simulations
+        averaged_number_of_ship_kills = number_of_ship_kills / number_of_simulations
+        averaged_number_of_crew_kills = number_of_crew_kills / number_of_simulations
+        
         if scan_target_crew:
             averaged_crew_readyness /= number_of_simulations
         else:
             averaged_crew_readyness = 1.0
         
-        return averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, number_of_ship_kills / number_of_simulations, number_of_crew_kills / number_of_simulations, averaged_crew_readyness
+        return averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, averaged_number_of_ship_kills, averaged_number_of_crew_kills, averaged_crew_readyness
 
     def check_torpedo_los(self, target:Starship):
         """Returns a float that examins the chance of a torpedo hitting an intended target.

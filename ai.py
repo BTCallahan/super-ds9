@@ -109,9 +109,9 @@ class EasyEnemy(BaseAi):
         self.order:Optional[Order] = None
 
         if self.entity.energy <= 0:
+            
             self.order =  RepairOrder(self.entity, 1)
         else:
-            
             self.calc_beam_weapon()
             
             if self.entity.ship_can_fire_torps:
@@ -289,11 +289,6 @@ class MediumEnemy(BaseAi):
         self.order_dict_size+=1
 
 class HardEnemy(BaseAi):
-
-    def __init__(self, entity: Starship):
-        self.entity = entity
-        self.target:Optional[Starship] = None
-        #self.path: List[Tuple[int, int]] = []
     
     def perform(self) -> None:
         if not self.target:
@@ -585,7 +580,7 @@ class HardEnemy(BaseAi):
                 
                     if adjacent:
                         
-                        adjacent.sor(
+                        adjacent.sort(
                             key=lambda ship: ship.ship_class.max_crew, reverse=True
                         )
                         
