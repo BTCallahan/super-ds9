@@ -264,15 +264,20 @@ def print_ship_info(
         
         add_to_y = 4
         
-        for i, n, d, m in zip(
+        for i, n, d, c, m in zip(
             range(3), 
             (
                 "Shields:", "Hull:", "Energy:"
             ),
             (
-                scan['shields'],
-                scan['hull'],
-                scan['energy']
+                scan['shields'][0],
+                scan['hull'][0],
+                scan['energy'][0]
+            ),
+            (
+                scan['shields'][1],
+                scan['hull'][1],
+                scan['energy'][1]
             ),
             (
                 self.ship_class.max_shields,
@@ -281,33 +286,44 @@ def print_ship_info(
                 
             )
         ):
-            console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}{d: =4}/{m: =4}")
+            console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}")
+            console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
+            console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}")
             
         add_to_y+=3
         
         if not self.ship_class.is_automated:
                 
-            for i, n, d, m in zip(
+            for i, n, d, c, m in zip(
                 range(2), 
                 (
                     "Able Crew:", "Injured Crew:"
                 ),
                 (
-                    scan['able_crew'],
-                    scan['injured_crew']
+                    scan['able_crew'][0],
+                    scan['injured_crew'][0]
+                ),
+                (
+                    scan['able_crew'][1],
+                    scan['injured_crew'][1]
                 ),
                 (
                     self.ship_class.max_crew,
                     self.ship_class.max_crew
                 )
             ):
-                console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}{d: =4}/{m: =4}")
+                console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}")
+                console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
+                console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}")
             add_to_y += 2
             
         if self.ship_type_can_cloak:
-            d = scan["cloak_cooldown"]
+            d_n = scan["cloak_cooldown"][0]
+            d_c = scan["cloak_cooldown"][1]
             m = self.ship_class.cloak_cooldown
-            console.print(x=x+3, y=y+add_to_y, string=f"{'C. Cooldown':>16}{d: =4}/{m: =4}")
+            console.print(x=x+3, y=y+add_to_y, string=f"{'C. Cooldown':>16}")
+            console.print(x=x+3+16, y=y+add_to_y, string=f"{d_n: =4}", fg=d_c)
+            console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}")
             add_to_y+=1
         
         add_to_y+=2
@@ -336,11 +352,13 @@ def print_ship_info(
         
         for n, k, i in zip(names, keys, range(len(keys))):
 
-            scanned = scan[k]
+            scanned = scan[k][0]
+            scan_color = scan[k][1]
             #k = keys[i-(s+3)]
             n__n = f"{n:>17}"
-            s__s = f"{scanned:7.2%}"
-            console.print(x=x+3, y=y+i+add_to_y, string=f"{n__n}{s__s}")
+            s__s = f"{scanned}"
+            console.print(x=x+3, y=y+i+add_to_y, string=f"{n__n}")
+            console.print(x=x+3+17, y=y+i+add_to_y, string=f"{s__s}", fg=scan_color)
     
 def render_own_ship_info(console: Console, gamedata:GameData):
 
@@ -374,7 +392,7 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
 
             if not gamedata.ship_scan:
                 
-                gamedata.ship_scan = gamedata.selected_ship_planet_or_star.scan_this_ship(
+                gamedata.ship_scan = gamedata.selected_ship_planet_or_star.scan_for_print(
                     gamedata.player.determin_precision
                 )
 

@@ -123,7 +123,7 @@ class StarshipSystem:
         return r
 
     def print_info(self, precision:float):
-        return f"{self.name}: {self.get_info(precision, False)}" if self.is_opperational else f"{self.name} OFFLINE"
+        return f"{self.get_info(precision, False):.2%}" if self.is_opperational else f"OFFLINE"
 
     def get_color(self):
         if not self.is_comprimised:
@@ -1032,6 +1032,92 @@ It's actually value is {precision}."
 
     #shields, hull, energy, torps, sys_warp_drive, sysImpuls, sysPhaser, sys_shield_generator, sys_sensors, sys_torpedos
     
+    def scan_for_print(self, precision: int=1):
+        
+        if isinstance(precision, float):
+            raise TypeError("The value 'precision' MUST be an intiger between 1 amd 100")
+        if precision not in {1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500}:
+            raise ValueError(
+                f"The intiger 'precision' MUST be one of the following: 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, or 500. It's actually value is {precision}."
+            )
+
+        def print_color(amount:float, base:float, inverse:bool=False):
+            a = amount / base
+            
+            if inverse:
+                if a <= 0.0:
+                    return colors.alert_green
+                if a <= 0.25:
+                    return colors.lime
+                if a <= 0.5:
+                    return colors.alert_yellow
+                if a <= 0.75:
+                    return colors.orange
+                return colors.alert_red
+            
+            if a >= 1.0:
+                return colors.alert_green
+            if a >= 0.75:
+                return colors.lime
+            if a >= 0.5:
+                return colors.alert_yellow
+            if a >= 0.25:
+                return colors.orange
+            return colors.alert_red
+
+        shields = scan_assistant(self.shields, precision)
+        hull = scan_assistant(self.hull, precision)
+        energy = scan_assistant(self.energy, precision)
+        
+        ship_class = self.ship_class
+        
+        ship_type_can_fire_torps = self.ship_type_can_fire_torps
+        
+        d= {
+            "shields" : (shields, print_color(shields, ship_class.max_shields)),
+            "hull" : (hull, print_color(hull, ship_class.max_hull)),
+            "energy" : (energy, print_color(energy, ship_class.max_energy))
+        }
+        
+        if ship_type_can_fire_torps:
+            d["number_of_torps"] = tuple(self.get_number_of_torpedos(precision))
+        
+        if not self.ship_class.is_automated:
+            able_crew = scan_assistant(self.able_crew, precision)
+            injured_crew = scan_assistant(self.injured_crew, precision)
+            d["able_crew"] = (able_crew, print_color(able_crew, ship_class.max_crew))
+            d["injured_crew"] = (injured_crew, print_color(injured_crew, ship_class.max_crew, True))
+        
+        ship_type_can_cloak = self.ship_type_can_cloak
+
+        if ship_type_can_cloak:
+            d["cloak_cooldown"] = (
+                self.cloak_cooldown, print_color(self.cloak_cooldown, ship_class.cloak_cooldown, True)
+            )
+
+        if self.is_mobile:
+            d["sys_warp_drive"] = self.sys_warp_drive.print_info(precision), self.sys_warp_drive.get_color()# * 0.01,
+            d["sys_impulse"] = self.sys_impulse.print_info(precision), self.sys_impulse.get_color()# * 0.01,
+        if self.ship_type_can_fire_beam_arrays:
+            d["sys_beam_array"] = self.sys_beam_array.print_info(precision), self.sys_beam_array.get_color()# * 0.01,
+        if self.ship_type_can_fire_cannons:
+            d["sys_cannon_weapon"] = self.sys_cannon_weapon.print_info(precision), self.sys_cannon_weapon.get_color()
+        d["sys_shield"] = self.sys_shield_generator.print_info(precision), self.sys_shield_generator.get_color()
+        d["sys_sensors"] = self.sys_sensors.print_info(precision), self.sys_sensors.get_color()# * 0.01,
+        if ship_type_can_fire_torps:
+            d["sys_torpedos"] = self.sys_torpedos.print_info(precision), self.sys_torpedos.get_color()# * 0.01
+        if ship_type_can_cloak:
+            d["sys_cloak"] = self.sys_cloak.print_info(precision), self.sys_cloak.get_color()
+        d["sys_warp_core"] = self.sys_warp_core.print_info(precision), self.sys_warp_core.get_color()
+            
+        if ship_type_can_fire_torps:
+
+            torps = tuple(self.get_number_of_torpedos(precision))
+            for k, v in torps:
+                d[k] = v
+
+        return d
+    
     def scan_this_ship(
         self, precision: int=1, *, scan_for_crew:bool=True, scan_for_systems:bool=True, use_effective_values=False
     )->Dict[str,Union[int,Tuple,ShipStatus]]:
@@ -1091,14 +1177,14 @@ It's actually value is {precision}."
         if scan_for_systems:
             
             if self.is_mobile:
-                d["sys_warp_drive"] = self.sys_warp_drive.get_info(precision, False)# * 0.01,
-                d["sys_impulse"] = self.sys_impulse.get_info(precision, False)# * 0.01,
+                d["sys_warp_drive"] = self.sys_warp_drive.get_info(precision, use_effective_values)# * 0.01,
+                d["sys_impulse"] = self.sys_impulse.get_info(precision, use_effective_values)# * 0.01,
             if self.ship_type_can_fire_beam_arrays:
-                d["sys_beam_array"] = self.sys_beam_array.get_info(precision, False)# * 0.01,
+                d["sys_beam_array"] = self.sys_beam_array.get_info(precision, use_effective_values)# * 0.01,
             if self.ship_type_can_fire_cannons:
-                d["sys_cannon_weapon"] = self.sys_cannon_weapon.get_info(precision, False)
-            d["sys_shield"] = self.sys_shield_generator.get_info(precision, False)# * 0.01,
-            d["sys_sensors"] = self.sys_sensors.get_info(precision, False)# * 0.01,
+                d["sys_cannon_weapon"] = self.sys_cannon_weapon.get_info(precision, use_effective_values)
+            d["sys_shield"] = self.sys_shield_generator.get_info(precision, use_effective_values)# * 0.01,
+            d["sys_sensors"] = self.sys_sensors.get_info(precision, use_effective_values)# * 0.01,
             if ship_type_can_fire_torps:
                 d["sys_torpedos"] = self.sys_torpedos.get_info(precision, use_effective_values)# * 0.01
             if ship_type_can_cloak:

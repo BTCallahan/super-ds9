@@ -132,7 +132,8 @@ class GameData:
 
                 self.condition = CONDITION_RED if len(other_ships) > 0 else CONDITION_YELLOW
         
-        self.player_scan = player.scan_this_ship(1, use_effective_values=False)
+        #self.player_scan = player.scan_this_ship(1, use_effective_values=False)
+        self.player_scan = player.scan_for_print(1)
         
         if (
             self.selected_ship_planet_or_star is not None and 
@@ -141,8 +142,8 @@ class GameData:
             self.selected_ship_planet_or_star = None
             
         if isinstance(self.selected_ship_planet_or_star, Starship):
-            self.ship_scan = self.selected_ship_planet_or_star.scan_this_ship(
-                player.determin_precision, use_effective_values=False
+            self.ship_scan = self.selected_ship_planet_or_star.scan_for_print(
+                player.determin_precision
             )
 
     def set_up_game(self, ship_name:str, captain_name:str):
