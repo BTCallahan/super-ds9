@@ -37,7 +37,6 @@ class Scenerio:
     scenario_type:type[ScenerioEvaluation]
     victory_percent:float
     
-    @lru_cache
     def create_date_time(self):
         
         return datetime(
