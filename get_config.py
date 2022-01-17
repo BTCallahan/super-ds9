@@ -2,7 +2,9 @@
 from math import ceil
 from typing import Dict, Final
 from collections.abc import Mapping
-
+from datetime import timedelta
+from global_functions import get_first_group_in_pattern
+import re
 from data_globals import string_or_int
 from coords import Coords
 
@@ -15,23 +17,51 @@ class ConfigObject:
 
     def __init__(self) -> None:
         
-        with open("config.ini", "r") as f:
-            lines = f.readlines()
-            
-        config_file = None
+        config_file_pattern = re.compile(r"config_file:([\w.,-]+)\n")
         
-        for line in lines:
-            if ":" in line and line[0] != "#":
-                k ,v = line.split(":")
-                if k == "config_file":
+        with open("config.ini", "r") as f:
+            #lines = f.readlines()
+            text = f.read()
                     
-                    config_file = "configurations/" + v.strip()
+        config_file = get_first_group_in_pattern(text, config_file_pattern, return_aux_if_no_match=True)
         
         if config_file is None:
             raise OSError(
                 "The file 'config.ini' did not contain an entry for 'config_file'"
             )
-                
+        else:
+            config_file = "configurations/" + config_file.strip()
+
+        seconds_per_turn_pattern = re.compile(r"seconds_per_turn:([\d]+)\n")
+
+        seconds_per_turn = get_first_group_in_pattern(
+            text, seconds_per_turn_pattern, return_aux_if_no_match=True, type_to_convert_to=int
+        )
+        if seconds_per_turn is None:
+            
+            raise OSError("The file 'config.ini' did not contain an entry for 'seconds_per_turn'")
+        
+        elif seconds_per_turn == 0:
+            
+            raise ValueError("The value of 'seconds_per_turn' is zero, which means that no time will pass between turns")
+        
+        self.time_per_turn = timedelta(seconds=seconds_per_turn)
+        
+        chances_to_detect_cloak_pattern = re.compile(r"chances_to_detect_cloak:([\d]+)\n")
+        
+        chances_to_detect_cloak = get_first_group_in_pattern(
+            text, chances_to_detect_cloak_pattern, return_aux_if_no_match=True, type_to_convert_to=int
+        )
+        if chances_to_detect_cloak is None:
+            
+            raise OSError("The file 'config.ini' did not contain an entry for 'chances_to_detect_cloak'")
+        
+        elif chances_to_detect_cloak == 0:
+            
+            raise ValueError("The value of 'chances_to_detect_cloak' is zero, which means that ship will not get any chances to detect a cloaked ship")
+        
+        self.chances_to_detect_cloak = chances_to_detect_cloak
+        
         d:Dict[str,string_or_int] = {}
         
         with open(config_file, "r") as f:

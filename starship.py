@@ -9,6 +9,7 @@ from itertools import accumulate
 from functools import lru_cache
 from string import digits
 from energy_weapon import ALL_ENERGY_WEAPONS
+from get_config import CONFIG_OBJECT
 
 from global_functions import get_first_group_in_pattern, inverse_square_law
 from nation import ALL_NATIONS
@@ -837,15 +838,9 @@ class Starship(CanDockWith):
     def ship_can_cloak(self):
         return self.ship_class.ship_type_can_cloak and self.sys_cloak.is_opperational and self.cloak_cooldown < 1
 
-    """
     @property
-    def able_crew_percent(self):
-        return self.able_crew / self.ship_class.max_crew
-    
-    @property
-    def injured_crew_percent(self):
-        return self.injured_crew / self.ship_class.max_crew
-    """
+    def get_cloak_power(self):
+        return self.ship_class.cloak_strength * self.sys_cloak.get_effective_value
 
     @property
     def get_total_torpedos(self):
@@ -2202,9 +2197,9 @@ It's actually value is {precision}."
         
         detection_strength = self.ship_class.detection_strength * self.sys_sensors.get_effective_value
         
-        cloak_strength = ship.ship_class.cloak_strength * ship.sys_cloak.get_effective_value
+        cloak_strength = ship.get_cloak_power
 
-        for i in range(3):
+        for i in range(CONFIG_OBJECT.chances_to_detect_cloak):
 
             if uniform(
                 0.0, detection_strength

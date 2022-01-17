@@ -94,13 +94,11 @@ class EventHandler(BaseEventHandler):
                 STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK
             }
         )
-        game_data.date_time = game_data.date_time + game_data.fifteen_seconds
+        game_data.date_time = game_data.date_time + CONFIG_OBJECT.time_per_turn
         game_data.stardate = stardate(game_data.date_time)
         #game_data.stardate_text = f"{game_data.stardate:5.2}"
 
         self.engine.handle_enemy_turns()
-        
-        
         
         return True
 
