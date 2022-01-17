@@ -6,7 +6,7 @@ import tcod
 from coords import Coords
 from space_objects import Planet, Star, SubSector
 from starship import Starship
-from data_globals import STATUS_HULK
+from data_globals import STATUS_HULK, CloakStatus
 import colors
 from get_config import CONFIG_OBJECT
 from torpedo import ALL_TORPEDO_TYPES
@@ -238,17 +238,21 @@ def print_ship_info(
     
     #assert ship_status.is_visible
     
+    frame_fg = (
+        colors.cloaked if self is self.game_data.player and self.cloak_status != CloakStatus.INACTIVE else colors.white
+    )
     console.draw_frame(
         x=x, y=y, 
         width=width, height=height, 
-        title=self.proper_name
+        title=self.proper_name,
+        fg=frame_fg, bg=colors.black
     )
 
     y_plus = 2
 
     console.print(
         x=x+2, y=y+2,
-        string=f"Position: {self.local_coords.x}, {self.local_coords.y}" 
+        string=f"Position: {self.local_coords.x}, {self.local_coords.y}", fg=colors.white
     )
     
     if ship_status == STATUS_HULK:
@@ -257,7 +261,7 @@ def print_ship_info(
             x+2, y=y+3,
             width=width - 4,
             height=4,
-            string=f"Remains of the {self.proper_name}"
+            string=f"Remains of the {self.proper_name}", fg=colors.white
         )
     
     else:
@@ -286,10 +290,22 @@ def print_ship_info(
                 
             )
         ):
-            console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}")
+            console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
             console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
-            console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}")
+            console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}", fg=colors.white)
+        
+        try:
             
+            hd, hc = scan["hull_damage"]
+            n = "Perm. Hull Dam.:"
+            console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
+            console.print(x=x+3+16, y=y+i+add_to_y, string=f"{hd: =4}", fg=hc)
+            
+            add_to_y+=1
+        
+        except KeyError:
+            pass
+        
         add_to_y+=3
         
         if not self.ship_class.is_automated:
@@ -312,31 +328,35 @@ def print_ship_info(
                     self.ship_class.max_crew
                 )
             ):
-                console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}")
+                console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
                 console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
-                console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}")
+                console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}", fg=colors.white)
             add_to_y += 2
             
         if self.ship_type_can_cloak:
             d_n = scan["cloak_cooldown"][0]
             d_c = scan["cloak_cooldown"][1]
             m = self.ship_class.cloak_cooldown
-            console.print(x=x+3, y=y+add_to_y, string=f"{'C. Cooldown':>16}")
+            console.print(x=x+3, y=y+add_to_y, string=f"{'C. Cooldown':>16}", fg=colors.white)
             console.print(x=x+3+16, y=y+add_to_y, string=f"{d_n: =4}", fg=d_c)
-            console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}")
+            console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}", fg=colors.white)
             add_to_y+=1
         
         add_to_y+=2
         
         if self.ship_class.ship_type_can_fire_torps:
             max_torps = self.ship_class.max_torpedos 
-            console.print(x=x+3+2, y=y+add_to_y, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}" )
-            console.print(x=x+3+3, y=y+add_to_y+1, string=f"Max Torpedos:{max_torps: =2}")
+            console.print(
+                x=x+3+2, y=y+add_to_y, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}", fg=colors.white
+            )
+            console.print(
+                x=x+3+3, y=y+add_to_y+1, string=f"Max Torpedos:{max_torps: =2}", fg=colors.white
+            )
             add_to_y+=2
             for i, t in enumerate(self.ship_class.torp_types):
                 console.print(
                     x=x+3, y=y+add_to_y, 
-                    string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}"
+                    string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}", fg=colors.white
                 )
                 add_to_y+=1
         
@@ -346,7 +366,7 @@ def print_ship_info(
         
         sys_x_position = (width - 2) // 2
 
-        console.print(x=x+sys_x_position, y=y+add_to_y, string="-- Systems --", alignment=tcod.CENTER)
+        console.print(x=x+sys_x_position, y=y+add_to_y, string="-- Systems --", alignment=tcod.CENTER, fg=colors.white)
         
         add_to_y+=1
         
@@ -357,7 +377,7 @@ def print_ship_info(
             #k = keys[i-(s+3)]
             n__n = f"{n:>17}"
             s__s = f"{scanned}"
-            console.print(x=x+3, y=y+i+add_to_y, string=f"{n__n}")
+            console.print(x=x+3, y=y+i+add_to_y, string=f"{n__n}", fg=colors.white)
             console.print(x=x+3+17, y=y+i+add_to_y, string=f"{s__s}", fg=scan_color)
     
 def render_own_ship_info(console: Console, gamedata:GameData):

@@ -2,7 +2,7 @@
 
 A modernization of the 1971 Star Trek terminal based text game. Written in Python and set during a number of scenerios.
 
-1. Diffrences between with the 1978 Super Star Trek game:
+1. Diffrences between Super DS9 and both the 1971 Star Trek and 1978 Super Star Trek games:
 
     While Super DS9 is heavly inspired by Super Star Trek, ther are a number of diffrences.
 
@@ -47,31 +47,33 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
             So far, stars will not erupt in a nova when hit by torpedos. This will probably change. It remains to be seen how many torpedos it will take 
             to induce a nova, however...
 
-        iii. Cloaking Device:
-
-            Currently there is no ways for ships to cloak. This is expected to change in future versions.
-
-        iv. One Difficulty Level:
-
-            Multiple difficulty levels are another feature that the game lacks. This can be expected to change in a future version.
-
-        v. Long Range Scans:
+        iv. Long Range Scans:
 
             As it stands, the long range display is updated instantly after each turn, and with perfect accuracy. Future versions will proably require 
             long range scans to determine enemy ship positions.
 
-        vi. Starbases:
+        v. Starbases:
 
             At present, the game lacks starbases that ship would be able to dock with.
 
-        vii. Communications:
+        vi. Communications:
 
             Furure versions will probably include a communications system to call for renforcements.
         
-        viii: Instant Warp Travel:
+        vii: Instant Warp Travel:
 
             In the current version, warping takes only a single turn.
         
+    C. Former Diffrences:
+
+        i. Cloaking Device:
+
+            Ships can cloak now! Just be sure that your enemies sensors can't detect you.
+        
+        ii. One Difficulty Level:
+
+            Three levels of difficulty are currently avaliable.
+
 2. User Interface Basics
 
     User interface elements are rectangles drawn on the screen with titles and/or text contained in their bodies. They respond to the user clicking on 
@@ -301,7 +303,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         Damage to the warp core will reduce the amount of energy restored.
 
         For every consecutive turn spent repairing, the amount of of damage that is repaired is increased, as is the amount of energy restored. Taking 
-        damage will rest this counter.
+        damage will reset this counter.
 
     E. Cloaking:
 
@@ -385,6 +387,8 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         Normaly, a ship's shield will absorb any damage, however once it is below 50% the ship will begin to experince 'bleed through' damage. The 
         amount to damage that bleeds through increases as the shield percentage decreases, so if a ship's shield is at 25%, then the shield will absorb 
         half of the damage, and the other half will be applied to the hull.
+
+        About 20% of the damage inflicted on a ship will be permanent. What this means is that is to say that it cannot be fixed by normally and must be repaired at a planet.
 
     B. Systems Damage:
 

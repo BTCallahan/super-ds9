@@ -668,6 +668,8 @@ class Starship(CanDockWith):
         self._shields = ship_class.max_shields
         self.armor = ship_class.max_armor
         self._hull = ship_class.max_hull
+        
+        self._hull_damage = 0
 
         self.torps = set_torps(ship_class.torp_types, ship_class.max_torpedos)
 
@@ -720,14 +722,28 @@ class Starship(CanDockWith):
             self._shields = self.get_max_effective_shields
     
     @property
+    def hull_damage(self):
+        return self._hull_damage
+    
+    @hull_damage.setter
+    def hull_damage(self, value):
+        self._hull_damage = round(value)
+        if self._hull_damage < 0:
+            self._hull_damage = 0
+    
+    @property
+    def get_max_hull(self):
+        return self.ship_class.max_hull - self._hull_damage
+    
+    @property
     def hull(self):
         return self._hull
 
     @hull.setter
     def hull(self, value):
         self._hull = round(value)
-        if self._hull > self.ship_class.max_hull:
-            self._hull = self.ship_class.max_hull
+        if self._hull > self.get_max_hull:
+            self._hull = self.get_max_hull
 
     @property
     def energy(self):
@@ -1073,11 +1089,16 @@ It's actually value is {precision}."
         
         ship_type_can_fire_torps = self.ship_type_can_fire_torps
         
+        hull_damage = scan_assistant(self.hull_damage, precision)
+        
         d= {
             "shields" : (shields, print_color(shields, ship_class.max_shields)),
             "hull" : (hull, print_color(hull, ship_class.max_hull)),
             "energy" : (energy, print_color(energy, ship_class.max_energy))
         }
+        
+        if hull_damage:
+            d["hull_damage"] = hull_damage, print_color(hull_damage, ship_class.max_hull)
         
         if ship_type_can_fire_torps:
             d["number_of_torps"] = tuple(self.get_number_of_torpedos(precision))
@@ -1633,8 +1654,12 @@ It's actually value is {precision}."
             pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player, use_effective_values=True
         )
         
+        perm_hull_damage = round(hull_dam * 0.15)
+        
         self.shields = new_shields
         self.hull = new_hull
+        
+        self.hull_damage += perm_hull_damage
         
         if not self.ship_class.is_automated:
             self.able_crew -= wounded
@@ -1884,7 +1909,10 @@ It's actually value is {precision}."
             self.injured_crew-= heal_crew
         
         repair_amount = hull_repair_factor * uniform(0.5, 1.25) * self.ship_class.max_hull
+        
+        perm_hull_repair = ceil(repair_amount * repair_factor.repair_permanent_hull_damage)
 
+        self.hull_damage -= perm_hull_repair
         self.hull += repair_amount
         self.sys_sensors.integrety += system_repair_factor * (0.5 + random() * 0.5)
         if self.is_mobile:

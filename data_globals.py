@@ -147,7 +147,7 @@ class RepairStatus:
     hull_repair:float
     system_repair:float
     energy_regeration:int
-    repair_permanent_hull_damage:bool = False
+    repair_permanent_hull_damage:float = 0.0
     
 REPAIR_PER_TURN:Final = RepairStatus(
     hull_repair=0.01,
@@ -163,7 +163,7 @@ REPAIR_DOCKED:Final = RepairStatus(
     hull_repair=0.25,
     system_repair=0.15,
     energy_regeration=750,
-    repair_permanent_hull_damage=True
+    repair_permanent_hull_damage=0.175
 )
 
 @dataclass(eq=True, frozen=True)

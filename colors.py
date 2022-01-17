@@ -14,6 +14,8 @@ cyan = (0, 255, 255)
 
 grey = (127, 127, 127)
 
+cloaked = (180, 12, 178)
+
 impossible = red
 
 alert_red = (255, 12, 20)
