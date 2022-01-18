@@ -1036,8 +1036,8 @@ class Starship(CanDockWith):
 
     def take_damage(self, amount, text, *, damage_type:DamageType):
         #is_controllable = self.isControllable
-        gd = self.game_data
-        message_log = gd.engine.message_log
+        game_data = self.game_data
+        message_log = game_data.engine.message_log
         
         old_ship_status = self.ship_status
         
@@ -1526,13 +1526,23 @@ class Starship(CanDockWith):
         return self is self.game_data.player
     
     def simulate_torpedo_hit(
-        self, target:Starship, torpdeo:Torpedo, number_of_simulations:int, times_to_fire:int,
+        self, target:Starship, 
+        torpdeo:Torpedo,
+        number_of_simulations:int, 
         *, 
-        simulate_systems:bool=False, simulate_crew:bool=False
+        simulate_systems:bool=False, 
+        simulate_crew:bool=False,
+        use_effective_values:bool=False,
+        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus]]]
     ):
         precision = self.sensors.determin_precision
         
-        target_scan = target.scan_this_ship(precision, scan_for_crew=simulate_crew)
+        target_scan = target_scan if target_scan else target.scan_this_ship(
+            precision, 
+            scan_for_crew=simulate_crew, 
+            scan_for_systems=simulate_systems, 
+            use_effective_values=use_effective_values
+        )
         
         #shields, hull, energy, torps, sys_warp_drive, sysImpuls, sysPhaser, sys_shield_generator, sys_sensors, sys_torpedos
         
@@ -1615,7 +1625,6 @@ class Starship(CanDockWith):
                         target_crew_readyness = target.crew.caluclate_crew_readyness(
                             target_scan["able_crew"], target_scan["injured_crew"]
                         )
-            
             total_shield_dam += shield_dam
             total_hull_dam += hull_dam
             
@@ -1629,7 +1638,6 @@ class Starship(CanDockWith):
                 _crew_readyness = target.crew.caluclate_crew_readyness(
                     target_scan["able_crew"], target_scan["injured_crew"]
                 )
-                
                 if _crew_readyness == 0.0:
                     number_of_crew_kills += 1
                 
@@ -1651,7 +1659,11 @@ class Starship(CanDockWith):
 
     def simulate_energy_hit(
         self, target:Starship, number_of_simulations:int, energy:float, cannon:bool=False, 
-        *, simulate_systems:bool=False, simulate_crew:bool=False
+        *, 
+        simulate_systems:bool=False, 
+        simulate_crew:bool=False, 
+        use_effective_values:bool=False,
+        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus]]]
     ):
         """Run a number of simulations of energy weapon hits against the target ship and returns the avaraged result.
 
@@ -1668,12 +1680,14 @@ class Starship(CanDockWith):
         """
         precision = self.sensors.determin_precision
 
-        targScan = target.scan_this_ship(
-            precision, scan_for_systems=simulate_systems, scan_for_crew=simulate_crew, use_effective_values=True
+        target_scan = target_scan if target_scan else target.scan_this_ship(
+            precision, 
+            scan_for_systems=simulate_systems, 
+            scan_for_crew=simulate_crew, 
+            use_effective_values=use_effective_values
         )
-        
-        targ_shield = targScan["shields"]
-        targ_hull = targScan["hull"]
+        targ_shield = target_scan["shields"]
+        targ_hull = target_scan["hull"]
 
         total_shield_dam = 0
         total_hull_dam = 0
@@ -1717,7 +1731,9 @@ class Starship(CanDockWith):
             ):
                 new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage =self.calculate_damage(
                     amount, precision=precision, calculate_crew=scan_target_crew, 
-                    calculate_systems=simulate_systems, scan_dict=targScan, damage_type=damage_type
+                    calculate_systems=simulate_systems, 
+                    use_effective_values=use_effective_values,
+                    scan_dict=target_scan, damage_type=damage_type
                 )
                 averaged_shields += new_shields
                 averaged_hull += new_hull
@@ -1728,8 +1744,103 @@ class Starship(CanDockWith):
                     number_of_ship_kills+=1
                 
                 if scan_target_crew:
-                    able_crew = targScan["able_crew"] - (wounded + killed_outright)
-                    injured_crew = targScan["injured_crew"] - killed_in_sickbay
+                    able_crew = target_scan["able_crew"] - (wounded + killed_outright)
+                    injured_crew = target_scan["injured_crew"] - killed_in_sickbay
+                    
+                    averaged_crew_readyness += target.caluclate_crew_readyness(able_crew, injured_crew)
+                    
+                    if able_crew + injured_crew == 0:
+                        
+                        number_of_crew_kills += 1
+            else:
+                averaged_shields += targ_shield
+                averaged_hull += targ_hull
+                
+        averaged_shields /= number_of_simulations
+        averaged_hull /= number_of_simulations
+        total_shield_dam /= number_of_simulations
+        total_hull_dam /= number_of_simulations
+        averaged_number_of_ship_kills = number_of_ship_kills / number_of_simulations
+        averaged_number_of_crew_kills = number_of_crew_kills / number_of_simulations
+        
+        if scan_target_crew:
+            averaged_crew_readyness /= number_of_simulations
+        else:
+            averaged_crew_readyness = 1.0
+        
+        return averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, averaged_number_of_ship_kills, averaged_number_of_crew_kills, averaged_crew_readyness
+
+    def simulate_ram_attack(
+        self, target:Starship, number_of_simulations:int, 
+        *, 
+        simulate_systems:bool=False, 
+        simulate_crew:bool=False,
+        use_effective_values:bool=False,
+        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus]]]
+    ):
+        precision = self.determin_precision
+
+        target_scan = target_scan if target_scan else target.scan_this_ship(
+            precision, scan_for_systems=simulate_systems, scan_for_crew=simulate_crew, 
+            use_effective_values=use_effective_values
+        )
+        targ_shield = target_scan["shields"]
+        targ_hull = target_scan["hull"]
+
+        total_shield_dam = 0
+        total_hull_dam = 0
+        
+        averaged_shields = 0
+        averaged_hull = 0
+        
+        averaged_crew_readyness = 0
+        
+        number_of_ship_kills = 0
+        
+        number_of_crew_kills = 0
+        
+        self_status = self.ship_status
+        
+        self_hp = (self.shields if self_status.do_shields_work else 0) + self.hull
+        
+        self_damage = self_hp + self.ship_class.max_hull * 0.5
+        
+        crew_readyness = self.crew_readyness
+        
+        #other_status = target_scan["ship_status"]
+        
+        scan_target_crew = not target.ship_class.is_automated and simulate_crew
+                
+        #target_crew_readyness = target.scan_crew_readyness(precision) if scan_target_crew else 1.0
+        
+        for i in range(number_of_simulations):
+            
+            to_hit = self.roll_to_hit(
+                target, 
+                damage_type=DAMAGE_RAMMING,
+                crew_readyness=crew_readyness,
+                target_crew_readyness=target.scan_crew_readyness(precision),
+                systems_used_for_accuray=[self.sys_impulse.get_effective_value, self.ship_class.evasion],
+                estimated_enemy_impulse=target_scan["sys_impulse"]
+            )
+            if to_hit:
+                
+                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage = target.calculate_damage(
+                    self_damage, 
+                    scan_dict=target_scan, 
+                    damage_type=DAMAGE_RAMMING
+                )
+                averaged_shields += new_shields
+                averaged_hull += new_hull
+                total_shield_dam += shields_dam
+                total_hull_dam += hull_dam
+                
+                if new_hull <= 0:
+                    number_of_ship_kills+=1
+                
+                if scan_target_crew:
+                    able_crew = target_scan["able_crew"] - (wounded + killed_outright)
+                    injured_crew = target_scan["injured_crew"] - killed_in_sickbay
                     
                     averaged_crew_readyness += target.crew.caluclate_crew_readyness(able_crew, injured_crew)
                     
@@ -1763,21 +1874,24 @@ class Starship(CanDockWith):
         Returns:
             [float]: A float between 1 and 0 (inclusive)
         """
-        gd = self.game_data
+        game_data = self.game_data
 
         # Normalize the x and y direction
-        dirX, dirY = Coords(
+        c:Coords = Coords(
             target.local_coords.x - self.local_coords.x, target.local_coords.y - self.local_coords.y
-        ).normalize()
+        )
+        dirX, dirY  = c.normalize()
         
         g:SubSector = self.get_sub_sector
 
-        torp_positions = gd.engine.get_lookup_table(direction_x=dirX, direction_y=dirY, normalise_direction=False)
+        torp_positions = game_data.engine.get_lookup_table(
+            direction_x=dirX, direction_y=dirY, normalise_direction=False
+        )
 
         # Create dictionary of positions and ships for ships in the same system that are are not obliterated
         ship_positions = {
             ship.local_coords.create_coords() : ship for ship in 
-            gd.grab_ships_in_same_sub_sector(self, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK})
+            game_data.grab_ships_in_same_sub_sector(self, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK})
         }
         
         score = []
@@ -1786,12 +1900,12 @@ class Starship(CanDockWith):
             x = pos.x + self.local_coords.x
             y = pos.y + self.local_coords.y
             
-            if x not in gd.subsec_size_range_x or y not in gd.subsec_size_range_y:
+            if x not in game_data.subsec_size_range_x or y not in game_data.subsec_size_range_y:
                 break
 
             ajusted_pos = Coords(x=pos.x+self.local_coords.x, y=pos.y+self.local_coords.y)
 
-            if ajusted_pos in g.stars_dict or pos in g.planets_dict:
+            if ajusted_pos in g.stars_dict or ajusted_pos in g.planets_dict:
                 break
 
             try:
