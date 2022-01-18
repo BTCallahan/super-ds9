@@ -67,9 +67,7 @@ class GameData:
         
         self.secInfo = []
         self.scenerio = scenerio
-        
-        self.fifteen_seconds = timedelta(seconds=15)
-        
+                
         self.date_time:Optional[datetime] = current_datetime
         self.starting_stardate = starting_stardate
         self.stardate = stardate(current_datetime)
@@ -205,7 +203,15 @@ class GameData:
         # we use k = total + 1 because the last coord in selected_coords will be used as the players starting point
         selected_allied_coords = selected_coords[total_enemy:total_enemy+total_allied]
         
-        player_starting_coord = choice(selected_allied_coords)
+        try:
+            player_starting_coord = choice(selected_allied_coords)
+        except IndexError:
+            
+            coords_without_enemies = [
+                co for co in system_coords if co not in selected_enemy_coords
+            ]
+            
+            player_starting_coord = choice(coords_without_enemies)
         
         def generate_ships(enemy_nation:Nation, player_nation:Nation, selected_encounters:List[Dict[str,int]]):
         
@@ -243,7 +249,7 @@ class GameData:
             
         self.all_enemy_ships = list(
             generate_ships(
-                ALL_NATIONS[self.scenerio.enemy_nation],
+                ALL_NATIONS[self.scenerio.main_enemy_nation],
                 ALL_NATIONS[self.scenerio.your_nation], 
                 all_enemy_encounters
             )
@@ -251,16 +257,14 @@ class GameData:
         
         self.all_allied_ships = list(
             generate_ships(
-                ALL_NATIONS[self.scenerio.enemy_nation],
+                ALL_NATIONS[self.scenerio.main_enemy_nation],
                 ALL_NATIONS[self.scenerio.your_nation], 
                 all_allied_encounters
             )
         )
         
-        xy = selected_allied_coords[-1]
-
-        randXsec = xy.x
-        randYsec = xy.y
+        randXsec = player_starting_coord.x
+        randYsec = player_starting_coord.y
 
         locPos = self.grid[randYsec][randXsec].find_random_safe_spot()
 

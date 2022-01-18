@@ -5,11 +5,12 @@ from functools import lru_cache
 from itertools import accumulate
 from math import floor
 import re
-from typing import Dict, Final, List, Tuple, TYPE_CHECKING
+from typing import Dict, Final, List, Optional, Tuple, TYPE_CHECKING
 from random import randint
 from datetime import datetime
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 from evaluate_player import SCENARIO_TYPES
+from nation import ALL_NATIONS
 
 if TYPE_CHECKING:
     from evaluate_player import ScenerioEvaluation
@@ -30,7 +31,9 @@ class Scenerio:
     self_destruct_code:str
     your_ship:str
     your_nation:str
-    enemy_nation:str
+    allied_nations:Optional[Tuple[str]]
+    main_enemy_nation:str
+    other_enemy_nations:Optional[Tuple[str]]
     your_commanding_officer:str
     startdate:datetime
     enddate:datetime
@@ -48,6 +51,30 @@ class Scenerio:
             minute=self.startdate.minute,
             second=self.startdate.second
         )
+    
+    @lru_cache
+    def get_all_enemy_nation(self):
+        if self.other_enemy_nations:
+            return tuple(
+                [ALL_NATIONS[self.main_enemy_nation]] + [ALL_NATIONS[nation] for nation in self.other_enemy_nations]
+            )
+        return tuple([ALL_NATIONS[self.main_enemy_nation]])
+
+    @lru_cache
+    def get_all_allied_nations(self):
+        if self.allied_nations:
+            return tuple(
+                [ALL_NATIONS[self.your_nation]] + [ALL_NATIONS[nation] for nation in self.allied_nations]
+            )
+        return tuple([ALL_NATIONS[self.your_nation]])
+    
+    @lru_cache
+    def get_set_of_enemy_nations(self):
+        return set(self.get_all_enemy_nation())
+    
+    @lru_cache
+    def get_set_of_allied_nations(self):
+        return set(self.get_all_allied_nations())
 
 #scenario
 scenerio_pattern = re.compile(r"SCENARIO:([\w_]+)\n([^#]+)END_SCENARIO")
@@ -74,8 +101,10 @@ default_captain_name_pattern = re.compile(r"DEFAULT_CAPTAIN_NAME:([a-zA-Z\-\'\ ]
 
 star_generation_pattern = re.compile(r"STAR_GENERATION:([\d\,]+)\n")
 
-your_nation_pattern = re.compile(r"YOUR_NATION:([a-zA-Z]+)\n")
-enemy_nation_pattern = re.compile(r"ENEMY_NATION:([a-zA-Z]+)\n")
+your_nation_pattern = re.compile(r"YOUR_NATION:([a-zA-Z_]+)\n")
+allied_nations_pattern = re.compile(r"ALLIED_NATIONS:([a-zA-Z_,]+)\n")
+enemy_nation_pattern = re.compile(r"MAIN_ENEMY_NATION:([a-zA-Z_]+)\n")
+other_enemy_nations_pattern = re.compile(r"OTHER_ENEMY_NATIONS:([a-zA-Z_,]+)\n")
 
 your_commanding_officer_pattern = re.compile(r"YOUR_COMMANDING_OFFICER:([a-zA-Z\ \'\.\-]+)\n")
 
@@ -241,7 +270,13 @@ def create_sceneraio():
         
         your_nation = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
         
+        allied_nations = get_first_group_in_pattern(scenario_txt, allied_nations_pattern, return_aux_if_no_match=True)
+        
         enemy_nation = get_first_group_in_pattern(scenario_txt, enemy_nation_pattern)
+        
+        other_enemy_nations = get_first_group_in_pattern(
+            scenario_txt, other_enemy_nations_pattern, return_aux_if_no_match=True
+        )
         
         your_commanding_officer = get_first_group_in_pattern(scenario_txt, your_commanding_officer_pattern)
         
@@ -310,7 +345,7 @@ def create_sceneraio():
             name=name,
             your_ship=your_ship,
             your_nation=your_nation,
-            enemy_nation=enemy_nation,
+            main_enemy_nation=enemy_nation,
             star_generation=star_generation,
             description=description,
             percent_of_friendly_planets=friendly_planets,

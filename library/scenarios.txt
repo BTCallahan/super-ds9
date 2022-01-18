@@ -4,12 +4,12 @@
 # DESCRIPTION: - A text description of the scenario that tells the player what to expect
 # END_DESCRIPTION
 # YOUR_NATION: - The 'nation' code that the player will represent. This will determin what Nation codes can be found in the file library/nations.txt
-# ENEMY_NATION: - The nation code for the nation oposing the player.
+# MAIN_ENEMY_NATION: - The nation code for the nation oposing the player.
 # YOUR_SHIP: - The code for the ship class that the player will be using. Codes can be found in the file library/ships.txt
-# ENCOUNTERS: - Tells the regex to begin searching for hostile encounter. An encounter is a collection of enemy ships. A new line should follow the colon.
+# ENEMY_ENCOUNTERS: - Tells the regex to begin searching for hostile encounter. An encounter is a collection of enemy ships. A new line should follow the colon.
 # ENEMY_SHIPS: - Gives the interpriter information about the encounters. The colon is followed by a pair of intigers seperated by a comma, a new line, and one or more text blocks. The intigers indicate the minmum and maximum number of this encounter, while the text blocks contain information about the ships in the encounter. Each test block consists of a codes for a ship class followed by a colon, and then two comma seperated numbers that states the minmum and maximum number of ships to spawn for that class.
 # END_ENEMY_SHIPS
-# END_ENCOUNTERS
+# END_ENEMY_ENCOUNTERS
 # DEFAULT_SHIP_NAME: - The default name of the ship that the player will be flying.
 # DEFAULT_CAPTAIN_NAME: - The default name of the player. 
 # YOUR_COMMANDING_OFFICER: - The name of the player's commanding officer.
@@ -26,12 +26,12 @@ SCENARIO_TYPE:DESTROY
 DESCRIPTION:Debugging
 END_DESCRIPTION
 YOUR_SHIP:DEFIANT
-ENCOUNTERS:
+ENEMY_ENCOUNTERS:
     ENEMY_SHIPS:1,2
         DRONE:1,2
         DEFENCE_STATION:1,1
     END_ENEMY_SHIPS
-END_ENCOUNTERS
+END_ENEMY_ENCOUNTERS
 DEFAULT_SHIP_NAME:Defiant
 DEFAULT_CAPTAIN_NAME:Sisko
 YOUR_COMMANDING_OFFICER:Ross
@@ -39,7 +39,7 @@ FRIENDLY_PLANET_PERCENT:0.28
 ENEMY_GIVE_UP_THRESHOLD:0.0
 VICTORY_PERCENT:0.8
 YOUR_NATION:FEDERATION
-ENEMY_NATION:DOMINION
+MAIN_ENEMY_NATION:DOMINION
 DESTRUCT_CODE:A12A2B
 START_DATE_TIME:2374.5.12.20.3.15
 END_DATE_TIME:2374.5.12.23.3.15
@@ -51,7 +51,7 @@ SCENARIO_TYPE:DESTROY
 DESCRIPTION:Debugging the cloaking device
 END_DESCRIPTION
 YOUR_SHIP:DEFIANT
-ENCOUNTERS:
+ENEMY_ENCOUNTERS:
     ENEMY_SHIPS:1,2
         DRONE:1,1
     END_ENEMY_SHIPS
@@ -60,7 +60,7 @@ ENCOUNTERS:
         DRONE:1,1
         CLOAK_DRONE:3,4
     END_ENEMY_SHIPS
-END_ENCOUNTERS
+END_ENEMY_ENCOUNTERS
 DEFAULT_SHIP_NAME:Defiant
 DEFAULT_CAPTAIN_NAME:Sisko
 YOUR_COMMANDING_OFFICER:Ross
@@ -68,7 +68,7 @@ FRIENDLY_PLANET_PERCENT:0.28
 ENEMY_GIVE_UP_THRESHOLD:0.0
 VICTORY_PERCENT:0.8
 YOUR_NATION:FEDERATION
-ENEMY_NATION:DOMINION
+MAIN_ENEMY_NATION:DOMINION
 DESTRUCT_CODE:A12A2B
 START_DATE_TIME:2374.5.12.20.3.15
 END_DATE_TIME:2374.5.12.23.3.15
@@ -80,7 +80,7 @@ SCENARIO_TYPE:DESTROY
 DESCRIPTION:A Dominion task force has entered the Alpha Quadrent and has begun threating planets friendly to the Federation into submission. Currently, only the U.S.S. Defiant is close enought to intervine. As these planets play a crucial role in resupplying our ships, you are to destroy as much of the task force as possible.
 END_DESCRIPTION
 YOUR_SHIP:DEFIANT
-ENCOUNTERS:
+ENEMY_ENCOUNTERS:
     ENEMY_SHIPS:6,9
         JEM_HADAR_FIGHTER:2,4
     END_ENEMY_SHIPS
@@ -94,7 +94,7 @@ ENCOUNTERS:
         JEM_HADAR_CRUISER:1,1
         ADVANCED_JEM_HADAR_FIGHTER:3,5
     END_ENEMY_SHIPS
-END_ENCOUNTERS
+END_ENEMY_ENCOUNTERS
 DEFAULT_SHIP_NAME:Defiant
 DEFAULT_CAPTAIN_NAME:Sisko
 YOUR_COMMANDING_OFFICER:Ross
@@ -102,7 +102,7 @@ FRIENDLY_PLANET_PERCENT:0.28
 ENEMY_GIVE_UP_THRESHOLD:0.0
 VICTORY_PERCENT:0.667
 YOUR_NATION:FEDERATION
-ENEMY_NATION:DOMINION
+MAIN_ENEMY_NATION:DOMINION
 DESTRUCT_CODE:A12A2B
 START_DATE_TIME:2374.5.12.20.3.15
 END_DATE_TIME:2374.5.12.23.3.15

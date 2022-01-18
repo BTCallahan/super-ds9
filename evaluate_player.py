@@ -41,7 +41,7 @@ class DestroyEvaluation(ScenerioEvaluation):
         ending_text = []
         #total_ships = len(gameDataGlobal.total_starships) - 1
         
-        all_enemy_ships = [ship for ship in game_data.all_enemy_ships if ship.ship_class.nation_code == game_data.scenerio.enemy_nation]
+        all_enemy_ships = [ship for ship in game_data.all_enemy_ships if ship.ship_class.nation_code == game_data.scenerio.main_enemy_nation]
         
         number_of_total_ships = len(
             all_enemy_ships
@@ -121,7 +121,7 @@ class DestroyEvaluation(ScenerioEvaluation):
         comander_rank_name = player_nation.comander_rank_name
         navy_name = player_nation.navy_name
         
-        enemy_nation = ALL_NATIONS[game_data.scenerio.enemy_nation]
+        enemy_nation = ALL_NATIONS[game_data.scenerio.main_enemy_nation]
         
         enemy_nation_name_short = enemy_nation.name_short
         enemy_nation_posessive = enemy_nation.name_possesive
