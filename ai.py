@@ -1,9 +1,10 @@
 from __future__ import annotations
 from collections import Counter
 from random import choices
-from typing import TYPE_CHECKING, Dict, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
 from coords import IntOrFloat
-from data_globals import DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
+from data_globals import DAMAGE_RAMMING, DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
+from nation import ALL_NATIONS
 
 from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder, WarpTravelOrder
 
@@ -57,29 +58,44 @@ class BaseAi(Order):
                 
                 pass
     
-    def calc_beam_weapon(self):
+    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         raise NotImplementedError
 
-    def calc_cannon_waepon(self):
+    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         raise NotImplementedError
 
-    def calc_torpedos(self):
+    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         raise NotADirectoryError
     
     def calc_shields(self):
         raise NotImplementedError
     
-    def calc_ram(self):
+    def calc_ram(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         raise NotImplementedError
     
-    def calc_cloak(self):
+    def calc_cloak(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         raise NotImplementedError
     
-    def calc_auto_destruct(self, scan:Dict[str, Union[str, int]], nearbye_ships:Iterable[Starship]):
+    def calc_auto_destruct(
+        self, 
+        all_nearbye_ships:Iterable[Starship],
+        nearbye_enemy_ships:Iterable[Starship],
+        nearbye_allied_ships:Iterable[Starship]
+    ):
         raise NotImplementedError
 
     def calc_oppress(self):
         raise NotImplementedError
+    
+    def get_enemies_in_same_system(self):
+        return [ship for ship in  self.entity.game_data.grab_ships_in_same_sub_sector(
+            self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED}
+        ) if ship.nation in self.game_data.scenerio.get_set_of_enemy_nations()]
+    
+    def get_allies_in_same_system(self):
+        return [ship for ship in  self.entity.game_data.grab_ships_in_same_sub_sector(
+            self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED}
+        ) if ship.nation in self.game_data.scenerio.get_set_of_allied_nations()]
     
 def find_unopressed_planets(game_data:GameData, ship:Starship):
 
@@ -118,52 +134,71 @@ class EasyEnemy(BaseAi):
             
             self.order =  RepairOrder(self.entity, 1)
         else:
-            self.calc_beam_weapon()
+            enemy_ships = self.get_enemies_in_same_system()
+            
+            precision = self.entity.determin_precision
+            
+            enemy_scans = [
+                ship.scan_this_ship(
+                    precision=precision, scan_for_crew=False, scan_for_systems=False
+                ) for ship in enemy_ships
+            ]
+            if self.entity.ship_can_fire_beam_arrays:
+            
+                self.calc_beam_weapon(enemy_ships, enemy_scans)
+                
+            if self.entity.ship_can_fire_cannons:
+                
+                self.calc_cannon_weapon(enemy_ships, enemy_scans)
             
             if self.entity.ship_can_fire_torps:
                     
-                self.calc_torpedos()
+                self.calc_torpedos(enemy_ships, enemy_scans)
                 
         self.determin_order()
         self.order.perform()         
             
-    def calc_torpedos(self):
+    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         
-        chance_of_hit = self.entity.check_torpedo_los(self.entity.game_data.player)
-        if chance_of_hit > 0:
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
             
-            t,n = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable
+            chance_of_hit = self.entity.check_torpedo_los(ship)
+        
+            if chance_of_hit > 0:
+                
+                torpedos_to_fire = min(
+                    self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes
+                )
+
+                torpedo = TorpedoOrder.from_coords(
+                    self.entity, torpedos_to_fire, ship.local_coords.x, ship.local_coords.y
+                )
+                self.order_dict[torpedo] = 1000
+                self.order_dict_size+=1
             
-            self.entity.torpedo_launcher.torpedo_loaded = t
-            
-            torpedos_to_fire = min(
-                n, self.entity.ship_class.torp_tubes
+    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+        
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
+        
+            energy_weapon=EnergyWeaponOrder.single_target_beam(
+                entity=self.entity,
+                target=ship,
+                amount=min(self.entity.get_max_effective_beam_firepower, self.entity.energy)
             )
-            torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
-            )
-            self.order_dict[torpedo] = 1000
+            self.order_dict[energy_weapon] = 1000
             self.order_dict_size+=1
-            
-    def calc_beam_weapon(self):
-        
-        energy_weapon=EnergyWeaponOrder.single_target_beam(
-            entity=self.entity,
-            target=self.target,
-            amount=min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
-        )
-        self.order_dict[energy_weapon] = 1000
-        self.order_dict_size+=1
     
-    def calc_cannon_waepon(self):
+    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         
-        cannon_weapon = EnergyWeaponOrder.cannon(
-            entity=self.entity,
-            target=self.target,
-            amount=min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
-        )
-        self.order_dict[cannon_weapon] = 1000
-        self.order_dict_size+=1
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
+            
+            cannon_weapon = EnergyWeaponOrder.cannon(
+                entity=self.entity,
+                target=ship,
+                amount=min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
+            )
+            self.order_dict[cannon_weapon] = 1000
+            self.order_dict_size+=1
         
 class MediumEnemy(BaseAi):
     
@@ -188,21 +223,30 @@ class MediumEnemy(BaseAi):
             
             self.order =  RepairOrder(self.entity, 1)
         else:
+            enemy_ships = self.get_enemies_in_same_system()
+            
+            precision = self.entity.sensors.determin_precision
+            
+            enemy_scans = [
+                ship.scan_this_ship(
+                    precision=precision, scan_for_crew=False, scan_for_systems=False
+                ) for ship in enemy_ships
+            ]
             if self.entity.ship_can_fire_beam_arrays:
                 
-                self.calc_beam_weapon()
+                self.calc_beam_weapon(enemy_ships, enemy_scans)
             
             if self.entity.ship_can_fire_cannons:
                 
-                self.calc_cannon_waepon()
+                self.calc_cannon_weapon(enemy_ships, enemy_scans)
             
             if self.entity.ship_can_fire_torps:
                     
-                self.calc_torpedos()
+                self.calc_torpedos(enemy_ships, enemy_scans)
             
             if self.entity.ship_can_cloak:
                 
-                self.calc_cloak()
+                self.calc_cloak(enemy_ships, enemy_scans)
                 
             if self.entity.get_max_effective_shields > 0:
                 
@@ -210,7 +254,6 @@ class MediumEnemy(BaseAi):
                 
         self.determin_order()
         self.order.perform()
-    pass
 
     def calc_shields(self):
         recharge_amount = self.entity.shield_generator.get_max_effective_shields - self.entity.shield_generator.shields
@@ -221,99 +264,110 @@ class MediumEnemy(BaseAi):
         
         self.order_dict_size+=1
     
-    def calc_torpedos(self):
-        chance_of_hit = self.entity.check_torpedo_los(self.entity.game_data.player)
+    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+        
+        try:
+            c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+        except AttributeError:
+            c_value = 100
+        
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
             
-        if chance_of_hit > 0.0:
+            chance_of_hit = self.entity.check_torpedo_los(self.entity.game_data.player)
             
-            t, n = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable
-            
-            torpedos_to_fire = min(
-                n, self.entity.ship_class.torp_tubes
-            )
-            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
-                self.target, t, 5, torpedos_to_fire
-            )
-            torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
-            )
-            warning = torpedo.raise_warning()
-            
-            if warning not in {
-                OrderWarning.NO_TORPEDOS_LEFT, 
-                OrderWarning.TORPEDO_WILL_HIT_FRIENDLY_SHIP_OR_MISS,
-                OrderWarning.TORPEDO_WILL_HIT_PLANET, 
-                OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
-                OrderWarning.TORPEDO_WILL_MISS
-            }:
-                try:
-                    c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
-                except AttributeError:
-                    c_value = 100
-                    
-                self.order_dict[torpedo] = (
-                        c_value
-                    ) * (total_shield_dam + total_hull_dam + (1000 if ship_kills else 0))
+            if chance_of_hit > 0.0:
                 
-                self.order_dict_size+=1
+                averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
+                    ship, 5,
+                    target_scan=scan
+                )
+                torpedos_to_fire = min(
+                    self.entity.torpedo_launcher.get_most_powerful_torp_avaliable, self.entity.ship_class.torp_tubes
+                )
+                torpedo = TorpedoOrder.from_coords(
+                    self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
+                )
+                warning = torpedo.raise_warning()
+                
+                if warning not in {
+                    OrderWarning.NO_TORPEDOS_LEFT, 
+                    OrderWarning.TORPEDO_WILL_HIT_FRIENDLY_SHIP_OR_MISS,
+                    OrderWarning.TORPEDO_WILL_HIT_PLANET, 
+                    OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
+                    OrderWarning.TORPEDO_WILL_MISS
+                }:
+                    self.order_dict[torpedo] = (
+                            c_value
+                        ) * (total_shield_dam + total_hull_dam + (1000 if ship_kills else 0))
+                    
+                    self.order_dict_size+=1
 
-    def calc_beam_weapon(self):
+    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         
         energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
         
-        averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
-            self.target, 5, energy_to_use
-        )
-        if total_shield_dam + total_hull_dam > 0:
-            
-            energy_weapon = EnergyWeaponOrder.single_target_beam(self.entity, energy_to_use, target=self.target)
-            
-            try:
-                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
-            except AttributeError:
-                c_value = 100
-                    
-            self.order_dict[energy_weapon] = (
-                c_value
-            ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills))
-            
-            self.order_dict_size+=1
+        try:
+            c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+        except AttributeError:
+            c_value = 100
+        
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
+        
+            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
+                ship, 5, energy_to_use, target_scan=scan
+            )
+            if total_shield_dam + total_hull_dam > 0:
+                
+                energy_weapon = EnergyWeaponOrder.single_target_beam(self.entity, energy_to_use, target=self.target)
+                
+                self.order_dict[energy_weapon] = (
+                    c_value
+                ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills))
+                
+                self.order_dict_size+=1
 
-    def calc_cannon_waepon(self):
+    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+        
         energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
         
-        averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
-            self.target, 5, energy_to_use,
-            cannon=True
-        )
-        if total_shield_dam + total_hull_dam > 0:
+        try:
+            c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+        except AttributeError:
+            c_value = 100
+        
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
             
-            energy_weapon = EnergyWeaponOrder.cannon(self.entity, energy_to_use, target=self.target)
-            
-            try:
-                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
-            except AttributeError:
-                c_value = 100
-            
-            self.order_dict[energy_weapon] = (
-                c_value
-            ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills))
-            
-            self.order_dict_size+=1
+            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
+                ship, 5, energy_to_use, 
+                cannon=True, target_scan=scan
+            )
+            if total_shield_dam + total_hull_dam > 0:
+                
+                energy_weapon = EnergyWeaponOrder.cannon(self.entity, energy_to_use, target=self.target)
+                
+                self.order_dict[energy_weapon] = (
+                    c_value
+                ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills))
+                
+                self.order_dict_size+=1
 
-    def calc_cloak(self):
+    def calc_cloak(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+        
+        cloak_strs = [
+            scan["sys_cloak"] * ship.ship_class.cloak_strength for ship, scan in zip(
+                enemies_in_same_system, enemy_scans
+            )
+        ]
+        cloak_str = sum(cloak_strs) / len(cloak_strs)
         
         cloak = CloakOrder(self.entity, deloak=False)
-                    
-        cloak_str = self.entity.ship_class.cloak_strength
-        
+
         detect_str = self.target.ship_class.detection_strength
         
         self.order_dict[cloak] = (
             500 * (cloak_str - detect_str)
         )
         self.order_dict_size+=1
-
 class HardEnemy(BaseAi):
     
     def perform(self) -> None:
@@ -325,10 +379,6 @@ class HardEnemy(BaseAi):
         
         if not self.target:
             self.target = self.game_data.player
-        
-        order_dict = Counter([])
-        
-        order_dict_size = 0
         
         player_status = self.target.ship_status
         
@@ -343,34 +393,28 @@ class HardEnemy(BaseAi):
             #scan = self.target.scanThisShip(self.entity.determinPrecision)
             precision = self.entity.sensors.determin_precision
             
-            scan = self.target.scan_this_ship(precision, use_effective_values=True)
+            enemy_ships = self.get_enemies_in_same_system()
             
-            player_is_present = self.target.sector_coords == self.entity.sector_coords
+            friendly_ships = self.get_allies_in_same_system()
+            
+            enemy_is_present = bool(enemy_ships)
             
             has_energy = self.entity.power_generator.energy > 0
             
-            player_is_not_cloaked = player_status.is_visible
-            
-            if player_is_present and player_is_not_cloaked:
+            if enemy_is_present:
                 
-                #ajusted_impulse = self.target.sys_impulse.get_info(precision, True)
-                
-                nearbye_ships = [
-                    ship for ship in self.game_data.grab_ships_in_same_sub_sector(
-                        self.target, accptable_ship_statuses={
-                            STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED
-                        }
+                if self.entity.hull / self.entity.ship_class.max_hull < 0.25:
+                    
+                    self.calc_auto_destruct(
+                        all_nearbye_ships=self.game_data.grab_ships_in_same_sub_sector(
+                            self.entity,
+                            accptable_ship_statuses={
+                                STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED,STATUS_CLOAKED,STATUS_DERLICT,STATUS_HULK
+                            }
+                        ),
+                        nearbye_allied_ships=friendly_ships, 
+                        nearbye_enemy_ships=enemy_is_present,
                     )
-                ]
-                
-                nearbye_enemy_ships = [ship for ship in nearbye_ships if ship.nation != self.entity.nation]
-                
-                #nearbye_friendly_ships = [ship for ship in nearbye_ships if ship.nation != self.entity.nation]
-            
-                if len(nearbye_enemy_ships) > 0:
-                    
-                    self.calc_auto_destruct()
-                    
                 if self.entity.ship_can_fire_torps:
                     
                     self.calc_torpedos()
@@ -382,7 +426,7 @@ class HardEnemy(BaseAi):
                     
                     if self.entity.ship_can_fire_cannons:
                         
-                        self.calc_cannon_waepon()
+                        self.calc_cannon_weapon()
                         
                     if self.entity.can_move_stl and self.entity.local_coords.distance(
                         coords=self.target.local_coords
@@ -402,7 +446,6 @@ class HardEnemy(BaseAi):
                 allied_ships_in_same_system = [
                     ship for ship in ships_in_same_system if ship is not self.game_data.player
                 ]
-                
                 system = self.entity.get_sub_sector
                 
                 if allied_ships_in_same_system or system.friendly_planets == 0:
@@ -466,72 +509,135 @@ class HardEnemy(BaseAi):
             
             self.order_dict_size+=1
         
-    def calc_auto_destruct(self, scan:Dict[str, Union[str, int]], nearbye_ships:Iterable[Starship]):
-        averaged_shield, averaged_hull, averaged_shield_damage, averaged_hull_damage, kill, crew_readyness = self.entity.calc_self_destruct_damage(self.target, scan=scan)
+    def calc_auto_destruct(
+        self,
+        all_nearbye_ships:Iterable[Starship],
+        nearbye_enemy_ships:Iterable[Starship],
+        nearbye_allied_ships:Iterable[Starship]
+    ):
+        user = self.entity
+        
+        precision = user.determin_precision
+        
+        enemy_collected_values = [
+            user.calc_self_destruct_damage(
+                enemy, 
+                scan=enemy.scan_this_ship(
+                    precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
+                ),
+                number_of_simulations=3, 
+                simulate_systems=True, simulate_crew=True,
+            ) for enemy in nearbye_enemy_ships
+        ]
+        #averaged_shields = max([value[0] for value in collected_values])
+        #averaged_hull = max([value[1] for value in collected_values])
+        total_shield_dam = max([value[2] for value in enemy_collected_values])
+        total_hull_dam = max([value[3] for value in enemy_collected_values])
+        ship_kills = max([value[4] for value in enemy_collected_values])
+        crew_kills = max([value[5] for value in enemy_collected_values])
+        #averaged_crew_readyness = max([value[6] for value in collected_values])
+        
+        enemy_power = (total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)) * 100
+        friendly_power = 0
+        
+        if total_hull_dam + total_shield_dam > 0:
+            
+            power = (
+                total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+            )
+            allied_collected_values = [
                 
-        self_destruct_damage = (averaged_hull_damage + (1000 if kill else 0)) * (1 - self.entity.hull_percentage)
-    
-        self_destruct = SelfDestructOrder(self.entity, tuple(nearbye_ships))
+                user.calc_self_destruct_damage(
+                    enemy, 
+                    scan=enemy.scan_this_ship(
+                        precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
+                    ),
+                    number_of_simulations=3, 
+                    simulate_systems=True, simulate_crew=True,
+                ) for enemy in nearbye_allied_ships
+            ]
+            ff_total_shield_dam = max([value[2] for value in allied_collected_values])
+            ff_total_hull_dam = max([value[3] for value in allied_collected_values])
+            ff_ship_kills = max([value[4] for value in allied_collected_values])
+            ff_crew_kills = max([value[5] for value in allied_collected_values])
+            
+            friendly_power = (
+                ff_total_shield_dam + ff_total_hull_dam + (1000 * ff_ship_kills) + (1000 * ff_crew_kills)
+            ) * 1000
+            
+        if enemy_power > friendly_power:
+            
+            self_destruct = SelfDestructOrder(self.entity, tuple(all_nearbye_ships))
+            
+            self.order_dict[self_destruct] = enemy_power - friendly_power
+            
+            self.order_dict_size+=1
         
-        self.order_dict[self_destruct] = self_destruct_damage
-        
-        self.order_dict_size+=1
-        
-    def calc_ram(self, scan:Dict[str, Union[str, int]]):
-        hull_percentage = scan["hull"] / self.target.ship_class.max_hull
-        shields_percentage = scan["shields"] / self.target.hull_percentage
-        
-        ram_damage = round(
-            self.entity.impulse_engine.get_effective_value / (
-                self.entity.hull_percentage + self.entity.shield_generator.shields_percentage
-            ) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
-        
-        if ram_damage > 0:
+    def calc_ram(
+        self, enemy_ships:Iterable[Starship], 
+        enemy_ship_scans:Iterable[Dict[str,Union[int,Tuple,ShipStatus]]]
+    ):
+        for ship, scan in zip(enemy_ships, enemy_ship_scans):
             
             energy_cost = round(
                 self.entity.local_coords.distance(
-                    x=self.target.local_coords.x, y=self.target.local_coords.y
+                    x=ship.local_coords.x, y=ship.local_coords.y
                 ) * LOCAL_ENERGY_COST * 
                 self.entity.impulse_engine.affect_cost_multiplier
             )
+            
+            if energy_cost > self.entity.power_generator.energy:
+                
+                continue
+            
             ram = MoveOrder.from_coords(
                 self.entity, self.target.local_coords.x, self.target.local_coords.y, energy_cost
             )
+            
+            ram_damage = self.entity.simulate_ram_attack(
+                ship, 5, simulate_crew=True, simulate_systems=True, use_effective_values=True, target_scan=scan
+            )
+            
             self.order_dict[ram] = ram_damage
             
             self.order_dict_size+=1
         
-    def calc_torpedos(self):
-        chance_of_hit = self.entity.check_torpedo_los(self.entity.game_data.player)
-            
-        if chance_of_hit > 0.0:
-            
-            t, n = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable
-            
-            torpedos_to_fire = min(
-                n, self.entity.ship_class.torp_tubes
-            )
-            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
-                self.target, t, 10, torpedos_to_fire
-            )
-            torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
-            )
-            warning = torpedo.raise_warning()
-            
-            if warning not in {
-                OrderWarning.NO_TORPEDOS_LEFT, 
-                OrderWarning.TORPEDO_WILL_HIT_FRIENDLY_SHIP_OR_MISS,
-                OrderWarning.TORPEDO_WILL_HIT_PLANET, 
-                OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
-                OrderWarning.TORPEDO_WILL_MISS
-                }:
-            
-                self.order_dict[torpedo] = (
-                        300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
-                    ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills))
+    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+        
+        torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes)
+        
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
+        
+            chance_of_hit = self.entity.check_torpedo_los(ship)
                 
-                self.order_dict_size+=1
+            if chance_of_hit > 0.0:
+                
+                averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
+                    ship, 10,
+                    simulate_systems=True, simulate_crew=True, target_scan=scan
+                )
+                torpedo = TorpedoOrder.from_coords(
+                    self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
+                )
+                warning = torpedo.raise_warning()
+                
+                if warning not in {
+                    OrderWarning.NO_TORPEDOS_LEFT, 
+                    OrderWarning.TORPEDO_WILL_HIT_FRIENDLY_SHIP_OR_MISS,
+                    OrderWarning.TORPEDO_WILL_HIT_PLANET, 
+                    OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
+                    OrderWarning.TORPEDO_WILL_MISS
+                }:
+                    try:
+                        c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+                    except AttributeError:
+                        c_value = 100
+                    
+                    self.order_dict[torpedo] = (
+                        c_value
+                    ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills))
+                    
+                    self.order_dict_size+=1
 
     def calc_shields(self):
         recharge_amount = self.entity.shield_generator.get_max_effective_shields - self.entity.shield_generator.shields
@@ -542,65 +648,119 @@ class HardEnemy(BaseAi):
         
         self.order_dict_size+=1
     
-    def calc_beam_weapon(self):
+    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         
-        energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
-        
-        averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
-            self.target, 10, energy_to_use, simulate_systems=True
-        )
-        if total_shield_dam + total_hull_dam > 0:
-            
-            energy_weapon = EnergyWeaponOrder.single_target_beam(self.entity, energy_to_use, target=self.target)
-            
-            try:
-                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
-            except AttributeError:
-                c_value = 100
+        user = self.entity
                 
-            self.order_dict[energy_weapon] = (
-                c_value
-            ) * (
-                total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
-            )
-            self.order_dict_size+=1
-    
-    def calc_cannon_waepon(self):
+        max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
         
-        energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
+        try:
+            c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+        except AttributeError:
+            c_value = 100
         
-        averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
-            self.target, 10, energy_to_use, simulate_systems=True, cannon=True
-        )
-        if total_shield_dam + total_hull_dam > 0:
+        if enemies_in_same_system:
             
-            energy_weapon = EnergyWeaponOrder.cannon(self.entity, energy_to_use, target=self.target)
+            number_of_enemies = len(enemies_in_same_system)
             
-            try:
-                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
-            except AttributeError:
-                c_value = 100
+            if number_of_enemies > 1:
                 
-            self.order_dict[energy_weapon] = (
-                c_value
-            ) * (
-                total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
-            )
-            self.order_dict_size+=1
-    
-    def calc_cloak(self):
-        cloak = CloakOrder(self.entity, deloak=False)
+                per_enemy_energy = max_energy / number_of_enemies
+
+                collected_values = [
+                    user.simulate_energy_hit(
+                        enemy, 5, per_enemy_energy, 
+                        simulate_systems=True, simulate_crew=True,
+                    ) for enemy in enemies_in_same_system
+                ]
+                #averaged_shields = max([value[0] for value in collected_values])
+                #averaged_hull = max([value[1] for value in collected_values])
+                total_shield_dam = max([value[2] for value in collected_values])
+                total_hull_dam = max([value[3] for value in collected_values])
+                ship_kills = max([value[4] for value in collected_values])
+                crew_kills = max([value[5] for value in collected_values])
+                #averaged_crew_readyness = max([value[6] for value in collected_values])
+                
+                if total_shield_dam + total_hull_dam > 0:
                     
-        cloak_str = self.entity.cloak.get_effective_value * self.entity.ship_class.cloak_strength
+                    multi_order = EnergyWeaponOrder.multiple_targets(
+                        entity=user, amount=max_energy, targets=enemies_in_same_system
+                    )
+                    self.order_dict[multi_order] = (
+                        c_value
+                    ) * (
+                        total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+                    )
+                    self.order_dict_size+=1
+            
+            for enemy in enemies_in_same_system:
+                
+                averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, averaged_number_of_ship_kills, averaged_number_of_crew_kills, averaged_crew_readyness = user.simulate_energy_hit(
+                    enemy, 5, max_energy, 
+                    simulate_systems=True, simulate_crew=True,
+                )
+                if total_shield_dam + total_hull_dam > 0:
+                
+                    simgle_order = EnergyWeaponOrder.single_target_beam(
+                        entity=user, amount=max_energy, target=enemy
+                    )
+                    self.order_dict[simgle_order] = (
+                        c_value
+                    ) * (
+                        total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+                    )
+                    self.order_dict_size+=1
+    
+    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         
-        detect_str = self.target.cloak.get_info(
-            precision=self.precision, effective_value=True
-        ) * self.target.ship_class.detection_strength
+        user = self.entity
         
-        self.order_dict[cloak] = (
-            500 * (cloak_str - detect_str)
-        )
-        self.order_dict_size+=1
+        max_energy = min(user.power_generator.energy, user.get_max_effective_cannon_firepower)
+        
+        try:
+            c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+        except AttributeError:
+            c_value = 100
+        
+        if enemies_in_same_system:
+            
+            for enemy in enemies_in_same_system:
+                
+                averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = user.simulate_energy_hit(
+                    enemy, 5, max_energy, True,
+                    simulate_systems=True, simulate_crew=True,
+                )
+                if total_shield_dam + total_hull_dam > 0:
+                
+                    simgle_order = EnergyWeaponOrder.cannon(
+                        entity=user, amount=max_energy, target=enemy
+                    )
+                    self.order_dict[simgle_order] = (
+                        c_value
+                    ) * (
+                        total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+                    )
+                    self.order_dict_size+=1
+    
+    def calc_cloak(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+                
+        cloaking_ability = self.entity.get_cloak_power
+        
+        cloak_strengths = [
+            cloaking_ability - scan["sys_sensors"] * ship.ship_class.detection_strength for ship, scan in zip(
+                enemies_in_same_system, enemy_scans
+            )
+        ]
+        lowest_cloak_strength = min(cloak_strengths)
+        
+        if lowest_cloak_strength > 0:
+            
+            cloak = CloakOrder(self.entity, deloak=False)
+        
+            self.order_dict[cloak] = (
+                500 * lowest_cloak_strength
+            )
+            self.order_dict_size+=1
 
     def reactivate_derelict(self):
         player_present = self.game_data.player.sector_coords == self.entity.sector_coords
@@ -632,9 +792,289 @@ class HardEnemy(BaseAi):
                     else:
                         weight -= self.entity.local_coords.distance(derelicts[0].local_coords)
                 else:
-                    all_derelicts.sort(key=lambda ship: ship.sector_coords.distance(self.entity.sector_coords), reverse=True)
-                    
+                    all_derelicts.sort(
+                        key=lambda ship: ship.sector_coords.distance(self.entity.sector_coords), reverse=True
+                    )
                     weight -= self.entity.sector_coords.distance(derelicts[0].sector_coords) * 10
+
+class AllyAI(BaseAi):
+    
+    def perform(self) -> None:
+        
+        return super().perform()
+
+    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+        
+        user = self.entity
+                
+        max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
+        
+        try:
+            c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+        except AttributeError:
+            c_value = 100
+        
+        if enemies_in_same_system:
+            
+            number_of_enemies = len(enemies_in_same_system)
+            
+            if number_of_enemies > 1:
+                
+                per_enemy_energy = max_energy / number_of_enemies
+
+                collected_values = [
+                    user.simulate_energy_hit(
+                        enemy, 5, per_enemy_energy, 
+                        simulate_systems=True, simulate_crew=True,
+                    ) for enemy in enemies_in_same_system
+                ]
+                
+                #averaged_shields = max([value[0] for value in collected_values])
+                #averaged_hull = max([value[1] for value in collected_values])
+                total_shield_dam = max([value[2] for value in collected_values])
+                total_hull_dam = max([value[3] for value in collected_values])
+                ship_kills = max([value[4] for value in collected_values])
+                crew_kills = max([value[5] for value in collected_values])
+                #averaged_crew_readyness = max([value[6] for value in collected_values])
+                
+                if total_shield_dam + total_hull_dam > 0:
+                    
+                    multi_order = EnergyWeaponOrder.multiple_targets(
+                        entity=user, amount=max_energy, targets=enemies_in_same_system
+                    )
+                    
+                    self.order_dict[multi_order] = (
+                        c_value
+                    ) * (
+                        total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+                    )
+                    self.order_dict_size+=1
+            
+            for enemy in enemies_in_same_system:
+                
+                averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, averaged_number_of_ship_kills, averaged_number_of_crew_kills, averaged_crew_readyness = user.simulate_energy_hit(
+                    enemy, 5, max_energy, 
+                    simulate_systems=True, simulate_crew=True,
+                )
+                
+                if total_shield_dam + total_hull_dam > 0:
+                
+                    simgle_order = EnergyWeaponOrder.single_target_beam(
+                        entity=user, amount=max_energy, target=enemy
+                    )
+                    
+                    self.order_dict[simgle_order] = (
+                        c_value
+                    ) * (
+                        total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+                    )
+                
+                    self.order_dict_size+=1
+            
+    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship]):
+        
+        user = self.entity
+        
+        max_energy = min(user.energy, user.get_max_effective_beam_firepower)
+        
+        if enemies_in_same_system:
+            
+            for enemy in enemies_in_same_system:
+                
+                averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = user.simulate_energy_hit(
+                    enemy, 5, max_energy, True,
+                    simulate_systems=True, simulate_crew=True,
+                )
+                
+                if total_shield_dam + total_hull_dam > 0:
+                
+                    simgle_order = EnergyWeaponOrder.cannon(
+                        entity=user, amount=max_energy, target=enemy
+                    )
+                    
+                    self.order_dict[simgle_order] = (
+                        300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                    ) * (
+                        total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+                    )
+                
+                    self.order_dict_size+=1
+                
+    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+        
+        torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes)
+        
+        try:
+            c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+        except AttributeError:
+            c_value = 100
+        
+        for ship, scan in zip(enemies_in_same_system, enemy_scans):
+        
+            chance_of_hit = self.entity.check_torpedo_los(ship)
+                
+            if chance_of_hit > 0.0:
+                
+                averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
+                    ship, 10,
+                    simulate_systems=True, simulate_crew=True, target_scan=scan
+                )
+                
+                torpedo = TorpedoOrder.from_coords(
+                    self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
+                )
+                
+                warning = torpedo.raise_warning()
+                
+                if warning not in {
+                    OrderWarning.NO_TORPEDOS_LEFT, 
+                    OrderWarning.TORPEDO_WILL_HIT_FRIENDLY_SHIP_OR_MISS,
+                    OrderWarning.TORPEDO_WILL_HIT_PLANET, 
+                    OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
+                    OrderWarning.TORPEDO_WILL_MISS
+                }:
+                
+                    self.order_dict[torpedo] = (
+                        c_value
+                    ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills))
+                    
+                    self.order_dict_size+=1
+                    
+    def calc_auto_destruct(
+        self, 
+        all_nearbye_ships:Iterable[Starship],
+        nearbye_enemy_ships:Iterable[Starship],
+        nearbye_allied_ships:Iterable[Starship]
+    ):
+        user = self.entity
+        
+        precision = user.sensors.determin_precision
+        
+        enemy_collected_values = [
+            user.calc_self_destruct_damage(
+                enemy, 
+                scan=enemy.scan_this_ship(
+                    precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
+                ),
+                number_of_simulations=3, 
+                simulate_systems=True, simulate_crew=True,
+            ) for enemy in nearbye_enemy_ships
+        ]
+        
+        #averaged_shields = max([value[0] for value in collected_values])
+        #averaged_hull = max([value[1] for value in collected_values])
+        total_shield_dam = max([value[2] for value in enemy_collected_values])
+        total_hull_dam = max([value[3] for value in enemy_collected_values])
+        ship_kills = max([value[4] for value in enemy_collected_values])
+        crew_kills = max([value[5] for value in enemy_collected_values])
+        #averaged_crew_readyness = max([value[6] for value in collected_values])
+        
+        enemy_power = (total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)) * 100
+        friendly_power = 0
+        
+        if total_hull_dam + total_shield_dam > 0:
+            
+            power = (
+                total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
+            )
+            
+            allied_collected_values = [
+                
+                user.calc_self_destruct_damage(
+                    enemy, 
+                    scan=enemy.scan_this_ship(
+                        precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
+                    ),
+                    number_of_simulations=3, 
+                    simulate_systems=True, simulate_crew=True,
+                ) for enemy in nearbye_allied_ships
+            ]
+            
+            ff_total_shield_dam = max([value[2] for value in allied_collected_values])
+            ff_total_hull_dam = max([value[3] for value in allied_collected_values])
+            ff_ship_kills = max([value[4] for value in allied_collected_values])
+            ff_crew_kills = max([value[5] for value in allied_collected_values])
+            
+            friendly_power = (
+                ff_total_shield_dam + ff_total_hull_dam + (1000 * ff_ship_kills) + (1000 * ff_crew_kills)
+            ) * 1000
+            
+        if enemy_power > friendly_power:
+            
+            self_destruct = SelfDestructOrder(self.entity, tuple(all_nearbye_ships))
+            
+            self.order_dict[self_destruct] = enemy_power - friendly_power
+            
+            self.order_dict_size+=1
+    
+    def calc_ram(
+        self, enemy_ships:Iterable[Starship], 
+        enemy_ship_scans:Iterable[Dict[str,Union[int,Tuple,ShipStatus]]]
+    ):
+        #self_status = self.entity.ship_status
+        
+        #precision = self.entity.determin_precision
+        
+        #crew_readyness = self.entity.crew_readyness
+        
+        #self_hp = (self.entity.shields if self_status.do_shields_work else 0) + self.entity.hull
+        
+        #self_damage = self_hp + self.entity.ship_class.max_hull * 0.5
+        
+        for ship, scan in zip(enemy_ships, enemy_ship_scans):
+            
+            energy_cost = round(
+                self.entity.local_coords.distance(
+                    x=ship.local_coords.x, y=ship.local_coords.y
+                ) * LOCAL_ENERGY_COST * 
+                self.entity.impulse_engine.affect_cost_multiplier
+            )
+            
+            if energy_cost > self.entity.power_generator.energy:
+                
+                continue
+            
+            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_ram_attack(
+                ship, number_of_simulations=3, 
+                simulate_systems=True, simulate_crew=True,
+                target_scan=scan
+            )
+            
+            shields_score = min(ship.ship_class.max_shields - averaged_shields, total_shield_dam)
+            hull_score = min(ship.ship_class.max_hull - averaged_hull, total_hull_dam)
+            
+            if shields_score + hull_score > 0:
+                
+                score = (
+                    shields_score + hull_score + (1000 * ship_kills) + (1000 * crew_kills)
+                ) * 500
+                
+                ram_order = MoveOrder.from_coords(self.entity, ship.local_coords.x, ship.local_coords.y)
+            
+                self.order_dict[ram_order] = score
+                
+                self.order_dict_size+=1
+    
+    def calc_cloak(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
+                
+        cloaking_ability = self.entity.get_cloak_power
+        
+        cloak_strengths = [
+            cloaking_ability - scan["sys_sensors"] * ship.ship_class.detection_strength for ship, scan in zip(
+                enemies_in_same_system, enemy_scans
+            )
+        ]
+        
+        lowest_cloak_strength = min(cloak_strengths)
+        
+        if lowest_cloak_strength > 0:
+            
+            cloak = CloakOrder(self.entity, deloak=False)
+        
+            self.order_dict[cloak] = (
+                500 * lowest_cloak_strength
+            )
+            self.order_dict_size+=1
 
 ALL_DIFFICULTIES = {
     EasyEnemy,

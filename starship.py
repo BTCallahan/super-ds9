@@ -1530,6 +1530,7 @@ class Starship(CanDockWith):
         torpdeo:Torpedo,
         number_of_simulations:int, 
         *, 
+        times_to_fire:int,
         simulate_systems:bool=False, 
         simulate_crew:bool=False,
         use_effective_values:bool=False,
