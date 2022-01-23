@@ -1006,113 +1006,126 @@ class CommandEventHandler(MainGameEventHandler):
                 
             self.auto_destruct_button.render(console)
             
-        self.auto_destruct_button.render(console)
-        
-        if self.ship_type_can_cloak:
-            self.cloak_button.render(console)
+            if self.ship_type_can_cloak:
+                self.cloak_button.render(console)
         
 class WarpHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
         
-        self.distance = NumberHandeler(
-            limit=3, 
-            max_value=CONFIG_OBJECT.max_warp_distance, 
-            min_value=1,
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=7+CONFIG_OBJECT.command_display_y,
-            width=12,
-            height=3,
-            title="Distance:",
-            active_fg=colors.white,
-            inactive_fg=colors.grey,
-            bg=colors.black,
-            alignment=tcod.constants.RIGHT,
-            initally_active=False
+        self.distance = distance_button(
+            limit=3,
+            max_value=CONFIG_OBJECT.max_warp_distance,
+            min_value=1
         )
-        
         self.energy_cost = round(
-            self.distance.add_up() * 
-            self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+            self.distance.add_up() * SECTOR_ENERGY_COST * WARP_FACTOR[1][1]
         )
+        self.cost_button:SimpleElement = cost_button(cost=f"{self.energy_cost}")
         
-        self.cost_button = SimpleElement(
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=10+CONFIG_OBJECT.command_display_y,
-            width=10,
-            height=3,
-            title="Energy Cost:",
-            text=f"{self.energy_cost}",
-            active_fg=colors.white,
-            bg=colors.black,
-            alignment=tcod.constants.RIGHT
-        )
+        self.warp_speed = speed_button(round(9 * self.engine.player.sys_warp_drive.get_effective_value))
+        
+        self.is_at_warp = self.engine.player.is_at_warp
 
     def on_render(self, console: tcod.Console) -> None:
-        
+                
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
             title="Input warp heading and distance"
-            )
-        super().on_render(console)
-        
-        self.distance.render(console)
-        
-        self.cost_button.render(console)
+        )
+        if self.is_at_warp:
+            print_system(console, self.engine.game_data)
+            print_mega_sector(console, self.engine.game_data)
+            render_own_ship_info(console, self.engine.game_data)
+
+            render_other_ship_info(console, self.engine.game_data, self.engine.game_data.selected_ship_planet_or_star)
+
+            print_message_log(console, self.engine.game_data)
+            render_position(console, self.engine.game_data)
+            self.cancel_button.render(console)
+        else:
+            super().on_render(console)
+            
+            self.distance.render(console)
+            
+            self.cost_button.render(console)
+            
+            self.warp_speed.render(console)
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
         if self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
-        
-        elif self.confirm_button.cursor_overlap(event):
-            warp_order = WarpOrder.from_heading(
-                self.engine.player, self.heading_button.add_up(), self.distance.add_up()
-            )
-            warning = warp_order.raise_warning()
+        if not self.is_at_warp:
+            if self.confirm_button.cursor_overlap(event):
+                if self.engine.player.is_at_warp:
+                    return CommandEventHandler(self.engine)
+                
+                warp_order = WarpOrder.from_heading(
+                    self.engine.player, heading=self.heading_button.add_up(), distance=self.distance.add_up(),
+                    speed=self.warp_speed.add_up(), 
+                    start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
+                )
+                warning = warp_order.raise_warning()
 
-            if warning == OrderWarning.SAFE:
-                return warp_order
-            
-            self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                if warning == OrderWarning.SAFE:
+                    return warp_order
+                
+                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
 
-        elif self.heading_button.cursor_overlap(event):
-            self.selected_handeler = self.heading_button
-            self.heading_button.is_active = True
-            self.distance.is_active = False
-        elif self.distance.cursor_overlap(event):
-            self.selected_handeler = self.distance
-            self.heading_button.is_active = False
-            self.distance.is_active = True
-        else:
-            super().ev_mousebuttondown(event)
+            elif self.heading_button.cursor_overlap(event):
+                self.selected_handeler = self.heading_button
+                self.heading_button.is_active = True
+                self.distance.is_active = False
+                self.warp_speed.is_active = False
+            elif self.distance.cursor_overlap(event):
+                self.selected_handeler = self.distance
+                self.heading_button.is_active = False
+                self.distance.is_active = True
+                self.warp_speed.is_active = False
+            elif self.warp_speed.cursor_overlap(event):
+                self.selected_handeler = self.warp_speed
+                self.heading_button.is_active = False
+                self.distance.is_active = False
+                self.warp_speed.is_active = True
+            else:
+                super().ev_mousebuttondown(event)
             
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
-        if event.sym in confirm:
-            warp_order = WarpOrder.from_heading(
-                self.engine.player, self.heading_button.add_up(), self.distance.add_up()
-            )
-            warning = warp_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                return warp_order
-            
-            self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-
-        else:
-            self.selected_handeler.handle_key(event)
-            
-            if self.selected_handeler is self.distance:
+        if not self.is_at_warp:
+            if event.sym in confirm:
+                if self.engine.player.is_at_warp:
+                    
+                    return CommandEventHandler(self.engine)
                 
-                self.energy_cost = round(
-                    self.distance.add_up() * 
-                    self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+                warp_order = WarpOrder.from_heading(
+                    self.engine.player, self.heading_button.add_up(), self.distance.add_up(),
+                    speed=self.warp_speed.add_up(), 
+                    start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
+                warning = warp_order.raise_warning()
+
+                if warning == OrderWarning.SAFE:
+                    self.is_at_warp = True
+                    return warp_order
+                
+                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+            else:
+                self.selected_handeler.handle_key(event)
+                
+                if self.selected_handeler in {self.distance, self.warp_speed}:
+                    
+                    warp_speed, cost =  WARP_FACTOR[self.warp_speed.add_up()]
+                    
+                    self.energy_cost = round(
+                        self.distance.add_up() * cost * SECTOR_ENERGY_COST
+                    )
+                    self.cost_button.text = f"{self.energy_cost}"
                 
 class WarpHandlerEasy(CoordBasedHandler):
 
@@ -1125,23 +1138,16 @@ class WarpHandlerEasy(CoordBasedHandler):
             starting_x=sector_coords.x,
             starting_y=sector_coords.y
         )
-        
         self.energy_cost = round(
             self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
             self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
         )
+        self.cost_button:SimpleElement = cost_button(f"{self.energy_cost}")
         
-        self.cost_button = SimpleElement(
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=10+CONFIG_OBJECT.command_display_y,
-            width=10,
-            height=3,
-            title="Energy Cost:",
-            text=f"{self.energy_cost}",
-            active_fg=colors.white,
-            bg=colors.black,
-            alignment=tcod.constants.RIGHT
+        self.warp_speed = speed_button(
+            round(9 * self.engine.player.sys_warp_drive.get_effective_value)
         )
+        self.is_at_warp = self.engine.player.is_at_warp
         
     def on_render(self, console: tcod.Console) -> None:
         
@@ -1149,54 +1155,75 @@ class WarpHandlerEasy(CoordBasedHandler):
             console=console,
             gameData=self.engine.game_data,
             title="Input warp coordants"
-            )
-        
-        super().on_render(console)
-        
-        self.cost_button.render(console)
+        )
+        if self.is_at_warp:
+            print_system(console, self.engine.game_data)
+            print_mega_sector(console, self.engine.game_data)
+            render_own_ship_info(console, self.engine.game_data)
+
+            render_other_ship_info(console, self.engine.game_data, self.engine.game_data.selected_ship_planet_or_star)
+
+            print_message_log(console, self.engine.game_data)
+            render_position(console, self.engine.game_data)
+            self.cancel_button.render(console)
+        else:
+            super().on_render(console)
+            
+            self.cost_button.render(console)
+            
+            self.warp_speed.render(console)
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
         if self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
-
-        if self.x_button.cursor_overlap(event):
-            self.selected_handeler = self.x_button
-            self.x_button.is_active = True
-            self.y_button.is_active = False
-        elif self.y_button.cursor_overlap(event):
-            self.selected_handeler = self.y_button
-            self.x_button.is_active = False
-            self.y_button.is_active = True
-        elif self.confirm_button.cursor_overlap(event):
-            
-            warp_order = WarpOrder.from_coords(self.engine.player, self.x_button.add_up(), self.y_button.add_up())
-            
-            warning = warp_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                return warp_order
-            
-            self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-        
-        else:
-            
-            x, y = select_sector_space(event)
-
-            if x is not False and y is not False:
+        if not self.is_at_warp:
+            if self.x_button.cursor_overlap(event):
+                self.selected_handeler = self.x_button
+                self.x_button.is_active = True
+                self.y_button.is_active = False
+                self.warp_speed.is_active = False
+            elif self.y_button.cursor_overlap(event):
+                self.selected_handeler = self.y_button
+                self.x_button.is_active = False
+                self.y_button.is_active = True
+                self.warp_speed.is_active = False
+            elif self.warp_speed.cursor_overlap(event):
+                self.selected_handeler = self.warp_speed
+                self.x_button.is_active = False
+                self.y_button.is_active = False
+                self.warp_speed.is_active = True
+            elif self.confirm_button.cursor_overlap(event):
+                if self.is_at_warp:
+                    return CommandEventHandler(self.engine)
                 
-                #print(f"{x} {y}")
-                
-                self.x_button.set_text(x)
-                self.y_button.set_text(y)
-                
-                self.energy_cost = round(
-                    self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-                    self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+                warp_order = WarpOrder.from_coords(
+                    self.engine.player, x=self.x_button.add_up(), y=self.y_button.add_up(), 
+                    speed=self.warp_speed.add_up(), 
+                    start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
-                self.cost_button.text = f"{self.energy_cost}"
+                warning = warp_order.raise_warning()
+
+                if warning == OrderWarning.SAFE:
+                    self.is_at_warp = True
+                    return warp_order
+                
+                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             else:
-                super().ev_mousebuttondown(event)
+                x, y = select_sector_space(event)
+
+                if x is not False and y is not False:
+                    
+                    self.x_button.set_text(x)
+                    self.y_button.set_text(y)
+                    
+                    self.energy_cost = round(
+                        self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
+                        self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+                    )
+                    self.cost_button.text = f"{self.energy_cost}"
+                else:
+                    super().ev_mousebuttondown(event)
                 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
