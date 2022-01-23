@@ -1263,35 +1263,14 @@ class MoveHandler(HeadingBasedHandler):
         
         super().__init__(engine)
         
-        self.distance_button = NumberHandeler(
+        self.distance_button = distance_button(
             limit=3, max_value=CONFIG_OBJECT.max_move_distance, min_value=1,
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=7+CONFIG_OBJECT.command_display_y,
-            width=12,
-            height=3,
-            title="Distance:",
-            active_fg=colors.white,
-            inactive_fg=colors.grey,
-            bg=colors.black,
-            alignment=tcod.constants.RIGHT,
-            initally_active=False
-            )
-
-        self.energy_cost = round(
-            self.distance_button.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier)
-        
-        self.cost_button = SimpleElement(
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=10+CONFIG_OBJECT.command_display_y,
-            width=10,
-            height=3,
-            title="Energy Cost:",
-            text=f"{self.energy_cost}",
-            active_fg=colors.white,
-            bg=colors.black,
-            alignment=tcod.constants.RIGHT
         )
-
+        self.energy_cost = round(
+            self.distance_button.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
+        )
+        self.cost_button = cost_button(f"{self.energy_cost}")
+        
         self.selected_handeler = self.heading_button
 
     def on_render(self, console: tcod.Console) -> None:
@@ -1390,23 +1369,11 @@ class MoveHandlerEasy(CoordBasedHandler):
             max_x=CONFIG_OBJECT.sector_width,
             max_y=CONFIG_OBJECT.sector_height
         )
-        
         self.energy_cost = round(
             self.engine.player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST * 
             self.engine.player.sys_impulse.affect_cost_multiplier
         )
-        
-        self.cost_button = SimpleElement(
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=10+CONFIG_OBJECT.command_display_y,
-            width=10,
-            height=3,
-            title="Energy Cost:",
-            text=f"{self.energy_cost}",
-            active_fg=colors.white,
-            bg=colors.black,
-            alignment=tcod.constants.RIGHT
-        )
+        self.cost_button = cost_button(cost=f"{self.energy_cost}")
         
     def on_render(self, console: tcod.Console) -> None:
         
@@ -1415,12 +1382,10 @@ class MoveHandlerEasy(CoordBasedHandler):
             gameData=self.engine.game_data,
             title="Input move coordants"
         )
-        
         super().on_render(console)
         
         self.cost_button.render(
-            console,
-            text=f"{self.energy_cost}"
+            console
         )
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
@@ -1456,6 +1421,7 @@ class MoveHandlerEasy(CoordBasedHandler):
                     self.engine.player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * 
                     LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
                 )
+                self.cost_button.text = f"{self.energy_cost}"
             else:
                 super().ev_mousebuttondown(event)
 
@@ -1486,6 +1452,7 @@ class MoveHandlerEasy(CoordBasedHandler):
                 self.engine.player.local_coords.distance(
                     x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST
             )
+            self.cost_button.text = f"{self.energy_cost}"
             
             self.warned_once = False
             
@@ -1574,16 +1541,7 @@ class BeamArrayHandler(MinMaxInitator):
             max_value=player.get_max_effective_beam_firepower,
             starting_value=0
         )
-        
-        self.auto_target_button = SimpleElement(
-            x=4+12+CONFIG_OBJECT.command_display_x,
-            y=2+CONFIG_OBJECT.command_display_y,
-            width=14,
-            height=3,
-            text="Auto-Target",
-            active_fg=colors.white,
-            bg=colors.black
-        )
+        self.auto_target_button = auto_target_button()
         
         self.fire_all_button = BooleanBox(
             x=4+12+CONFIG_OBJECT.command_display_x,
@@ -1920,29 +1878,12 @@ class TorpedoHandler(HeadingBasedHandler):
         
         super().__init__(engine)
         
-        self.number_button = NumberHandeler(
-            limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1,
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=6+CONFIG_OBJECT.command_display_y,
-            width=12,
-            height=3,
-            title="Number:",
-            alignment=tcod.constants.RIGHT,
-            active_fg=colors.white,
-            inactive_fg=colors.grey,
-            bg=colors.black,
-            initally_active=False
+        self.number_button = torpedo_number_button(
+            max_value=self.engine.player.ship_class.torp_tubes
         )
         torpedos = self.engine.player.ship_class.torp_types
         
-        self.torpedo_select = Selector(
-            x=15+CONFIG_OBJECT.command_display_x,
-            y=16+CONFIG_OBJECT.command_display_y,
-            width=10,
-            height=6,
-            active_fg=colors.white,
-            inactive_fg=colors.grey,
-            bg=colors.black,
+        self.torpedo_select = torpedo_select_button(
             index_items=[
                 ALL_TORPEDO_TYPES[name].cap_name for name in torpedos
             ],
@@ -2062,28 +2003,12 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             starting_x=local_coords.x,
             starting_y=local_coords.y
         )
-        self.number_button = NumberHandeler(
-            limit=1, max_value=self.engine.player.ship_class.torp_tubes, min_value=1,
-            x=3+CONFIG_OBJECT.command_display_x,
-            y=7+CONFIG_OBJECT.command_display_y,
-            width=12,
-            height=3,
-            title="Number:",
-            alignment=tcod.constants.RIGHT,
-            active_fg=colors.white,
-            inactive_fg=colors.grey,
-            bg=colors.black
+        self.number_button = torpedo_number_button(
+            max_value=self.engine.player.ship_class.torp_tubes
         )
         torpedos = self.engine.player.ship_class.torp_types
         
-        self.torpedo_select = Selector(
-            x=15+CONFIG_OBJECT.command_display_x,
-            y=16+CONFIG_OBJECT.command_display_y,
-            width=10,
-            height=6,
-            active_fg=colors.white,
-            inactive_fg=colors.grey,
-            bg=colors.black,
+        self.torpedo_select = torpedo_select_button(
             index_items=[
                 ALL_TORPEDO_TYPES[name].cap_name for name in torpedos
             ],
