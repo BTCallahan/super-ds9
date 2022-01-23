@@ -98,12 +98,13 @@ class Engine:
         self.game_data.set_condition()
         self.game_data.update_mega_sector_display()
 
-    def get_lookup_table(self, *, direction_x:float, direction_y:float, normalise_direction:bool=True):
-
+    def get_lookup_table(
+        self, *, direction_x:float, direction_y:float, normalise_direction:bool=True, no_dups:bool=True
+    ):
         origin_tuple = Coords(direction_x, direction_y)
         
         try:
-            return self.lookup_table[(origin_tuple, normalise_direction)]
+            return self.lookup_table[(origin_tuple, normalise_direction, no_dups)]
         except KeyError:
             
             new_coords_x, new_coords_y = Coords(x=direction_x, y=direction_y).normalize() if normalise_direction else (direction_x, direction_y)
@@ -116,7 +117,7 @@ class Engine:
 
                     c:Coords = Coords(round(old_x), round(old_y))
 
-                    if not old_c or c != old_c:
+                    if not no_dups or (not old_c or c != old_c):
                         yield c
                     
                     old_c = c
@@ -125,6 +126,6 @@ class Engine:
             
             t = tuple(create_tuple())
 
-            self.lookup_table[(origin_tuple, normalise_direction)] = t
+            self.lookup_table[(origin_tuple, normalise_direction, no_dups)] = t
 
             return t
