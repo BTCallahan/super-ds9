@@ -62,7 +62,6 @@ PLANET_ANGERED:Final = PlanetHabitation(
     min_development=0.05,
     max_development=1.0
 )
-
 PLANET_TYPES:Final = (PLANET_BARREN, PLANET_HOSTILE, PLANET_FRIENDLY, PLANET_PREWARP)
 
 LOCAL_ENERGY_COST:Final = 50
@@ -215,17 +214,21 @@ STATUS_OBLITERATED:Final = ShipStatus(
     is_destroyed=True, 
     can_be_targeted=False
 )
-
 STATUS_CLOAKED:Final = ShipStatus(
     is_visible=False,
     is_active=True,
     can_be_targeted=False,
     energy_drain=True
 )
-
 STATUS_CLOAK_COMPRIMISED = ShipStatus(
     is_active=True,
     energy_drain=True
+)
+STATUS_AT_WARP = ShipStatus(
+    is_active=True,
+    is_visible=False,
+    is_collidable=False,
+    do_shields_work=True
 )
 
 class CloakStatus(Enum):
@@ -233,3 +236,15 @@ class CloakStatus(Enum):
     INACTIVE = auto()
     COMPRIMISED = auto()
 
+def create_warp_factor():
+    
+    ad = 0.125
+    
+    yield (0,0)
+    
+    for i in range(10):
+        yield i, i * (1+ad)
+        
+        ad *= 2
+
+WARP_FACTOR = tuple(create_warp_factor())
