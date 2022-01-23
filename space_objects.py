@@ -26,9 +26,10 @@ class CanDockWith:
 
 class InterstellerObject:
     
-    def __init__(self, local_coords:Coords, sector_coords:Coords) -> None:
+    def __init__(self, local_coords:Coords, sector_coords:Coords, system:SubSector) -> None:
         self.local_coords = local_coords
         self.sector_coords = sector_coords
+        self.system = system
     
     def hit_by_torpedo(self, is_player:bool, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
         raise NotImplementedError
@@ -144,8 +145,8 @@ class Star(InterstellerObject):
     orderSuffexes = ['Alpha ', 'Beta ', 'Gamma ', 'Delta ']
     planetSuffexes = ['', ' I', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII']
 
-    def __init__(self, local_coords:Coords, sector_coords:Coords):
-        super().__init__(local_coords, sector_coords)
+    def __init__(self, local_coords:Coords, sector_coords:Coords, system:SubSector):
+        super().__init__(local_coords, sector_coords, system)
         self.name = choices(
             STAR_TYPES,
             cum_weights=STAR_WEIGHTS
@@ -317,9 +318,10 @@ class SubSector:
 
 class Planet(InterstellerObject, CanDockWith):
 
-    def __init__(self, planet_habbitation:PlanetHabitation, local_coords:Coords, sector_coords:Coords):
-        
-        super().__init__(local_coords, sector_coords)
+    def __init__(
+        self, planet_habbitation:PlanetHabitation, local_coords:Coords, sector_coords:Coords, system:SubSector
+    ):    
+        super().__init__(local_coords, sector_coords, system)
         self.planet_habbitation = planet_habbitation# if random() < change_of_life_supporting_planets[self.planetType] else PlanetHabitation.PLANET_BARREN
 
         self.infastructure = self.planet_habbitation.generate_development()
