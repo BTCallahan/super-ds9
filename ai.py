@@ -585,26 +585,33 @@ class HardEnemy(BaseAi):
                 ) * LOCAL_ENERGY_COST * 
                 self.entity.impulse_engine.affect_cost_multiplier
             )
-            
             if energy_cost > self.entity.power_generator.energy:
                 
                 continue
             
-            ram = MoveOrder.from_coords(
-                self.entity, self.target.local_coords.x, self.target.local_coords.y, energy_cost
+            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_ram_attack(
+                ship, number_of_simulations=3, 
+                simulate_systems=True, simulate_crew=True,
+                target_scan=scan
             )
+            shields_score = min(ship.ship_class.max_shields - averaged_shields, total_shield_dam)
+            hull_score = min(ship.ship_class.max_hull - averaged_hull, total_hull_dam)
             
-            ram_damage = self.entity.simulate_ram_attack(
-                ship, 5, simulate_crew=True, simulate_systems=True, use_effective_values=True, target_scan=scan
-            )
+            if shields_score + hull_score > 0:
+                
+                score = (
+                    shields_score + hull_score + (1000 * ship_kills) + (1000 * crew_kills)
+                ) * 500
+                
+                ram_order = MoveOrder.from_coords(self.entity, ship.local_coords.x, ship.local_coords.y)
             
-            self.order_dict[ram] = ram_damage
-            
-            self.order_dict_size+=1
+                self.order_dict[ram_order] = score
+                
+                self.order_dict_size+=1
         
     def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Dict):
         
-        torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes)
+        torpedos_to_fire = min(self.entity.torpedo_launcher.get_most_powerful_torp_avaliable, self.entity.ship_class.torp_tubes)
         
         for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
