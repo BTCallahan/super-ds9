@@ -4,11 +4,12 @@ from decimal import Decimal
 import os
 from random import choice
 from textwrap import wrap
-from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
+from turtle import distance
+from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from engine import CONFIG_OBJECT
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
 from nation import ALL_NATIONS
-from order import CloakOrder, SelfDestructOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
+from order import CloakOrder, SelfDestructOrder, WarpTravelOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
     Order, DockOrder, OrderWarning, EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from global_functions import stardate
 from space_objects import Planet, Star
@@ -2260,8 +2261,23 @@ class SelfDestructHandler(CancelConfirmHandler):
         if event.sym in confirm:
 
             if self.code_handler.text_to_print == self.code:
+                if self.warned_once:
 
-                return SelfDestructOrder(self.engine.player)
+                    return SelfDestructOrder(self.engine.player)
+                
+                self.warned_once = True
+                if self.any_friends_nearby:
+                    self.engine.message_log.add_message(
+                        f"Warning: There are friendly ships nearbye that may be caught in the blast.", colors.orange
+                    )
+                elif not self.any_foes_nearby:
+                    self.engine.message_log.add_message(
+                        f"Warning: There are not hostile friendly ships nearbye.", colors.orange
+                    )
+                else:
+                    self.engine.message_log.add_message(
+                        f"Warning: Confirm self destruct?", colors.orange
+                    )
             else:
                 self.engine.message_log.add_message(
                     f"Error: The code for the self destruct is not correct.", colors.red
@@ -2269,6 +2285,7 @@ class SelfDestructHandler(CancelConfirmHandler):
         else:
         
             self.code_handler.handle_key(event)
+            self.warned_once = False
             #self.code_handler.text = self.code_handler.text_to_print
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
@@ -2279,7 +2296,23 @@ class SelfDestructHandler(CancelConfirmHandler):
         if self.confirm_button.cursor_overlap(event):
             if self.code_handler.text_to_print == self.code:
 
-                return SelfDestructOrder(self.engine.player)
+                if self.warned_once:
+
+                    return SelfDestructOrder(self.engine.player)
+                
+                self.warned_once = True
+                if self.any_friends_nearby:
+                    self.engine.message_log.add_message(
+                        f"Warning: There are friendly ships nearbye that may be caught in the blast.", colors.orange
+                    )
+                elif not self.any_foes_nearby:
+                    self.engine.message_log.add_message(
+                        f"Warning: There are not hostile friendly ships nearbye.", colors.orange
+                    )
+                else:
+                    self.engine.message_log.add_message(
+                        f"Warning: Confirm self destruct?", colors.orange
+                    )
             else:
                 self.engine.message_log.add_message(
                     f"Error: The code for the self destruct is not correct.", colors.red
