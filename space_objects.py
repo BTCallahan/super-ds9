@@ -431,6 +431,7 @@ class Planet(InterstellerObject, CanDockWith):
                     game_data.player_record['planets_depopulated'] += 1
                     game_data.player_record['times_hit_poipulated_planet'] += 1
                     message_log.add_message('You will definitly be charged with a war crime.', colors.red)
+                    self.system.count_planets()
                 
                 self.planet_habbitation = PLANET_BOMBED_OUT
 
@@ -446,6 +447,7 @@ class Planet(InterstellerObject, CanDockWith):
                     game_data.player_record['times_hit_poipulated_planet'] += 1
                     
                     message_log.add_message('The planet has severed relations with the Federation.')
+                    self.system.count_planets()
 
             elif self.planet_habbitation is PLANET_PREWARP:
                 if player_is_in_same_system:
@@ -457,9 +459,11 @@ class Planet(InterstellerObject, CanDockWith):
                     game_data.player_record['times_hit_poipulated_planet'] += 1
 
                     message_log.add_message('This is a grevous viloation of the prime directive!', colors.red)
+                    self.system.count_planets()
             else:
                 if player_is_in_same_system:
                     message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}.')
                 if is_player:
                     game_data.player_record['times_hit_poipulated_planet'] += 1
                     message_log.add_message('You will probably be charged with a war crime.', colors.red)
+                    self.system.count_planets()
