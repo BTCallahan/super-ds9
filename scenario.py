@@ -1,16 +1,17 @@
 from __future__ import annotations
 from collections import OrderedDict
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, cached_property
 from itertools import accumulate
 from math import floor
 import re
-from typing import Dict, Final, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, Final, FrozenSet, List, Optional, Tuple, TYPE_CHECKING
 from random import randint
 from datetime import datetime
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 from evaluate_player import SCENARIO_TYPES
 from nation import ALL_NATIONS
+from starship import ALL_SHIP_CLASSES, ShipClass
 
 if TYPE_CHECKING:
     from evaluate_player import ScenerioEvaluation
@@ -24,6 +25,7 @@ class Scenerio:
     description:str
     enemy_encounters:Tuple[Encounter]
     allied_encounters:Tuple[Encounter]
+    mission_critical_ships:FrozenSet[ShipClass]
     star_generation:Tuple[int]
     percent_of_friendly_planets:float
     default_ship_name:str
@@ -52,7 +54,7 @@ class Scenerio:
             second=self.startdate.second
         )
     
-    @lru_cache
+    @cached_property
     def get_all_enemy_nation(self):
         if self.other_enemy_nations:
             return tuple(
@@ -60,7 +62,7 @@ class Scenerio:
             )
         return tuple([ALL_NATIONS[self.main_enemy_nation]])
 
-    @lru_cache
+    @cached_property
     def get_all_allied_nations(self):
         if self.allied_nations:
             return tuple(
@@ -68,13 +70,13 @@ class Scenerio:
             )
         return tuple([ALL_NATIONS[self.your_nation]])
     
-    @lru_cache
+    @cached_property
     def get_set_of_enemy_nations(self):
-        return set(self.get_all_enemy_nation())
+        return frozenset(self.get_all_enemy_nation)
     
-    @lru_cache
+    @cached_property
     def get_set_of_allied_nations(self):
-        return set(self.get_all_allied_nations())
+        return frozenset(self.get_all_allied_nations)
 
 #scenario
 scenerio_pattern = re.compile(r"SCENARIO:([\w_]+)\n([^#]+)END_SCENARIO")
@@ -94,6 +96,8 @@ allied_encounters_pattern = re.compile(r"ALLIED_ENCOUNTERS:\n([\w\n\:\, \!]+)END
 allied_ships_pattern = re.compile(r"    ALLIED_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ALLIED_SHIPS\n")
 
 ship_pattern = re.compile(r"([a-zA-Z_]+):(\d),(\d)\n")
+
+mission_critical_ships_pattern = re.compile(r"MISSION_CRITICAL_SHIPS:([\w,])")
 
 default_ship_name_pattern = re.compile(r"DEFAULT_SHIP_NAME:([a-zA-Z\-\'\ ]+)\n")
 
@@ -178,6 +182,12 @@ def create_sceneraio():
         description = get_first_group_in_pattern(scenario_txt, description_pattern)
 
         your_ship = get_first_group_in_pattern(scenario_txt, your_ship_pattern)
+        
+        _mission_critical_ships = get_first_group_in_pattern(scenario_txt, mission_critical_ships_pattern)
+        
+        mission_critical_ships = frozenset([
+            ALL_SHIP_CLASSES[ship] for ship in _mission_critical_ships.split()
+        ])
         
         enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
         
@@ -346,6 +356,8 @@ def create_sceneraio():
             your_ship=your_ship,
             your_nation=your_nation,
             main_enemy_nation=enemy_nation,
+            allied_nations=allied_nations,
+            other_enemy_nations=other_enemy_nations,
             star_generation=star_generation,
             description=description,
             percent_of_friendly_planets=friendly_planets,
@@ -353,6 +365,7 @@ def create_sceneraio():
             default_captain_name=default_captain_name,
             your_commanding_officer=your_commanding_officer,
             self_destruct_code=code,
+            mission_critical_ships=mission_critical_ships,
             enemy_encounters=tuple(all_enemy_encounters),
             allied_encounters=tuple(all_allied_encounters),
             startdate=startdate,

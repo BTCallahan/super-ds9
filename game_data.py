@@ -7,7 +7,7 @@ from ai import BaseAi, HardEnemy
 from coords import Coords
 from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
 from random import choice, choices, randrange
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Set, OrderedDict
+from typing import Any, Dict, FrozenSet, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Set, OrderedDict
 
 from get_config import CONFIG_OBJECT
 from global_functions import stardate
@@ -213,8 +213,9 @@ class GameData:
             
             player_starting_coord = choice(coords_without_enemies)
         
-        def generate_ships(enemy_nation:Nation, player_nation:Nation, selected_encounters:List[Dict[str,int]]):
-        
+        def generate_ships(
+            enemy_nation:FrozenSet[Nation], player_nation:FrozenSet[Nation], selected_encounters:List[Dict[str,int]]
+        ):
             for encounter, co in zip(selected_encounters, selected_enemy_coords):
                 
                 star_system = self.grid[co.y][co.x]
@@ -240,28 +241,36 @@ class GameData:
 
                     starship.game_data = self
 
-                    if starship.nation is player_nation:
+                    if starship.nation in player_nation:
                         star_system.allied_ships+=1
-                    elif starship.nation is enemy_nation:
+                    elif starship.nation in enemy_nation:
                         star_system.hostile_ships+=1
                     
                     yield starship
             
         self.all_enemy_ships = list(
             generate_ships(
-                ALL_NATIONS[self.scenerio.main_enemy_nation],
-                ALL_NATIONS[self.scenerio.your_nation], 
+                self.scenerio.get_set_of_enemy_nations,
+                self.scenerio.get_set_of_allied_nations,
                 all_enemy_encounters
             )
         )
         
+        self.target_enemy_ships = [
+            ship for ship in self.all_enemy_ships if ship.ship_class in self.scenerio.mission_critical_ships
+        ]
+        
         self.all_allied_ships = list(
             generate_ships(
-                ALL_NATIONS[self.scenerio.main_enemy_nation],
-                ALL_NATIONS[self.scenerio.your_nation], 
+                self.scenerio.get_set_of_enemy_nations,
+                self.scenerio.get_set_of_allied_nations,
                 all_allied_encounters
             )
         )
+        
+        self.target_allied_ships = [
+            ship for ship in self.all_allied_ships if ship.ship_class in self.scenerio.mission_critical_ships
+        ]
         
         randXsec = player_starting_coord.x
         randYsec = player_starting_coord.y
