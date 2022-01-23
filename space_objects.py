@@ -262,9 +262,15 @@ class SubSector:
                     self.friendly_planets+=1
                 elif p.planet_habbitation.supports_life and not p.planet_habbitation.can_ressuply:
                     self.unfriendly_planets += 1
-                else:
-                    self.barren_planets += 1
-                
+
+    def count_planets(self):
+        self.friendly_planets = len(
+            [planet for planet in self.planets_dict.values() if planet.planet_habbitation is PLANET_FRIENDLY]
+        )
+        self.unfriendly_planets = len(
+            [planet for planet in self.planets_dict.values() if planet.planet_habbitation is not PLANET_FRIENDLY]
+        )
+    
     @property
     def number_of_planets(self):
         return len(self.planets_dict)
