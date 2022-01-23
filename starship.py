@@ -4,7 +4,7 @@ from decimal import DivisionByZero
 import re
 from typing import TYPE_CHECKING, Dict, Final, Iterable, List, Optional, Tuple, Type, Union
 from random import choice, uniform, random, randint
-from math import ceil, inf
+from math import ceil, floor, inf
 from itertools import accumulate
 from functools import lru_cache
 from string import digits
@@ -17,7 +17,7 @@ from space_objects import SubSector, CanDockWith, ALL_TORPEDO_TYPES
 from torpedo import Torpedo, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
 import colors
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, STATUS_AT_WARP, WARP_FACTOR, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
 def scan_assistant(v:IntOrFloat, precision:int):
     """This takes a value, v and devides it by the precision. Next, the quotent is rounded to the nearest intiger and then multiplied by the precision. The product is then returned. A lower precision value ensures more accurate results. If precision is 1, then v is returned
@@ -695,6 +695,10 @@ class Starship(CanDockWith):
         self.turn_repairing = 0
         self.cloak_status = CloakStatus.INACTIVE
         self.cloak_cooldown = 0
+        
+        self.warp_destinations:Optional[Tuple[Coords]] = None
+        self.warp_progress:float=0.0
+        self.current_warp_factor:int=0
 
         try:
             self.torpedo_loaded = "NONE" if not self.ship_type_can_fire_torps else self.ship_class.torp_types[0]
@@ -704,6 +708,20 @@ class Starship(CanDockWith):
         #print(ai_cls)
 
         self.ai: Optional[BaseAi] = ai_cls(entity=self)
+    
+    def get_warp_current_warp_sector(self):
+        
+        try:
+            return self.warp_destinations[floor(self.warp_progress)]
+        except IndexError:
+            return self.warp_destinations[-1]
+    
+    @property
+    def is_at_warp(self):
+        return self.current_warp_factor > 0
+    
+    def increment_warp_progress(self):
+        self.warp_progress += WARP_FACTOR[self.current_warp_factor][0]
     
     @property
     def nation(self):
@@ -1384,6 +1402,8 @@ It's actually value is {precision}."
         Returns:
             bool: Returns True if the hull is greater then or equal to half the negitive max hit points, and less then or equal to zero.
         """
+        if self.is_at_warp:
+            return STATUS_AT_WARP
         if self.hull < self.ship_class.max_hull * -0.5:
             return STATUS_OBLITERATED
         if self.hull <= 0:
