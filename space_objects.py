@@ -222,6 +222,14 @@ class SubSector:
         self.allied_ships = 0
         self.player_present = False
 
+    @property
+    def display_hostile_ships(self):
+        return min(9, self.hostile_ships)
+    
+    @property
+    def display_allied_ships(self):
+        return min(9, self.allied_ships)
+
     def random_setup(self, star_number_weights:Iterable[int], star_number_weights_len:int):
 
         stars = choices(range(star_number_weights_len), cum_weights=star_number_weights)[0]
