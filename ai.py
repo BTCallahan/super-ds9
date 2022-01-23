@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, Iterable, Optional, Union
 from coords import IntOrFloat
 from data_globals import DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
 
-from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder
+from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder, WarpTravelOrder
 
 if TYPE_CHECKING:
     from starship import Starship
@@ -98,6 +98,12 @@ def find_unopressed_planets(game_data:GameData, ship:Starship):
 class EasyEnemy(BaseAi):
         
     def perform(self) -> None:
+        
+        if self.entity.is_at_warp:
+            wto = WarpTravelOrder(self.entity)
+            wto.perform()
+            return
+            
         if not self.target:
             self.target = self.game_data.player
         
@@ -129,7 +135,6 @@ class EasyEnemy(BaseAi):
             torpedos_to_fire = min(
                 self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes
             )
-
             torpedo = TorpedoOrder.from_coords(
                 self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
             )
@@ -139,11 +144,10 @@ class EasyEnemy(BaseAi):
     def calc_beam_weapon(self):
         
         energy_weapon=EnergyWeaponOrder.single_target_beam(
-                entity=self.entity,
-                target=self.target,
-                amount=min(self.entity.get_max_effective_beam_firepower, self.entity.energy)
-            )
-            
+            entity=self.entity,
+            target=self.target,
+            amount=min(self.entity.get_max_effective_beam_firepower, self.entity.energy)
+        )
         self.order_dict[energy_weapon] = 1000
         self.order_dict_size+=1
     
@@ -154,13 +158,18 @@ class EasyEnemy(BaseAi):
             target=self.target,
             amount=min(self.entity.get_max_effective_cannon_firepower, self.entity.energy)
         )
-        
         self.order_dict[cannon_weapon] = 1000
         self.order_dict_size+=1
         
 class MediumEnemy(BaseAi):
     
     def perform(self) -> None:
+        
+        if self.entity.is_at_warp:
+            wto = WarpTravelOrder(self.entity)
+            wto.perform()
+            return
+        
         if not self.target:
             self.target = self.game_data.player
         
@@ -216,15 +225,12 @@ class MediumEnemy(BaseAi):
             averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
                 self.target, 5
             )
-            
             torpedos_to_fire = min(
                 self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes
             )
-
             torpedo = TorpedoOrder.from_coords(
                 self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
             )
-            
             warning = torpedo.raise_warning()
             
             if warning not in {
@@ -233,8 +239,7 @@ class MediumEnemy(BaseAi):
                 OrderWarning.TORPEDO_WILL_HIT_PLANET, 
                 OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
                 OrderWarning.TORPEDO_WILL_MISS
-                }:
-            
+            }:
                 self.order_dict[torpedo] = (
                         300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
                     ) * (total_shield_dam + total_hull_dam + (1000 if ship_kills else 0))
@@ -291,6 +296,12 @@ class MediumEnemy(BaseAi):
 class HardEnemy(BaseAi):
     
     def perform(self) -> None:
+        
+        if self.entity.is_at_warp:
+            wto = WarpTravelOrder(self.entity)
+            wto.perform()
+            return
+        
         if not self.target:
             self.target = self.game_data.player
         
@@ -403,8 +414,10 @@ class HardEnemy(BaseAi):
             
             energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier
                 
-            warp_to = WarpOrder.from_coords(self.entity, planet.x, planet.y)
-            
+            warp_to = WarpOrder.from_coords(
+                self.entity, x=planet.x, y=planet.y, speed=1, 
+                start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
+            )
             self.order_dict[warp_to] = self.entity.energy - round(energy_cost)
             
             self.order_dict_size+=1
@@ -418,13 +431,14 @@ class HardEnemy(BaseAi):
             most_common = [
                 k for k,v in planet_counter.items() if v == highest
             ]
-            
             most_common.sort(key=lambda coords: coords.distance(coords=self.entity.sector_coords), reverse=True)
 
             planet = most_common[0]
             
-            warp_to = WarpOrder.from_coords(self.entity, planet.x, planet.y)
-            
+            warp_to = WarpOrder.from_coords(self.entity, 
+                self.entity, x=planet.x, y=planet.y, speed=1, 
+                start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
+            )
             energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier
             
             self.order_dict[warp_to] = self.entity.energy - round(energy_cost)
@@ -459,7 +473,6 @@ class HardEnemy(BaseAi):
                 ) * LOCAL_ENERGY_COST * 
                 self.entity.sys_impulse.affect_cost_multiplier
             )
-        
             ram = MoveOrder.from_coords(
                 self.entity, self.target.local_coords.x, self.target.local_coords.y, energy_cost
             )
@@ -479,7 +492,6 @@ class HardEnemy(BaseAi):
             torpedo = TorpedoOrder.from_coords(
                 self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
             )
-            
             warning = torpedo.raise_warning()
             
             if warning not in {
@@ -521,7 +533,6 @@ class HardEnemy(BaseAi):
             ) * (
                 total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
             )
-            
             self.order_dict_size+=1
     
     def calc_cannon_waepon(self):
@@ -540,7 +551,6 @@ class HardEnemy(BaseAi):
             ) * (
                 total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
             )
-            
             self.order_dict_size+=1
     
     def calc_cloak(self):
@@ -583,15 +593,10 @@ class HardEnemy(BaseAi):
                         adjacent.sort(
                             key=lambda ship: ship.ship_class.max_crew, reverse=True
                         )
-                        
                         weight -= adjacent[0].ship_class.max_crew
-                        
                     else:
-                
                         weight -= self.entity.local_coords.distance(derelicts[0].local_coords)
-                
                 else:
-                    
                     all_derelicts.sort(key=lambda ship: ship.sector_coords.distance(self.entity.sector_coords), reverse=True)
                     
                     weight -= self.entity.sector_coords.distance(derelicts[0].sector_coords) * 10
