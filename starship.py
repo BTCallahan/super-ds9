@@ -136,6 +136,10 @@ class Starship(CanDockWith):
         return ALL_NATIONS[self.override_nation_code] if self.override_nation_code else self.ship_class.nation
     
     @property
+    def ship_is_captured(self):
+        return self.override_nation_code and self.override_nation_code is not self.ship_class.nation_code
+    
+    @property
     def hull_damage(self):
         return self._hull_damage
     
