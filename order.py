@@ -5,7 +5,7 @@ from random import choice
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
@@ -122,7 +122,8 @@ class WarpOrder(Order):
         self.start_y = start_y
         assert speed > 0
         self.speed = speed
-        self.cost = ceil(self.distance * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier* speed)
+        warp_speed, cost = WARP_FACTOR[speed]
+        self.cost = ceil(self.distance * SECTOR_ENERGY_COST * cost)
         self.x, self.y = x,y
     
     def __hash__(self):
@@ -163,7 +164,7 @@ class WarpOrder(Order):
         
         end_index = co_tuple.index(end)
         
-        co_tuples = co_tuple[:end_index]
+        co_tuples = co_tuple[:end_index+1]
         
         self.entity.current_warp_factor = self.speed
         self.entity.warp_destinations = co_tuples
@@ -224,7 +225,7 @@ class WarpTravelOrder(Order):
         
         self.entity.current_warp_factor = 0
         
-        subsector: SubSector = self.entity.game_data.grid[self.y][self.x]
+        subsector: SubSector = self.entity.game_data.grid[self.entity.sector_coords.y][self.entity.sector_coords.x]
 
         safe_spots = subsector.safe_spots.copy()
 

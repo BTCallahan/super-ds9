@@ -240,7 +240,7 @@ def create_warp_factor():
     
     ad = 0.125
     
-    yield (0,0)
+    #yield (0,0)
     
     for i in range(10):
         yield i, i * (1+ad)
