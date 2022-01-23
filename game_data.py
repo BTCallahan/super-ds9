@@ -114,7 +114,7 @@ class GameData:
             "times_gone_to_warp": 0,
             "energy_used" : 0,
             "torpedos_fired" : 0
-        }
+            }
         )
         
     @property
@@ -168,7 +168,6 @@ class GameData:
         system_coords = tuple(
             Coords(x=x,y=y) for x in self.subsecs_range_x for y in self.subsecs_range_y
         )
-        
         all_enemy_encounters:List[Dict[str,int]] = []
         
         for a in self.scenerio.enemy_encounters:
@@ -178,7 +177,6 @@ class GameData:
             all_enemy_encounters.extend(
                 l
             )
-        
         total_enemy = len(all_enemy_encounters)
         
         all_allied_encounters:List[Dict[str,int]] = []
@@ -190,7 +188,6 @@ class GameData:
             all_allied_encounters.extend(
                 l
             )
-        
         total_allied = len(all_allied_encounters)
         
         selected_coords = choices(
@@ -210,7 +207,6 @@ class GameData:
             coords_without_enemies = [
                 co for co in system_coords if co not in selected_enemy_coords
             ]
-            
             player_starting_coord = choice(coords_without_enemies)
         
         def generate_ships(
@@ -255,11 +251,9 @@ class GameData:
                 all_enemy_encounters
             )
         )
-        
         self.target_enemy_ships = [
             ship for ship in self.all_enemy_ships if ship.ship_class in self.scenerio.mission_critical_ships
         ]
-        
         self.all_allied_ships = list(
             generate_ships(
                 self.scenerio.get_set_of_enemy_nations,
@@ -267,11 +261,9 @@ class GameData:
                 all_allied_encounters
             )
         )
-        
         self.target_allied_ships = [
             ship for ship in self.all_allied_ships if ship.ship_class in self.scenerio.mission_critical_ships
         ]
-        
         randXsec = player_starting_coord.x
         randYsec = player_starting_coord.y
 
@@ -293,7 +285,6 @@ class GameData:
         self.visible_ships_in_same_sub_sector_as_player = [
             ship for ship in self.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
         ]
-
         self.set_condition()
         
         self.engine.message_log.add_message(

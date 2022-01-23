@@ -91,17 +91,14 @@ class DestroyEvaluation(ScenerioEvaluation):
         all_enemy_ship_scores = tuple(
             (ship.calculate_ship_stragic_value()) for ship in all_enemy_ships
         )
-        
         percentage_of_ships_destroyed = number_of_killed_enemy_ships / number_of_total_ships
         
         point_values_of_destroyed_and_damage_ships = sum([
             m - v for m, v in all_enemy_ship_scores
         ])
-        
         max_possible_destruction_score = sum(
             [m for m, v in all_enemy_ship_scores]
         )
-        
         ship_destruction_score = sum(
             [
                 v for m,v in all_enemy_ship_scores
@@ -113,13 +110,10 @@ class DestroyEvaluation(ScenerioEvaluation):
         evaluation_dictionary["destruction_score:"] = (
             round(point_values_of_destroyed_and_damage_ships), round(max_possible_destruction_score)
         )
-        
         no_enemy_losses = number_of_active_enemy_ships == number_of_total_ships
 
         all_enemy_ships_destroyed = number_of_active_enemy_ships == 0
         
-        
-
         planets_angered = game_data.player_record["planets_angered"]
         planets_depopulated = game_data.player_record["planets_depopulated"]
         prewarp_planets_depopulated = game_data.player_record["prewarp_planets_depopulated"]
@@ -143,8 +137,6 @@ class DestroyEvaluation(ScenerioEvaluation):
         time_left_percent = used_time / max_time
         
         evaluation_dictionary["time_used"] = (used_time, max_time)
-        
-        
         
         player_nation = game_data.player.ship_class.nation
         
@@ -172,11 +164,9 @@ class DestroyEvaluation(ScenerioEvaluation):
         
         max_possible_value, player_value = game_data.player.calculate_ship_stragic_value()
         
-        
         score_multiplier = (
             
         )
-        
         overall_score = Decimal(
             point_values_of_destroyed_and_damage_ships * percentage_of_ships_destroyed
         ) * Decimal(0.5) * time_left_percent + Decimal(player_value)
@@ -303,7 +293,6 @@ f'You are an embaressment to the {player_nation_short}. Your ship was destroyed 
 inspite of your tactial superority you inflicted no losses on the enemy.'
                     )
         
-
         r = ''.join(ending_text), evaluation_dictionary, overall_score
 
         return r

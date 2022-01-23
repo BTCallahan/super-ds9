@@ -218,6 +218,7 @@ class SubSector:
         self.unfriendly_planets = 0
         self.barren_planets = 0
     
+        self.objectives = 0
         
         self.hostile_ships = 0
         self.allied_ships = 0
@@ -261,7 +262,7 @@ class SubSector:
                 
                 if p.planet_habbitation == PLANET_FRIENDLY:
                     self.friendly_planets+=1
-                elif p.planet_habbitation.supports_life and not p.planet_habbitation.can_ressuply:
+                else:
                     self.unfriendly_planets += 1
 
     def count_planets(self):

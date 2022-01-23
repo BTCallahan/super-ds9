@@ -443,7 +443,6 @@ class Starship(CanDockWith):
             "hull" : (hull, print_color(hull, ship_class.max_hull)),
             "energy" : (energy, print_color(energy, ship_class.max_energy))
         }
-        
         if hull_damage:
             d["hull_damage"] = hull_damage, print_color(hull_damage, ship_class.max_hull)
         
@@ -470,7 +469,6 @@ class Starship(CanDockWith):
             d["cloak_cooldown"] = (
                 self.cloak.cloak_cooldown, print_color(self.cloak.cloak_cooldown, ship_class.cloak_cooldown, True)
             )
-
         if self.is_mobile:
             d["sys_warp_drive"] = self.warp_drive.print_info(precision), self.warp_drive.get_color(), self.warp_drive.name
             d["sys_impulse"] = self.impulse_engine.print_info(precision), self.impulse_engine.get_color(), self.impulse_engine.name
@@ -521,13 +519,11 @@ class Starship(CanDockWith):
             raise ValueError(
                 f"The intiger 'precision' MUST be one of the following: 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, or 500. It's actually value is {precision}."
             )
-
         hull = scan_assistant(self.hull, precision)
         
         status = STATUS_ACTIVE if hull > 0 else (
             STATUS_OBLITERATED if hull < self.ship_class.max_hull * -0.5 else STATUS_HULK
         )
-
         d= {
             "shields" : scan_assistant(self.shield_generator.shields, precision),
             "hull" : hull,
@@ -536,7 +532,6 @@ class Starship(CanDockWith):
             "number_of_torps" : tuple(self.torpedo_launcher.get_number_of_torpedos(precision)),
             #"torp_tubes" : s
         }
-        
         if scan_for_crew and not self.ship_class.is_automated:
             able_crew = scan_assistant(self.crew.able_crew, precision)
             injured_crew = scan_assistant(self.crew.injured_crew, precision)
@@ -705,7 +700,6 @@ class Starship(CanDockWith):
             base=self.ship_class.warp_breach_damage * ((4/3) if self_destruct else 1), 
             distance=distance
         )
-        
         return round(damage)
 
     def calc_self_destruct_damage(
@@ -730,7 +724,6 @@ class Starship(CanDockWith):
         scan = scan if scan else target.scan_this_ship(
             precision, scan_for_crew=simulate_crew, scan_for_systems=simulate_systems
         )
-        
         amount = self.warp_core_breach_damage_based_on_distance(target)
         
         averaged_shield = 0
@@ -762,7 +755,6 @@ class Starship(CanDockWith):
                 averaged_crew_readyness += target.crew.caluclate_crew_readyness(
                     scan["able_crew"], scan["injured_crew"]
                 )
-                
         averaged_shield /= number_of_simulations
         averaged_hull /= number_of_simulations
         averaged_shield_damage /= number_of_simulations
@@ -1074,7 +1066,6 @@ class Starship(CanDockWith):
         old_scan = self.scan_this_ship(
             pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player, use_effective_values=True
         )
-        
         perm_hull_damage = round(hull_dam * 0.15)
         
         self.shield_generator.shields = new_shields
@@ -1195,7 +1186,6 @@ class Starship(CanDockWith):
                     (0,0,0,3),
                     (0,0,0,0)
                 )
-                
                 hull_breach_message_code = grid[old_hull_status][newer_hull_status]
                 
                 hull_breach_messages = (
@@ -1204,7 +1194,6 @@ class Starship(CanDockWith):
                     f"hull breaches on multiple decks!"
                     f"hull is buckling!"
                 )
-                
                 hull_breach_message = hull_breach_messages[hull_breach_message_code]
                 
                 message_to_print = []
@@ -1217,7 +1206,6 @@ class Starship(CanDockWith):
                         
                         f"{name_first_occ} shields are {shield_status}, and"
                     )
-                    
                     if hull_breach_message_code in {1,2}:
                         
                         message_to_print.append(
@@ -1227,12 +1215,10 @@ class Starship(CanDockWith):
                         message_to_print.append(
                             'our' if ship_is_player else 'their'
                         )
-                    
                     message_to_print.append(
                         hull_breach_message
                     )
                 else:
-                    
                     if hull_breach_message_code in {1,2}:
                         
                         message_to_print.append(
@@ -1242,11 +1228,9 @@ class Starship(CanDockWith):
                         message_to_print.append(
                             'Our' if ship_is_player else f"The {self.name}'s"
                         )
-                    
                     message_to_print.append(
                         hull_breach_message
                     )
-                
                 fg = colors.white if not ship_is_player else (
                     colors.red if new_hull_as_a_percent < 0.1 else (
                         colors.orange if new_hull_as_a_percent < 0.25 else (
@@ -1254,7 +1238,6 @@ class Starship(CanDockWith):
                         )
                     )
                 )
-                
                 message_log.add_message(" ".join(message_to_print),fg)
                 
             else:
@@ -1315,13 +1298,10 @@ class Starship(CanDockWith):
                     message_log.add_message("Warp core breach iminate!", colors.orange)
                 
                 message_log.add_message("Abandon ship, abandon ship, all hands abandon ship...", colors.red)
-                
-                
             else:
                 message_log.add_message(
                     f"The {self.name} {'suffers a warp core breach' if wc_breach else 'is destroyed'}!"
                 )
-                
             self.destroy(text, warp_core_breach=wc_breach)
         elif old_ship_status == STATUS_HULK and not ship_is_player:
             
@@ -1493,14 +1473,12 @@ class Starship(CanDockWith):
             crew_readyness=self.crew.crew_readyness,# * 0.5 + 0.5
             target_crew_readyness=enemy.crew.crew_readyness
         ):
-            
             target_name = "We're" if target_is_player else f'The {enemy.name} is'
 
             gd.engine.message_log.add_message(
                 f"Direct hit on {enemy.name}!" if attacker_is_player else
                 f"{target_name} hit!", fg=colors.orange
             )
-
             enemy.take_damage(
                 amount * self.beam_array.get_effective_value, 
                 f'Destroyed by a {self.ship_class.get_energy_weapon.beam_name} hit from the {self.name}.', 
@@ -1536,7 +1514,6 @@ class Starship(CanDockWith):
                 torp.damage, f'Destroyed by a {torp.name} torpedo hit from the {self.name}', 
                 damage_type=DAMAGE_TORPEDO
             )
-
             return True
         gd.engine.message_log.add_message(f'A {torp.name} torpedo from {self.name} missed {enemy.name}.')
         return False
@@ -1564,9 +1541,6 @@ class Starship(CanDockWith):
             scan_for_systems=simulate_systems, 
             use_effective_values=use_effective_values
         )
-        
-        #shields, hull, energy, torps, sys_warp_drive, sysImpuls, sysPhaser, sys_shield_generator, sys_sensors, sys_torpedos
-        
         targ_shield = target_scan["shields"]
         targ_hull = target_scan["hull"]
         
