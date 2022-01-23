@@ -223,17 +223,16 @@ class CancelConfirmHandler(MainGameEventHandler):
         
         self.confirm_button = SimpleElement(
             x=3+CONFIG_OBJECT.command_display_x,
-            y=16+CONFIG_OBJECT.command_display_y,
+            y=18+CONFIG_OBJECT.command_display_y,
             width=9,
             height=3,
             text="Confirm",
             active_fg=colors.white,
             bg=colors.black,
         )
-
         self.cancel_button = SimpleElement(
             x=3+CONFIG_OBJECT.command_display_x,
-            y=20+CONFIG_OBJECT.command_display_y,
+            y=22+CONFIG_OBJECT.command_display_y,
             width=9,
             height=3,
             text="Cancel",
@@ -265,7 +264,6 @@ class MinMaxInitator(CancelConfirmHandler):
             active_fg=colors.white,
             bg=colors.black
         )
-        
         self.min_button = SimpleElement(
             x=3+12+CONFIG_OBJECT.command_display_x,
             y=20+CONFIG_OBJECT.command_display_y,
@@ -275,7 +273,6 @@ class MinMaxInitator(CancelConfirmHandler):
             active_fg=colors.white,
             bg=colors.black
         )
-        
         self.amount_button = NumberHandeler(
             limit=4, max_value=max_value, 
             min_value=0, starting_value=starting_value,
@@ -316,7 +313,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.selected_handeler = self.heading_button
         
         self.three_fifteen_button = SimpleElement(
@@ -329,7 +325,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.two_seventy_button = SimpleElement(
             x=16+CONFIG_OBJECT.command_display_x,
             y=6+CONFIG_OBJECT.command_display_y,
@@ -340,7 +335,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.zero_button = SimpleElement(
             x=22+CONFIG_OBJECT.command_display_x,
             y=10+CONFIG_OBJECT.command_display_y,
@@ -351,7 +345,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.fourty_five_button = SimpleElement(
             x=28+CONFIG_OBJECT.command_display_x,
             y=10+CONFIG_OBJECT.command_display_y,
@@ -373,7 +366,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.ninty_button = SimpleElement(
             x=28+CONFIG_OBJECT.command_display_x,
             y=6+CONFIG_OBJECT.command_display_y,
@@ -384,7 +376,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-        
         self.one_thirty_five_button = SimpleElement(
             x=28+CONFIG_OBJECT.command_display_x,
             y=2+CONFIG_OBJECT.command_display_y,
@@ -395,7 +386,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.one_eighty_button = SimpleElement(
             x=22+CONFIG_OBJECT.command_display_x,
             y=2+CONFIG_OBJECT.command_display_y,
@@ -481,7 +471,6 @@ class CoordBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.y_button = NumberHandeler(
             limit=2, 
             max_value=max_y, min_value=0, 
@@ -498,7 +487,6 @@ class CoordBasedHandler(CancelConfirmHandler):
             alignment=tcod.constants.RIGHT,
             initally_active=False
         )
-
         self.selected_handeler = self.x_button
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
@@ -548,7 +536,6 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-
         self.move_button = SimpleElement(
             x=2+13+CONFIG_OBJECT.command_display_x,
             y=2+CONFIG_OBJECT.command_display_y,
@@ -559,7 +546,6 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-
         self.shields_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
             y=5+CONFIG_OBJECT.command_display_y,
@@ -570,7 +556,6 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-
         self.repair_button = SimpleElement(
             x=2+13+CONFIG_OBJECT.command_display_x,
             y=5+CONFIG_OBJECT.command_display_y,
@@ -581,7 +566,6 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-        
         self.cloak_button = BooleanBox(
             x=2+CONFIG_OBJECT.command_display_x,
             y=8+CONFIG_OBJECT.command_display_y,
@@ -593,7 +577,6 @@ class CommandEventHandler(MainGameEventHandler):
             inactive_fg=colors.white,
             initally_active=self.engine.player.cloak_status == CloakStatus.INACTIVE
         )
-        
         self.dock_button = BooleanBox(
             x=2+13+CONFIG_OBJECT.command_display_x,
             y=8+CONFIG_OBJECT.command_display_y,
@@ -631,7 +614,6 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-
         self.torpedos_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
             y=17+CONFIG_OBJECT.command_display_y,
@@ -642,7 +624,6 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-        
         self.auto_destruct_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
             y=20+CONFIG_OBJECT.command_display_y,
@@ -804,7 +785,6 @@ class CommandEventHandler(MainGameEventHandler):
                 planet_ for planet_ in player.get_sub_sector.planets_dict.values() if 
                 planet_.can_dock_with(player)
             ]
-            
             nearby_planets.sort(reverse=True)
             
             try:
@@ -818,11 +798,9 @@ class CommandEventHandler(MainGameEventHandler):
                         accptable_ship_statuses={STATUS_ACTIVE}
                     ) if ship.can_dock_with(player)
                 ]
-                
                 nearby_stations.sort(
                     key=lambda station: station.get_dock_repair_factor
                 )
-                
                 try:
                     dock_with_this = nearby_stations[0]
                 except IndexError:
@@ -929,7 +907,6 @@ class CommandEventHandler(MainGameEventHandler):
             self.engine.message_log.add_message(
                 f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
             )
-
         elif self.engine.player.energy <= 0:
             
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
@@ -1281,7 +1258,6 @@ class MoveHandler(HeadingBasedHandler):
             gameData=self.engine.game_data,
             title="Input move heading and distance"
         )
-        
         super().on_render(console)
         
         self.distance_button.render(console)
@@ -1322,7 +1298,6 @@ class MoveHandler(HeadingBasedHandler):
         elif self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
         super().ev_mousebuttondown(event)
-
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
@@ -1402,7 +1377,6 @@ class MoveHandlerEasy(CoordBasedHandler):
 
             if warning == OrderWarning.SAFE:
                 return warp_order
-            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             except KeyError:
@@ -1439,7 +1413,6 @@ class MoveHandlerEasy(CoordBasedHandler):
 
             if warning == OrderWarning.SAFE:
                 return warp_order
-            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             except KeyError:
@@ -1564,7 +1537,6 @@ class BeamArrayHandler(MinMaxInitator):
             gameData=self.engine.game_data,
             title="Input energy to use:"
         )
-        
         super().on_render(console)
         
         self.amount_button.render(console)
@@ -1666,7 +1638,6 @@ class BeamArrayHandler(MinMaxInitator):
             
             ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
         ):
-
             self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.determin_precision)
             
             self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
@@ -2140,34 +2111,30 @@ class SelfDestructHandler(CancelConfirmHandler):
                 }
             )
         ]
-        
         self.all_nearbye_ships = tuple(nearbye_ships)
         
         nearbye_detectable_ships_and_distances = [
-            (ship, ship.local_coords.distance(coords=player.local_coords)) for ship in nearbye_ships if ship.ship_status not in {STATUS_CLOAKED, STATUS_HULK}
+            (
+                ship, ship.local_coords.distance(coords=player.local_coords)
+            ) for ship in nearbye_ships if ship.ship_status not in {STATUS_CLOAKED, STATUS_HULK}
         ]
-        
         nearbye_detectable_ships_and_distances.sort(
             key=lambda distance: distance[1]
         )
-        
         self.nearbye_active_foes = [
             (ship, distance) for ship, distance in nearbye_detectable_ships_and_distances if 
             ship.ship_status in {STATUS_CLOAK_COMPRIMISED, STATUS_ACTIVE} and 
             ship.nation is not self.engine.player.nation
         ]
-        
         self.nearbye_active_friends = [
             (ship, distance) for ship, distance in nearbye_detectable_ships_and_distances if 
             ship.ship_status in {STATUS_CLOAK_COMPRIMISED, STATUS_ACTIVE, STATUS_CLOAKED} and 
             ship.nation is self.engine.player.nation
         ]
-        
         self.nearbye_derlicts = [
             (ship, distance) for ship, distance in nearbye_detectable_ships_and_distances if 
             ship.ship_status is STATUS_DERLICT
         ]
-        
         y_foes = len(self.nearbye_active_foes)
         
         self.any_foes_nearby = y_foes > 0
@@ -2193,7 +2160,6 @@ class SelfDestructHandler(CancelConfirmHandler):
             inactive_fg=colors.white,
             bg=colors.black
         )
-
         self.code_status = 0
         
     def on_render(self, console: tcod.Console) -> None:
@@ -2202,8 +2168,7 @@ class SelfDestructHandler(CancelConfirmHandler):
             console=console,
             gameData=self.engine.game_data,
             title="Input self destruct code"
-            )
-        
+        )
         super().on_render(console)
         
         self.code_handler.render(console)
@@ -2213,14 +2178,12 @@ class SelfDestructHandler(CancelConfirmHandler):
             y=2+CONFIG_OBJECT.command_display_y,
             string=f"Code: {self.code}"
         )
-        
         if not self.any_foes_nearby:
             console.print(
                 x=2+CONFIG_OBJECT.command_display_x,
                 y=self.y_foes_begin+CONFIG_OBJECT.command_display_y,
                 string="Warning: No enemy ships in system"
             )
-        
         if self.any_ship_nearbye:
             if self.any_foes_nearby:
                 console.print(
@@ -2228,7 +2191,6 @@ class SelfDestructHandler(CancelConfirmHandler):
                     y=self.y_foes_begin+CONFIG_OBJECT.command_display_y,
                     string="Enemy ships in system:"
                 )
-                
                 for i, ship_info in enumerate(self.nearbye_active_foes):
                     ship, distance = ship_info
                     console.print(
@@ -2236,7 +2198,6 @@ class SelfDestructHandler(CancelConfirmHandler):
                         y=i+self.y_foes_begin+1+CONFIG_OBJECT.command_display_y,
                         string=f"{ship.name: <10}  {distance: <.2f}"
                     )
-            
             if self.any_friends_nearby:
                 
                 console.print(
@@ -2244,7 +2205,6 @@ class SelfDestructHandler(CancelConfirmHandler):
                     y=self.y_friends_begin+CONFIG_OBJECT.command_display_y,
                     string="Allied ships in system:"
                 )
-                
                 for i, ship_info in enumerate(self.nearbye_active_friends):
                     ship, distance = ship_info
                     console.print(
@@ -2351,7 +2311,6 @@ class EvaluationHandler(EventHandler):
         text, self.evaluation, self.score = self.engine.game_data.scenerio.scenario_type.generate_evaluation(
             self.engine.game_data
         )
-        
         width=CONFIG_OBJECT.screen_width - 4
         
         self.text_box = ScrollingTextBox(
@@ -2361,7 +2320,6 @@ class EvaluationHandler(EventHandler):
             title="Evaluation:", total_text=wrap(text, width=width, replace_whitespace=False),
             lines_to_scroll=10
         )
-        
         self.score_button = SimpleElement(
             x=2, y=self.text_box.height + self.text_box.y,
             width=15, height=3,
@@ -2402,7 +2360,6 @@ class ScoreHandler(EventHandler):
         max_evaluation_key_len = max(
             len(k) for k in evaluation.keys()
         )
-        
         lines = [f"{self.replace(k):>{max_evaluation_key_len}}:{v[0]}/{v[1]}" for k,v in evaluation.items()]
         
         max_len = max(len(l) for l in lines)
@@ -2415,13 +2372,11 @@ class ScoreHandler(EventHandler):
             title="Score Info:",
             text="\n".join(lines), alignment=tcod.LEFT
         )
-        
         reccord = self.engine.game_data.player_record
         
         max_reccord_key_len = max(
             len(k) for k in reccord.keys()
         )
-        
         reccord_lines = [f"{self.replace(k):>{max_reccord_key_len}}:{v}" for k,v in reccord.items()]
         
         max_reccord_len = max(len(l) for l in reccord_lines)
@@ -2432,7 +2387,6 @@ class ScoreHandler(EventHandler):
             title="Player Record:", 
             text="\n".join(reccord_lines), alignment=tcod.LEFT
         )
-        
         self.score_record = SimpleElement(
             x=5, y=5+self.player_record.y+self.player_record.height,
             height=3,
