@@ -112,67 +112,63 @@ class Order:
     
 class WarpOrder(Order):
 
-    def __init__(self, entity:Starship, heading:int, distance:int, x:int, y:int) -> None:
+    def __init__(
+        self, entity:Starship, *, heading:int, distance:int, x:int, y:int, speed:int, start_x:int, start_y:int
+    ) -> None:
         super().__init__(entity)
         self.heading = heading
         self.distance = distance
-        self.cost = ceil(self.distance * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier)
+        self.start_x = start_x
+        self.start_y = start_y
+        assert speed > 0
+        self.speed = speed
+        self.cost = ceil(self.distance * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier* speed)
         self.x, self.y = x,y
-        # TODO: Implement warp speed
     
     def __hash__(self):
-        return hash((self.entity, self.heading, self.distance, self.cost, self.x, self.y))
+        return hash((
+            self.entity, self.heading, self.distance, self.speed, self.cost, self.x, self.y, self.start_x, self.start_y
+        ))
     
     @classmethod
-    def from_coords(cls, entity:Starship, x:int, y:int):
+    def from_coords(cls, entity:Starship, *, x:int, y:int, speed:int, start_x:int, start_y:int):
 
         distance = entity.sector_coords.distance(coords=Coords(x,y))
         
         x_, y_ = Coords.normalize_other(x=x - entity.sector_coords.x, y=y - entity.sector_coords.y)
 
         heading = atan2(y_, x_)
-        return cls(entity, heading, distance, x, y)
+        return cls(entity, heading=heading, distance=distance, x=x, y=y, speed=speed, start_x=start_x, start_y=start_y)
     
     @classmethod
-    def from_heading(cls, entity:Starship, heading:int, distance:int):
+    def from_heading(cls, entity:Starship, *, heading:int, distance:int, speed:int, start_x:int, start_y:int):
 
         x, y = heading_to_coords(
             heading, distance, 
             entity.sector_coords.x, entity.sector_coords.y, 
             CONFIG_OBJECT.sector_width, CONFIG_OBJECT.sector_height
         )
-
-        return cls(entity, heading, distance, x, y)
+        return cls(entity, heading=heading, distance=distance, x=x, y=y, speed=speed, start_x=start_x, start_y=start_y)
 
     def perform(self) -> None:
-
-        #self.entity.warp(self.x, self.y)
+        
+        x_aim = self.x - self.start_x
+        y_aim = self.y - self.start_y
+        co_tuple = tuple(
+            Coords(x=self.start_x+co.x, y=self.start_y+co.y) for co in self.game_data.engine.get_lookup_table(
+            direction_x=x_aim, direction_y=y_aim, normalise_direction=True
+            )
+        )
+        end = Coords(x=self.x, y=self.y)
+        
+        end_index = co_tuple.index(end)
+        
+        co_tuples = co_tuple[:end_index]
+        
+        self.entity.current_warp_factor = self.speed
+        self.entity.warp_destinations = co_tuples
         
         old_x, old_y = self.entity.sector_coords.x, self.entity.sector_coords.y
-        
-        self.entity.sector_coords.x = self.x
-        self.entity.sector_coords.y = self.y
-
-        ships = self.entity.game_data.grab_ships_in_same_sub_sector(
-            self.entity, accptable_ship_statuses={
-                STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED,
-            }
-        )
-
-        subsector: SubSector = self.entity.game_data.grid[self.y][self.x]
-
-        safe_spots = subsector.safe_spots.copy()
-
-        for ship in ships:
-            try:
-                safe_spots.remove(ship.local_coords.create_coords())
-            except ValueError:
-                pass
-
-        spot = choice(safe_spots)
-        
-        self.entity.local_coords.x = spot.x
-        self.entity.local_coords.y = spot.y
         
         energy_cost = self.cost
 
@@ -183,8 +179,6 @@ class WarpOrder(Order):
         player_sector_coords = self.game_data.player.sector_coords
         
         player_in_departure_system = player_sector_coords.x == old_x and player_sector_coords.y == old_y
-        
-        player_in_destination_system = player_sector_coords == self.entity.sector_coords
 
         if is_controllable:
             
@@ -197,16 +191,9 @@ class WarpOrder(Order):
         elif player_in_departure_system:
             
             self.game_data.engine.message_log.add_message(
-                f"The {self.entity.name} has come out of warp.", colors.cyan
+                f"The {self.entity.name} has gone to warp.", colors.cyan
             )
-            
-        if player_in_destination_system or is_controllable:
-            
-            self.game_data.engine.message_log.add_message(
-                f"The {self.entity.name} has come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", 
-                colors.cyan
-            )
-                
+        
         self.entity.turn_repairing = 0
     
     def raise_warning(self):
@@ -219,9 +206,56 @@ class WarpOrder(Order):
         if not (0 <= self.x < CONFIG_OBJECT.sector_width and 0 <= self.y < CONFIG_OBJECT.subsector_height):
             return OrderWarning.OUT_OF_RANGE
         
-        #distance_to_destination = self.entity.sector_coords.distance(x=self.x, y=self.y)
-        
         return OrderWarning.NOT_ENOUGHT_ENERGY if self.cost > self.entity.energy else OrderWarning.SAFE
+
+class WarpTravelOrder(Order):
+    """This is used to handle warp travel"""
+    
+    def perform(self) -> None:
+        self.entity.increment_warp_progress()
+        
+        co = self.entity.get_warp_current_warp_sector()
+        
+        self.entity.sector_coords.x = co.x
+        self.entity.sector_coords.y = co.y
+        
+        if co != self.entity.warp_destinations[-1]:
+            return
+        
+        self.entity.current_warp_factor = 0
+        
+        subsector: SubSector = self.entity.game_data.grid[self.y][self.x]
+
+        safe_spots = subsector.safe_spots.copy()
+
+        ships = self.entity.game_data.grab_ships_in_same_sub_sector(
+            self.entity, accptable_ship_statuses={
+                STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED,
+            }
+        )
+        for ship in ships:
+            try:
+                safe_spots.remove(ship.local_coords.create_coords())
+            except ValueError:
+                pass
+
+        spot = choice(safe_spots)
+        
+        self.entity.local_coords.x = spot.x
+        self.entity.local_coords.y = spot.y
+        
+        player_sector_coords = self.game_data.player.sector_coords
+        
+        is_controllable = self.entity.is_controllable
+        
+        player_in_destination_system = player_sector_coords == self.entity.sector_coords
+        
+        if player_in_destination_system or is_controllable:
+            
+            self.game_data.engine.message_log.add_message(
+                f"The {self.entity.name} has come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", 
+                colors.cyan
+            )
 
 class MoveOrder(Order):
 
