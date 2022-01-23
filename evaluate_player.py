@@ -2,15 +2,51 @@ from __future__ import annotations
 from collections import OrderedDict
 from decimal import Decimal
 
-from typing import TYPE_CHECKING, Final, List, Tuple
+from typing import TYPE_CHECKING, Final, Iterable, List, Tuple
 
 from nation import ALL_NATIONS, Nation
 from order import Order
-
-
+from starship import Starship
 
 if TYPE_CHECKING:
     from game_data import GameData
+
+def evaluate_ships(ships:Iterable[Starship]):
+    
+    total_ships = len(ships)
+    
+    _alive_ships = [ship for ship in ships if ship.ship_status.is_active]
+    
+    alive_ships = [ship for ship in _alive_ships if not ship.ship_is_captured]
+    
+    number_of_alive_ships = len(alive_ships)
+    
+    captured_ships = [ship for ship in _alive_ships if ship.ship_is_captured]
+    
+    number_of_captured_ships = len(captured_ships)
+    
+    destroyed_ships = [ship for ship in ships if ship.ship_status.is_destroyed]
+    
+    number_of_destroyed_ships = len(destroyed_ships)
+    
+    derlict_ships = [ship for ship in ships if ship.ship_status.is_recrewable]
+    
+    number_of_derlict_ships = len(derlict_ships)
+    
+    alive_ships_scores = tuple(
+        (ship.calculate_ship_stragic_value()) for ship in alive_ships
+    )
+    captured_ships_scores = tuple(
+        (ship.calculate_ship_stragic_value()) for ship in captured_ships
+    )
+    derlict_ship_scores = tuple(
+        (ship.calculate_ship_stragic_value(value_multiplier_for_derlict=1.0)) for ship in derlict_ships
+    )
+    destroyed_ship_scores = tuple(
+        (ship.calculate_ship_stragic_value(value_multiplier_for_destroyed=1.0)) for ship in destroyed_ships
+    )
+    
+    return number_of_alive_ships / total_ships, number_of_captured_ships / total_ships, number_of_destroyed_ships
 
 class ScenerioEvaluation:
     
@@ -22,16 +58,15 @@ class ScenerioEvaluation:
     @staticmethod
     def generate_evaluation(game_data:GameData) -> Tuple[str, OrderedDict, Decimal]:
         raise NotImplementedError
-
+        
 class DestroyEvaluation(ScenerioEvaluation):
     
     @staticmethod
     def is_game_over(game_data: GameData):
-        ships = [
-            ship for ship in game_data.all_enemy_ships if ship.ship_status.is_active
-        ]
         
-        return not game_data.player.ship_status.is_active or game_data.is_time_up or not ships
+        return ScenerioEvaluation.is_game_over(game_data) or not [
+            ship for ship in game_data.target_enemy_ships if ship.ship_status.is_active
+        ]
     
     @staticmethod
     def generate_evaluation(game_data: GameData):
@@ -41,16 +76,14 @@ class DestroyEvaluation(ScenerioEvaluation):
         ending_text = []
         #total_ships = len(gameDataGlobal.total_starships) - 1
         
-        all_enemy_ships = [ship for ship in game_data.all_enemy_ships if ship.ship_class.nation_code == game_data.scenerio.main_enemy_nation]
+        all_enemy_ships = game_data.all_enemy_ships
         
         number_of_total_ships = len(
             all_enemy_ships
         )
-        
         number_of_active_enemy_ships = len(
             [ship for ship in all_enemy_ships if ship.ship_status.is_active]
         )
-        
         number_of_killed_enemy_ships = number_of_total_ships - number_of_active_enemy_ships
         
         evaluation_dictionary["enemy_ships_destroyed"] = (number_of_killed_enemy_ships, number_of_total_ships)
@@ -343,15 +376,17 @@ f"{how_many_planets_angered} of which had good relations with the {player_nation
 
                 endingText.append(
                     f"Horrifyingly, {how_many_prewarp_planets_killed} of those planets were prewarp civilizations."
-                    )
-
+                )
         return endingText
 
 class ProtectEvaluation(ScenerioEvaluation):
     
     @staticmethod
     def is_game_over(game_data: GameData):
-        return not game_data.player.ship_status.is_active or game_data.is_time_up
+        
+        return ScenerioEvaluation.is_game_over(game_data) or not [
+            ship for ship in game_data.target_allied_ships if ship.ship_status.is_active
+        ]
 
 SCENARIO_TYPES:Final = {
     "DESTROY":DestroyEvaluation
