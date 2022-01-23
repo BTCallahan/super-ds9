@@ -527,6 +527,16 @@ class CommandEventHandler(MainGameEventHandler):
         self.ship_type_can_cloak = self.engine.player.ship_type_can_cloak
         self.ship_type_can_fire_torps = self.engine.player.ship_type_can_fire_torps
         
+        self.warp_travel = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=(CONFIG_OBJECT.command_display_end_x - CONFIG_OBJECT.command_display_x) - 4,
+            height=3,
+            text="Continue to destination",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
+        )
         self.warp_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x, 
             y=2+CONFIG_OBJECT.command_display_y,
@@ -645,109 +655,118 @@ class CommandEventHandler(MainGameEventHandler):
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
-        captain = self.engine.player.ship_class.nation.captain_rank_name
-        
-        if self.warp_button.cursor_overlap(event) and self.engine.player.is_mobile:
+        if self.engine.player.is_at_warp:
+            if self.warp_travel.cursor_overlap(event):
             
-            return self.warp(captain)
-        
-        elif self.move_button.cursor_overlap(event) and self.engine.player.is_mobile:
-            
-            return self.move(captain)
-            
-        elif self.shields_button.cursor_overlap(event):
-            
-            return self.shields(captain)
-            
-        elif self.beam_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_beam_arrays:
-            
-            return self.beam_arrays(captain)
-
-        elif self.cannons_buttons.cursor_overlap(event) and self.engine.player.ship_can_fire_cannons:
-            
-            return self.cannons(captain)
-            
-        elif self.dock_button.cursor_overlap(event) and self.engine.player.is_mobile:
-            
-            return self.dock()
-                
-        elif self.repair_button.cursor_overlap(event):
-            
-            return self.repair()
-            
-        elif self.cloak_button.cursor_overlap(event) and self.engine.player.ship_type_can_cloak:
-                
-            return self.cloak()
-
-        elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
-            
-            return self.torpedos(captain)
-            
-        elif self.auto_destruct_button.cursor_overlap(event):
-            
-            return SelfDestructHandler(self.engine)
+                return WarpTravelOrder(self.engine.player)
         else:
-            game_data = self.engine.game_data
-            ship_planet_or_star = select_ship_planet_star(game_data, event)
+            captain = self.engine.player.ship_class.nation.captain_rank_name
             
-            if ship_planet_or_star:
+            if self.warp_button.cursor_overlap(event) and self.engine.player.is_mobile:
                 
-                if isinstance(ship_planet_or_star, (Planet, Star)):
+                return self.warp(captain)
+            
+            elif self.move_button.cursor_overlap(event) and self.engine.player.is_mobile:
+                
+                return self.move(captain)
+                
+            elif self.shields_button.cursor_overlap(event):
+                
+                return self.shields(captain)
+                
+            elif self.beam_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_beam_arrays:
+                
+                return self.beam_arrays(captain)
+
+            elif self.cannons_buttons.cursor_overlap(event) and self.engine.player.ship_can_fire_cannons:
+                
+                return self.cannons(captain)
+                
+            elif self.dock_button.cursor_overlap(event) and self.engine.player.is_mobile:
+                
+                return self.dock()
                     
-                    game_data.selected_ship_planet_or_star = ship_planet_or_star
+            elif self.repair_button.cursor_overlap(event):
+                
+                return self.repair()
+                
+            elif self.cloak_button.cursor_overlap(event) and self.engine.player.ship_type_can_cloak:
                     
-                elif isinstance(ship_planet_or_star, Starship):
-                    if (
-                        ship_planet_or_star is not self.engine.player and 
-                        ship_planet_or_star is not game_data.selected_ship_planet_or_star
-                    ):    
-                        game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.determin_precision)
+                return self.cloak()
+
+            elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
+                
+                return self.torpedos(captain)
+                
+            elif self.auto_destruct_button.cursor_overlap(event):
+                
+                return SelfDestructHandler(self.engine)
+            else:
+                game_data = self.engine.game_data
+                ship_planet_or_star = select_ship_planet_star(game_data, event)
+                
+                if ship_planet_or_star:
+                    
+                    if isinstance(ship_planet_or_star, (Planet, Star)):
+                        
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
-                else:
-                    game_data.selected_ship_planet_or_star = None
+                        
+                    elif isinstance(ship_planet_or_star, Starship):
+                        if (
+                            ship_planet_or_star is not self.engine.player and 
+                            ship_planet_or_star is not game_data.selected_ship_planet_or_star
+                        ):    
+                            game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.determin_precision)
+                            game_data.selected_ship_planet_or_star = ship_planet_or_star
+                    else:
+                        game_data.selected_ship_planet_or_star = None
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
         
-        captain = self.engine.player.ship_class.nation.captain_rank_name
-        
-        if event.sym == tcod.event.K_w and self.engine.player.is_mobile:
+        if self.engine.player.is_at_warp:
             
-            return self.warp(captain)
+            return WarpTravelOrder(self.engine.player)
+        else:
+            captain = self.engine.player.ship_class.nation.captain_rank_name
             
-        elif event.sym == tcod.event.K_m and self.engine.player.is_mobile:
-            
-            return self.move(captain)
-            
-        elif event.sym == tcod.event.K_s:
-            
-            return self.shields(captain)
-            
-        elif event.sym == tcod.event.K_r:
-            
-            return self.repair(captain)
-            
-        elif event.sym == tcod.event.K_c and self.engine.player.ship_type_can_cloak:
-
-            return self.cloak()
-            
-        elif event.sym == tcod.event.K_f and self.engine.player.ship_type_can_fire_beam_arrays:
-            
-            return self.beam_arrays(captain)
-            
-        elif event.sym == tcod.event.K_i and self.engine.player.ship_type_can_fire_cannons:
-            
-            return self.cannons(captain)
-            
-        elif event.sym == tcod.event.K_d and self.engine.player.is_mobile:
-
-            return self.dock()
+            if event.sym == tcod.event.K_w and self.engine.player.is_mobile:
                 
-        elif event.sym == tcod.event.K_t and self.engine.player.ship_type_can_fire_torps:
-            
-            return self.torpedos()
-            
-        elif event.sym == tcod.event.K_a:
-            return SelfDestructHandler(self.engine)
+                return self.warp(captain)
+                
+            elif event.sym == tcod.event.K_m and self.engine.player.is_mobile:
+                
+                return self.move(captain)
+                
+            elif event.sym == tcod.event.K_s:
+                
+                return self.shields(captain)
+                
+            elif event.sym == tcod.event.K_r:
+                
+                return self.repair(captain)
+                
+            elif event.sym == tcod.event.K_c and self.engine.player.ship_type_can_cloak:
+
+                return self.cloak()
+                
+            elif event.sym == tcod.event.K_f and self.engine.player.ship_type_can_fire_beam_arrays:
+                
+                return self.beam_arrays(captain)
+                
+            elif event.sym == tcod.event.K_i and self.engine.player.ship_type_can_fire_cannons:
+                
+                return self.cannons(captain)
+                
+            elif event.sym == tcod.event.K_d and self.engine.player.is_mobile:
+
+                return self.dock()
+                    
+            elif event.sym == tcod.event.K_t and self.engine.player.ship_type_can_fire_torps:
+                
+                return self.torpedos()
+                
+            elif event.sym == tcod.event.K_a:
+                return SelfDestructHandler(self.engine)
 
     def cloak(self):
         
@@ -954,33 +973,38 @@ class CommandEventHandler(MainGameEventHandler):
             return repair
             
     def on_render(self, console: tcod.Console) -> None:
-        super().on_render(console)
-
         captain = self.engine.player.ship_class.nation.captain_rank_name
+        
+        super().on_render(console)
 
         render_command_box(
             console=console,
             gameData=self.engine.game_data,
             title=f"Your orders, {captain}?"
-            )
-        
-        if self.engine.player.is_mobile:
-            self.warp_button.render(console)
-            self.move_button.render(console)
-            self.dock_button.render(console)
+        )
+        if self.engine.player.is_at_warp:
             
-        self.shields_button.render(console)
-        
-        if self.ship_type_can_fire_beam_arrays:
-            self.beam_button.render(console)
+            self.warp_travel.render(console)
+        else:
+            if self.engine.player.is_mobile:
+                self.warp_button.render(console)
+                self.move_button.render(console)
+                self.dock_button.render(console)
+                
+            self.shields_button.render(console)
             
-        if self.ship_type_can_fire_cannons:
-            self.cannons_buttons.render(console)
+            if self.ship_type_can_fire_beam_arrays:
+                self.beam_button.render(console)
+                
+            if self.ship_type_can_fire_cannons:
+                self.cannons_buttons.render(console)
+                
+            self.repair_button.render(console)
             
-        self.repair_button.render(console)
-        
-        if self.ship_type_can_fire_torps:
-            self.torpedos_button.render(console)
+            if self.ship_type_can_fire_torps:
+                self.torpedos_button.render(console)
+                
+            self.auto_destruct_button.render(console)
             
         self.auto_destruct_button.render(console)
         
