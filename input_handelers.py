@@ -1231,25 +1231,31 @@ class WarpHandlerEasy(CoordBasedHandler):
             
             return CommandEventHandler(self.engine)
         
-        if event.sym in confirm:
-            
-            warp_order = WarpOrder.from_coords(self.engine.player, self.x_button.add_up(), self.y_button.add_up())
-            warning = warp_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                return warp_order
-            
-            self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-        else:
-            self.selected_handeler.handle_key(event)
-            
-            self.energy_cost = round(
+        if not self.is_at_warp:
+            if event.sym in confirm:
+                if self.engine.player.is_at_warp:
+                    return CommandEventHandler(self.engine)
                 
-                self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-                self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
-            )
-            
-            self.cost_button.text = f"{self.energy_cost}"
+                warp_order = WarpOrder.from_coords(
+                    self.engine.player, x=self.x_button.add_up(), y=self.y_button.add_up(), speed=self.warp_speed.add_up(),
+                    start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
+                )
+                warning = warp_order.raise_warning()
+
+                if warning == OrderWarning.SAFE:
+                    self.is_at_warp = True
+                    return warp_order
+                
+                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+            else:
+                self.selected_handeler.handle_key(event)
+                
+                _distance = self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up())
+                warp_speed, cost =  WARP_FACTOR[self.warp_speed.add_up()]
+                self.energy_cost = round(
+                    cost * _distance * SECTOR_ENERGY_COST
+                )
+                self.cost_button.text = f"{self.energy_cost}"
 
 class MoveHandler(HeadingBasedHandler):
 
