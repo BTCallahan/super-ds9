@@ -132,6 +132,89 @@ class MainGameEventHandler(EventHandler):
         print_message_log(console, self.engine.game_data)
         render_position(console, self.engine.game_data)
 
+def distance_button(*, limit:int, max_value:int, min_value:int=0) -> NumberHandeler:
+    return NumberHandeler(
+        limit=limit, max_value=max_value, min_value=min_value,
+        x=3+CONFIG_OBJECT.command_display_x,
+        y=6+CONFIG_OBJECT.command_display_y,
+        width=12,
+        height=3,
+        title="Distance:",
+        active_fg=colors.white,
+        inactive_fg=colors.grey,
+        bg=colors.black,
+        alignment=tcod.constants.RIGHT,
+        initally_active=False
+    )
+
+def torpedo_number_button(*, max_value:int):
+    return NumberHandeler(
+        limit=1, max_value=max_value, min_value=1,
+        x=3+CONFIG_OBJECT.command_display_x,
+        y=6+CONFIG_OBJECT.command_display_y,
+        width=12,
+        height=3,
+        title="Number:",
+        alignment=tcod.constants.RIGHT,
+        active_fg=colors.white,
+        inactive_fg=colors.grey,
+        bg=colors.black,
+        initally_active=False
+    )
+    
+def torpedo_select_button(index_items:Iterable[str], keys:Iterable[Any]):
+    return Selector(
+        x=15+CONFIG_OBJECT.command_display_x,
+        y=16+CONFIG_OBJECT.command_display_y,
+        width=10,
+        height=6,
+        active_fg=colors.white,
+        inactive_fg=colors.grey,
+        bg=colors.black,
+        index_items=index_items,
+        keys=keys
+    )
+
+def cost_button(cost:str) -> SimpleElement:
+    return SimpleElement(
+        x=3+CONFIG_OBJECT.command_display_x,
+        y=10+CONFIG_OBJECT.command_display_y,
+        width=12,
+        height=3,
+        title="Energy Cost:",
+        text=cost,
+        active_fg=colors.white,
+        bg=colors.black,
+        alignment=tcod.constants.RIGHT
+    )
+    
+def speed_button(max_value:int) -> NumberHandeler:
+    return NumberHandeler(
+        x=3+CONFIG_OBJECT.command_display_x,
+        y=14+CONFIG_OBJECT.command_display_y,
+        width=8,
+        height=3,
+        title="Speed:",
+        min_value=1,
+        max_value=max_value,
+        limit=1,
+        active_fg=colors.white,
+        inactive_fg=colors.grey,
+        bg=colors.black,
+        initally_active=False
+    )
+    
+def auto_target_button():
+    return SimpleElement(
+            x=4+12+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=14,
+            height=3,
+            text="Auto-Target",
+            active_fg=colors.white,
+            bg=colors.black
+        )
+
 class CancelConfirmHandler(MainGameEventHandler):
     
     def __init__(self, engine: Engine) -> None:
