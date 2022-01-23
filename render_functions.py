@@ -159,42 +159,35 @@ def print_mega_sector(console:Console, gamedata:GameData):
             i2 = i * 4 + 1
             j2 = j * 5 + 1
 
-            if sector_x.barren_planets > 0:
+            console.print(
+                x=x+j2, y=y+i2,
+                string=f"*{sector_x.total_stars}", fg=colors.yellow
+            )
+            if sector_x.barren_planets + sector_x.unfriendly_planets > 0:
                 console.print(
-                    x=x+j2, y=y+i2,
-                    string=f"+{sector_x.barren_planets}", fg=colors.planet_barren
+                    x=x+j2, y=y+i2+1,
+                    string=f"+{sector_x.barren_planets + sector_x.unfriendly_planets}", fg=colors.planet_barren
                 )
 
             if sector_x.friendly_planets > 0:
                 console.print(
-                    x=x+j2, y=y+i2+1,
+                    x=x+j2, y=y+i2+2,
                     string=f"+{sector_x.friendly_planets}", fg=colors.planet_allied
                 )
-
-            if sector_x.unfriendly_planets > 0:
-                console.print(
-                    x=x+j2, y=y+i2+2,
-                    string=f"+{sector_x.unfriendly_planets}", fg=colors.planet_hostile
-                )
-
-            console.print(
-                x=x+j2+2, y=y+i2,
-                string=f"*{sector_x.total_stars}", fg=colors.yellow
-            )
-
-            hostile_ships = sector_x.hostile_ships
+            
+            hostile_ships = sector_x.display_hostile_ships
             
             if hostile_ships > 0:
                 console.print(
-                    x=x+j2+2, y=y+i2+1,
+                    x=x+j2+2, y=y+i2,
                     string=f"E{hostile_ships}", fg=colors.red if hostile_ships > 0 else colors.cyan
                 )
 
-            allied_ships = sector_x.allied_ships
+            allied_ships = sector_x.display_allied_ships
 
             if allied_ships > 0:
                 console.print(
-                    x=x+j2+2, y=y+i2+2,
+                    x=x+j2+2, y=y+i2+1,
                     string=f"F{allied_ships}", fg=colors.green if allied_ships > 0 else colors.cyan
                 )
             

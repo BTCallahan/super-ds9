@@ -335,9 +335,18 @@ class Starship(CanDockWith):
         value_multiplier_for_derlict:float=0.0, 
         value_multiplier_for_active:float=1.0
     ):
+        """Calculates to point value of the ship and returns a tuple containing the maximum possible value, and the acutal value.
+
+        Args:
+            value_multiplier_for_destroyed (float, optional): How much the value of destroyed ships should be multiplied by. Defaults to 0.0.
+            value_multiplier_for_derlict (float, optional): How much the value of derlict ships should be multiplied by. Defaults to 0.0.
+            value_multiplier_for_active (float, optional): How much the value of active ships should be multiplied by. Defaults to 1.0.
+        """
+        
         def calculate_value(
+            *,
             hull:float, shields:float, energy:float, crew:int, 
-            weapon_energy:int, cannon_energy:int, torpedo_value:int, multiplier_value:float
+            beam_energy:int, cannon_energy:int, torpedo_value:int, multiplier_value:float
         ):
             
             if multiplier_value == 0.0:
@@ -347,13 +356,18 @@ class Starship(CanDockWith):
             shields_value = shields * self.shield_generator.get_effective_value
             energy_value = energy * self.power_generator.get_effective_value
             crew_value = crew * self.crew.crew_readyness
-            weapon_energy_value = weapon_energy * self.beam_array.get_effective_value if weapon_energy else 0
+            dodge_value = self.impulse_engine.get_effective_value * self.ship_class.evasion
+            weapon_energy_value = beam_energy * self.beam_array.get_effective_value if beam_energy else 0
             cannon_energy_value = cannon_energy * self.cannons.get_effective_value if cannon_energy else 0
             torpedo_value_value = torpedo_value * self.torpedo_launcher.get_effective_value if torpedo_value else 0
             transporter_value = self.transporter.get_effective_value
+            targeting = self.sensors.get_effective_value * self.ship_class.targeting if any(
+                (weapon_energy_value, cannon_energy_value, torpedo_value_value)
+            ) else 0
+            
             return (
                 hull_value + shields_value + energy_value + crew_value + weapon_energy_value + 
-                cannon_energy_value + torpedo_value_value + transporter_value
+                cannon_energy_value + torpedo_value_value + dodge_value + targeting
             ) * multiplier_value
         
         hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting = self.ship_class.get_stragic_values
@@ -372,7 +386,9 @@ class Starship(CanDockWith):
         )
         
         value_to_be_returned = calculate_value(
-            hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, value_used_in_calculation
+            hull=hull, shields=shields, energy=energy, crew=crew, beam_energy=beam_energy, 
+            cannon_energy=cannon_energy, torpedo_value=torpedo_value, 
+            multiplier_value=value_used_in_calculation
         )
         
         return max_possible_value, value_to_be_returned
