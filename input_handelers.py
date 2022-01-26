@@ -9,7 +9,7 @@ from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, S
 from engine import CONFIG_OBJECT
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
 from nation import ALL_NATIONS
-from order import CloakOrder, SelfDestructOrder, WarpTravelOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
+from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
     Order, DockOrder, OrderWarning, EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from global_functions import stardate
 from space_objects import Planet, Star
@@ -515,6 +515,8 @@ class CommandEventHandler(MainGameEventHandler):
         self.ship_type_can_fire_cannons = self.engine.player.ship_type_can_fire_cannons
         self.ship_type_can_cloak = self.engine.player.ship_type_can_cloak
         self.ship_type_can_fire_torps = self.engine.player.ship_type_can_fire_torps
+        self.is_mobile = self.engine.player.is_mobile
+        self.ship_is_not_automated = not self.engine.player.is_automated
         
         self.warp_travel = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -619,14 +621,24 @@ class CommandEventHandler(MainGameEventHandler):
             y=17+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
-            text="Fire (T)orpedos",
+            text="Fire T(o)rpedos",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
+        )
+        self.transporter_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=20+CONFIG_OBJECT.command_display_y,
+            width=24,
+            height=3,
+            text="(T)ransporter",
             active_fg=colors.white,
             bg=colors.black,
             alignment=tcod.CENTER
         )
         self.auto_destruct_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=20+CONFIG_OBJECT.command_display_y,
+            y=23+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
             text="(A)uto-Destruct",
@@ -644,11 +656,11 @@ class CommandEventHandler(MainGameEventHandler):
         else:
             captain = self.engine.player.ship_class.nation.captain_rank_name
             
-            if self.warp_button.cursor_overlap(event) and self.engine.player.is_mobile:
+            if self.warp_button.cursor_overlap(event) and self.is_mobile:
                 
                 return self.warp(captain)
             
-            elif self.move_button.cursor_overlap(event) and self.engine.player.is_mobile:
+            elif self.move_button.cursor_overlap(event) and self.is_mobile:
                 
                 return self.move(captain)
                 
@@ -656,15 +668,15 @@ class CommandEventHandler(MainGameEventHandler):
                 
                 return self.shields(captain)
                 
-            elif self.beam_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_beam_arrays:
+            elif self.beam_button.cursor_overlap(event) and self.ship_type_can_fire_beam_arrays:
                 
                 return self.beam_arrays(captain)
 
-            elif self.cannons_buttons.cursor_overlap(event) and self.engine.player.ship_can_fire_cannons:
+            elif self.cannons_buttons.cursor_overlap(event) and self.ship_type_can_fire_cannons:
                 
                 return self.cannons(captain)
                 
-            elif self.dock_button.cursor_overlap(event) and self.engine.player.is_mobile:
+            elif self.dock_button.cursor_overlap(event) and self.is_mobile:
                 
                 return self.dock()
                     
@@ -672,13 +684,17 @@ class CommandEventHandler(MainGameEventHandler):
                 
                 return self.repair()
                 
-            elif self.cloak_button.cursor_overlap(event) and self.engine.player.ship_type_can_cloak:
+            elif self.cloak_button.cursor_overlap(event) and self.ship_type_can_cloak:
                     
                 return self.cloak()
 
-            elif self.torpedos_button.cursor_overlap(event) and self.engine.player.ship_type_can_fire_torps:
+            elif self.torpedos_button.cursor_overlap(event) and self.ship_type_can_fire_torps:
                 
                 return self.torpedos(captain)
+            
+            elif self.transporter_button.cursor_overlap(event) and self.ship_is_not_automated:
+                
+                return self.transporters()
                 
             elif self.auto_destruct_button.cursor_overlap(event):
                 
@@ -711,11 +727,11 @@ class CommandEventHandler(MainGameEventHandler):
         else:
             captain = self.engine.player.ship_class.nation.captain_rank_name
             
-            if event.sym == tcod.event.K_w and self.engine.player.is_mobile:
+            if event.sym == tcod.event.K_w and self.is_mobile:
                 
                 return self.warp(captain)
                 
-            elif event.sym == tcod.event.K_m and self.engine.player.is_mobile:
+            elif event.sym == tcod.event.K_m and self.is_mobile:
                 
                 return self.move(captain)
                 
@@ -727,25 +743,29 @@ class CommandEventHandler(MainGameEventHandler):
                 
                 return self.repair(captain)
                 
-            elif event.sym == tcod.event.K_c and self.engine.player.ship_type_can_cloak:
+            elif event.sym == tcod.event.K_c and self.ship_type_can_cloak:
 
                 return self.cloak()
                 
-            elif event.sym == tcod.event.K_f and self.engine.player.ship_type_can_fire_beam_arrays:
+            elif event.sym == tcod.event.K_f and self.ship_type_can_fire_beam_arrays:
                 
                 return self.beam_arrays(captain)
                 
-            elif event.sym == tcod.event.K_i and self.engine.player.ship_type_can_fire_cannons:
+            elif event.sym == tcod.event.K_i and self.ship_type_can_fire_cannons:
                 
                 return self.cannons(captain)
                 
-            elif event.sym == tcod.event.K_d and self.engine.player.is_mobile:
+            elif event.sym == tcod.event.K_d and self.is_mobile:
 
                 return self.dock()
                     
-            elif event.sym == tcod.event.K_t and self.engine.player.ship_type_can_fire_torps:
+            elif event.sym == tcod.event.K_o and self.ship_type_can_fire_torps:
                 
                 return self.torpedos()
+            
+            elif event.sym == tcod.event.K_t and self.ship_is_not_automated:
+                
+                return self.transporters()
                 
             elif event.sym == tcod.event.K_a:
                 return SelfDestructHandler(self.engine)
@@ -950,6 +970,16 @@ class CommandEventHandler(MainGameEventHandler):
             
             return repair
             
+    def transporters(self):
+        
+        if not self.engine.player.ship_can_transport:
+                
+            self.engine.message_log.add_message(
+                f"Transporters are offline, {self.engine.player.nation.captain_rank_name}", fg=colors.red
+            )
+        else:
+            return TransporterHandler(self.engine)
+        
     def on_render(self, console: tcod.Console) -> None:
         captain = self.engine.player.ship_class.nation.captain_rank_name
         
@@ -986,6 +1016,9 @@ class CommandEventHandler(MainGameEventHandler):
             
             if self.ship_type_can_cloak:
                 self.cloak_button.render(console)
+            
+            if self.ship_is_not_automated:
+                self.transporter_button.render(console)
         
 class WarpHandler(HeadingBasedHandler):
 
@@ -1506,6 +1539,110 @@ class ShieldsHandler(MinMaxInitator):
         else:
             self.amount_button.handle_key(event)
 
+class TransporterHandler(MinMaxInitator):
+    
+    def __init__(self, engine: Engine) -> None:
+        max_value=engine.player.able_crew
+        super().__init__(
+            engine, 
+            max_value=max_value, 
+            starting_value=0
+        )
+        
+    def on_render(self, console: tcod.Console) -> None:
+        
+        render_command_box(
+            console=console,
+            gameData=self.engine.game_data,
+            title="Transporter Controls:"
+        )
+        super().on_render(console)
+    
+    def ev_mousebuttondown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
+        
+        if self.max_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(self.amount_button.max_value)
+            
+        elif self.min_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(self.amount_button.min_value)
+            
+        elif self.confirm_button.cursor_overlap(event):
+            
+            if not self.engine.player.sys_transporter.is_opperational:
+                self.engine.message_log.add_message(
+                    f"The transporters are off line, {self.engine.player.nation.captain_rank_name}.", colors.red
+                )
+                return
+            
+            selected = self.engine.game_data.selected_ship_planet_or_star
+            
+            if isinstance(selected, Starship):
+                
+                order = TransportOrder(self.engine.player, selected, self.amount_button.add_up())
+                
+                warning = order.raise_warning()
+                
+                if warning == OrderWarning.SAFE:
+                    
+                    return order
+                    
+                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+            else:
+                self.engine.message_log.add_message(
+                    f"No spacecraft is selected, {self.engine.player.nation.captain_rank_name}.", colors.red
+                )
+        elif self.cancel_button.cursor_overlap(event):
+            
+            return CommandEventHandler(self.engine)
+        
+        ship_planet_or_star = select_ship_planet_star(self.engine.game_data, event)
+    
+        if (isinstance(
+            
+            ship_planet_or_star, Starship
+            
+        ) and ship_planet_or_star is not self.engine.player and 
+            
+            ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
+        ):
+            self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.determin_precision)
+            
+            self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
+            
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
+        
+        if event.sym in confirm:
+            
+            if not self.engine.player.sys_transporter.is_opperational:
+                self.engine.message_log.add_message(
+                    f"The transporters are off line, {self.engine.player.nation.captain_rank_name}.", colors.red
+                )
+                return
+            
+            selected = self.engine.game_data.selected_ship_planet_or_star
+            
+            if isinstance(selected, Starship):
+                
+                order = TransportOrder(self.engine.player, selected, self.amount_button.add_up())
+                
+                warning = order.raise_warning()
+                
+                if warning == OrderWarning.SAFE:
+                    
+                    return order
+                    
+                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+            else:
+                
+                self.engine.message_log.add_message(
+                    f"No spacecraft is selected, {self.engine.player.nation.captain_rank_name}.", colors.red
+                )
+        if event.sym == tcod.event.K_ESCAPE:
+            
+            return CommandEventHandler(self.engine)
+            
 class BeamArrayHandler(MinMaxInitator):
 
     def __init__(self, engine: Engine) -> None:

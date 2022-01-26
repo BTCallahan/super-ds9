@@ -355,7 +355,15 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         By default, one torpedo will be fired. Should the player's ship have more then one torpedo tube, then they can select the number of torpedoes 
         they want to fire.
 
-    I. Auto Destruct:
+    I. Transport:
+
+        The player may choose to beam a number of uninjured crew members over to another starship. The starship must be a derelict, or it must be a 
+        friendly craft. If it is a derelict, then the crew members who beamed aboard will take controll of it, allowing it to aperate as a friendly 
+        spacecraft. If it is not a derelict, but it is an allied ship, they will renforce the existing crew.
+
+        The player cannot transport crew onto an automated spacecraft. Nor can they transport more crew then the spacecraft's maximum crew.
+
+    J. Auto Destruct:
 
         In times of desperation, the player may want to self destruct their space craft. Because of the severity of this situation, the player is 
         required to input a password to confirm. The password is displayed below the text entry element.
