@@ -6,6 +6,7 @@ from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
 from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
+from nation import ALL_NATIONS
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
@@ -814,7 +815,7 @@ class DockOrder(Order):
 
 class RechargeOrder(Order):
 
-    def __init__(self, entity:Starship, amount:int) -> None:
+    def __init__(self, entity:Starship, amount:int, active:bool) -> None:
         super().__init__(entity)
         
         self.cost = amount - self.entity.shields
@@ -826,10 +827,10 @@ class RechargeOrder(Order):
             self.cost =  ceil(self.cost * self.entity.sys_shield_generator.get_effective_value)
             
         self.amount = amount
-        
+        self.active = active
     
     def __hash__(self) -> int:
-        return hash((self.entity, self.cost, self.amount))
+        return hash((self.entity, self.cost, self.amount, self.active))
     
     def perform(self) -> None:
 
@@ -839,18 +840,28 @@ class RechargeOrder(Order):
         
         self.entity.energy -= energy_cost
         
+        old = self.entity.shields_up
+        
+        self.entity.shields_up = self.active
+        
+        if old != self.active:
+            
+            self.game_data.engine.message_log.add_message(
+                    "Shields up." if self.active <= 0 else "Shields down."
+                )
+        
         if self.entity.is_controllable:
             shields = self.entity.shields
             
             if amount > shields:
                 
                 self.game_data.engine.message_log.add_message(
-                    "Shields up." if shields <= 0 else "Transfering energy to shields."
+                    "Transfering energy to shields."
                 )
             elif amount < shields:
                 
                 self.game_data.engine.message_log.add_message(
-                    "Shields down." if amount == 0 else "Diverting shield energy"
+                    "Diverting shield energy"
                 )
             
         self.entity.shields = amount
@@ -859,9 +870,23 @@ class RechargeOrder(Order):
             self.game_data.player_record["energy_used"] += energy_cost
     
     def raise_warning(self):
-        if self.amount == self.entity.shields:
+        
+        if self.amount == self.entity.shields and self.amount == self.entity.shields_up:
+            
             return OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY
-        return OrderWarning.NOT_ENOUGHT_ENERGY if self.cost > self.entity.energy else OrderWarning.SAFE
+        
+        if self.cost > self.entity.energy:
+            
+            return OrderWarning.NOT_ENOUGHT_ENERGY
+        
+        if not self.active:
+            nearbye_ships = [ship for ship in self.game_data.grab_ships_in_same_sub_sector(
+                self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED}
+            ) if ship.nation is ALL_NATIONS[self.game_data.scenerio.enemy_nation]]
+            
+            if nearbye_ships: 
+                return OrderWarning.ENEMY_SHIPS_NEARBY_WARN 
+        OrderWarning.SAFE
 
 class RepairOrder(Order):
 
