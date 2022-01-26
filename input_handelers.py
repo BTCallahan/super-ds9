@@ -257,7 +257,7 @@ class MinMaxInitator(CancelConfirmHandler):
         
         self.max_button = SimpleElement(
             x=3+12+CONFIG_OBJECT.command_display_x,
-            y=16+CONFIG_OBJECT.command_display_y,
+            y=18+CONFIG_OBJECT.command_display_y,
             width=7,
             height=3,
             text="Max",
@@ -266,7 +266,7 @@ class MinMaxInitator(CancelConfirmHandler):
         )
         self.min_button = SimpleElement(
             x=3+12+CONFIG_OBJECT.command_display_x,
-            y=20+CONFIG_OBJECT.command_display_y,
+            y=22+CONFIG_OBJECT.command_display_y,
             width=7,
             height=3,
             text="Min",

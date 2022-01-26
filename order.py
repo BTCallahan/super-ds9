@@ -852,6 +852,7 @@ class RepairOrder(Order):
                 self.entity.sys_warp_drive.integrety == 1.0,
                 self.entity.hull_percentage == 1.0,
                 self.entity.shields_percentage == 1.0,
+                self.entity.sys_transporter.integrety == 1.0,
                 self.entity.energy == self.entity.ship_class.max_energy
             )
         ):
@@ -941,10 +942,10 @@ class ReactivateDerlict(Order):
     def raise_warning(self):
         
         if self.entity.ship_class.is_automated or self.entity.ship_class.is_automated:
-            return OrderWarning.NOT_ENOUGHT_CREW
+            return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
 
         if self.crew >= self.entity.able_crew:
-            return OrderWarning.NOT_ENOUGHT_CREW
+            return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
 
         if self.target.sector_coords != self.entity.sector_coords:
             return OrderWarning.NO_TARGET

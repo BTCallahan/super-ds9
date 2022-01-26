@@ -685,6 +685,7 @@ class Starship(CanDockWith):
         self.sys_shield_generator = StarshipSystem('Shield:')
         self.sys_sensors = StarshipSystem('Sensors:')
         self.sys_cloak = StarshipSystem("Cloak:")
+        self.sys_transporter = StarshipSystem("Transporter:")
         self.sys_warp_core = StarshipSystem('Warp Core:')
         self.override_nation_code = override_nation_code
         
@@ -819,6 +820,10 @@ class Starship(CanDockWith):
     @property
     def ship_can_fire_cannons(self):
         return self.ship_class.ship_type_can_fire_cannons and self.sys_cannon_weapon.is_opperational
+
+    @property
+    def ship_can_transport(self):
+        return not self.is_automated and self.sys_transporter.is_opperational
 
     @property
     def is_automated(self):
@@ -1007,15 +1012,18 @@ It's actually value is {precision}."
             weapon_energy_value = weapon_energy * self.sys_beam_array.get_effective_value if weapon_energy else 0
             cannon_energy_value = cannon_energy * self.sys_cannon_weapon.get_effective_value if cannon_energy else 0
             torpedo_value_value = torpedo_value * self.sys_torpedos.get_effective_value if torpedo_value else 0
-            
+            transporter_value = self.sys_transporter.get_effective_value
             return (
                 hull_value + shields_value + energy_value + crew_value + weapon_energy_value + 
-                cannon_energy_value + torpedo_value_value
+                cannon_energy_value + torpedo_value_value + transporter_value
             ) * multiplier_value
         
         hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting = self.ship_class.get_stragic_values
         
-        max_possible_value = sum((hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value), start= 0.0)
+        max_possible_value = sum(
+            (hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, 1), 
+            start= 0.0
+        )
         
         ship_status = self.ship_status
         
@@ -1147,6 +1155,8 @@ It's actually value is {precision}."
             d["sys_torpedos"] = self.sys_torpedos.print_info(precision), self.sys_torpedos.get_color()# * 0.01
         if ship_type_can_cloak:
             d["sys_cloak"] = self.sys_cloak.print_info(precision), self.sys_cloak.get_color()
+        if not self.is_automated:
+            d["sys_transporter"] = self.sys_transporter.print_info(precision), self.sys_transporter.get_color()
         d["sys_warp_core"] = self.sys_warp_core.print_info(precision), self.sys_warp_core.get_color()
             
         if ship_type_can_fire_torps:
@@ -1228,6 +1238,8 @@ It's actually value is {precision}."
                 d["sys_torpedos"] = self.sys_torpedos.get_info(precision, use_effective_values)# * 0.01
             if ship_type_can_cloak:
                 d["sys_cloak"] = self.sys_cloak.get_info(precision, use_effective_values)
+            if not self.is_automated:
+                d["sys_transporter"] = self.sys_transporter.get_info(precision, use_effective_values)
             d["sys_warp_core"] = self.sys_warp_core.get_info(precision, use_effective_values)
             
         d["status"] = status
@@ -1279,6 +1291,7 @@ It's actually value is {precision}."
         self.sys_torpedos.integrety = 0.0
         self.sys_warp_core.integrety = 0.0
         self.sys_warp_drive.integrety = 0.0
+        self.sys_transporter.integrety = 0.0
 
         if is_controllable:
             gd.engine.message_log.print_messages = False
@@ -1598,6 +1611,7 @@ It's actually value is {precision}."
         torpedo_sys_damage = 0
         warp_core_sys_damage = 0
         cloak_sys_damage = 0
+        transporter_sys_damage = 0
         
         if calculate_systems and not is_hulk:
             chance_to_damage_system = damage_type.chance_to_damage_system
@@ -1643,6 +1657,9 @@ It's actually value is {precision}."
                     
                 if self.ship_type_can_cloak and chance_of_system_damage():
                     cloak_sys_damage = random_system_damage()
+                
+                if chance_of_system_damage():
+                    transporter_sys_damage = random_system_damage()
                         
         return (
             new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, 
@@ -1650,7 +1667,7 @@ It's actually value is {precision}."
             impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, 
             warp_core_sys_damage, 
             energy_weapons_sys_damage, cannon_sys_damage, 
-            torpedo_sys_damage, cloak_sys_damage
+            torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage
         )
 
     def take_damage(self, amount, text, *, damage_type:DamageType):
@@ -1662,7 +1679,7 @@ It's actually value is {precision}."
         
         ship_originaly_destroyed = old_ship_status in {STATUS_HULK, STATUS_OBLITERATED}
         
-        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage = self.calculate_damage(amount, damage_type=damage_type)
+        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage = self.calculate_damage(amount, damage_type=damage_type)
         
         ship_destroyed = new_hull < 0
         
@@ -1694,6 +1711,7 @@ It's actually value is {precision}."
         self.sys_sensors.integrety -= sensors_sys_damage
         self.sys_warp_drive.integrety -= warp_drive_sys_damage
         self.sys_torpedos.integrety -= torpedo_sys_damage
+        self.sys_transporter.integrety -= transporter_sys_damage
         
         new_ship_status = self.ship_status
         
@@ -1944,6 +1962,8 @@ It's actually value is {precision}."
             self.sys_cannon_weapon.integrety += (0.5 + random() * 0.5)
         self.sys_shield_generator.integrety += system_repair_factor * (0.5 + random() * 0.5)
         self.sys_warp_core.integrety += system_repair_factor * (0.5 + random() * 0.5)
+        if not self.is_automated:
+            self.sys_transporter.integrety += system_repair_factor * (0.5 + random() * 0.5)
         if self.ship_type_can_fire_torps:
             self.sys_torpedos.integrety += system_repair_factor * (0.5 + random() * 0.5)
     
