@@ -191,11 +191,14 @@ def get_system_names(
 
 VALID_SHIP_TYPES:Final = {
     "ESCORT",
+    "ATTACK_FIGHTER",
     "CRUISER",
     "WARSHIP",
     "RESUPPLY",
     "PLATFORM",
-    "STATION"
+    "STATION",
+    "BIRD_OF_PREY",
+    "WARBIRD"
 }
 
 @dataclass(frozen=True)
