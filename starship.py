@@ -59,7 +59,7 @@ class StarshipSystem:
 
     def __init__(self, name:str):
         self._integrety = 1.0
-        self.name = '{: <15}'.format(name)
+        self.name = '{: >17}'.format(name)
 
     @property
     def integrety(self):
@@ -139,6 +139,7 @@ def get_system_names(
     *,
     has_torpedo_launchers:bool=False,
     has_cloaking_device:bool=False,
+    has_transporters:bool=True,
     mobile:bool=True,
     beam_weapon_name:str="",
     cannon_weapon_name:str=""
@@ -181,6 +182,10 @@ def get_system_names(
     if has_torpedo_launchers:
         names.append("Torp. Launchers:")
         keys.append("sys_torpedos")
+    
+    if has_transporters:
+        names.append("Transporters:")
+        keys.append("sys_transporter")
     
     return tuple(names), tuple(keys)
 
@@ -325,6 +330,7 @@ to one.'''
         system_names, system_keys = get_system_names(
             has_torpedo_launchers=max_torpedos > 0 and torp_tubes > 0,
             has_cloaking_device=cloak_strength > 0.0,
+            has_transporters=max_crew > 0,
             beam_weapon_name=f"{short_beam_name_cap}s",
             cannon_weapon_name=f"{short_can_name_cap}",
             mobile=evasion > 0.0
@@ -677,8 +683,8 @@ class Starship(CanDockWith):
         self.injured_crew = 0
         self._energy = ship_class.max_energy
 
-        self.sys_warp_drive = StarshipSystem('Warp Dri.:')
-        self.sys_torpedos = StarshipSystem('Tubes:')
+        self.sys_warp_drive = StarshipSystem('Warp Drive:')
+        self.sys_torpedos = StarshipSystem('Torp. Tubes:')
         self.sys_impulse = StarshipSystem('Impulse:')
         self.sys_beam_array = StarshipSystem(f'{self.ship_class.get_energy_weapon.short_beam_name_cap}s:')
         self.sys_cannon_weapon = StarshipSystem(f"{self.ship_class.get_energy_weapon.short_cannon_name_cap}s:")
@@ -1143,21 +1149,21 @@ It's actually value is {precision}."
             )
 
         if self.is_mobile:
-            d["sys_warp_drive"] = self.sys_warp_drive.print_info(precision), self.sys_warp_drive.get_color()# * 0.01,
-            d["sys_impulse"] = self.sys_impulse.print_info(precision), self.sys_impulse.get_color()# * 0.01,
+            d["sys_warp_drive"] = self.sys_warp_drive.print_info(precision), self.sys_warp_drive.get_color(), self.sys_warp_drive.name
+            d["sys_impulse"] = self.sys_impulse.print_info(precision), self.sys_impulse.get_color(), self.sys_impulse.name
         if self.ship_type_can_fire_beam_arrays:
-            d["sys_beam_array"] = self.sys_beam_array.print_info(precision), self.sys_beam_array.get_color()# * 0.01,
+            d["sys_beam_array"] = self.sys_beam_array.print_info(precision), self.sys_beam_array.get_color(), self.sys_beam_array.name
         if self.ship_type_can_fire_cannons:
-            d["sys_cannon_weapon"] = self.sys_cannon_weapon.print_info(precision), self.sys_cannon_weapon.get_color()
-        d["sys_shield"] = self.sys_shield_generator.print_info(precision), self.sys_shield_generator.get_color()
-        d["sys_sensors"] = self.sys_sensors.print_info(precision), self.sys_sensors.get_color()# * 0.01,
+            d["sys_cannon_weapon"] = self.sys_cannon_weapon.print_info(precision), self.sys_cannon_weapon.get_color(), self.sys_cannon_weapon.name
+        d["sys_shield"] = self.sys_shield_generator.print_info(precision), self.sys_shield_generator.get_color(), self.sys_shield_generator.name
+        d["sys_sensors"] = self.sys_sensors.print_info(precision), self.sys_sensors.get_color(), self.sys_sensors.name
         if ship_type_can_fire_torps:
-            d["sys_torpedos"] = self.sys_torpedos.print_info(precision), self.sys_torpedos.get_color()# * 0.01
+            d["sys_torpedos"] = self.sys_torpedos.print_info(precision), self.sys_torpedos.get_color(), self.sys_torpedos.name
         if ship_type_can_cloak:
-            d["sys_cloak"] = self.sys_cloak.print_info(precision), self.sys_cloak.get_color()
+            d["sys_cloak"] = self.sys_cloak.print_info(precision), self.sys_cloak.get_color(), self.sys_cloak.name
         if not self.is_automated:
-            d["sys_transporter"] = self.sys_transporter.print_info(precision), self.sys_transporter.get_color()
-        d["sys_warp_core"] = self.sys_warp_core.print_info(precision), self.sys_warp_core.get_color()
+            d["sys_transporter"] = self.sys_transporter.print_info(precision), self.sys_transporter.get_color(), self.sys_transporter.name
+        d["sys_warp_core"] = self.sys_warp_core.print_info(precision), self.sys_warp_core.get_color(), self.sys_warp_core.name
             
         if ship_type_can_fire_torps:
 

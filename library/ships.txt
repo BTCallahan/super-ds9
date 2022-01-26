@@ -61,6 +61,8 @@ WARP_CORE_BREACH_DAMAGE:600
 NATION:DOMINION
 END_SHIPCLASS
 #
+# future ships: NX class, SS class/Ganges Class (the Emmette Type), UES class (warp delta), Intrepid class, Daedalus class
+#
 SHIPCLASS:CONSTITUTION_EARLY
 TYPE:CRUISER
 SYM:C

@@ -295,14 +295,12 @@ def print_ship_info(
             console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}", fg=colors.white)
         
         try:
-            
             hd, hc = scan["hull_damage"]
             n = "Perm. Hull Dam.:"
+            add_to_y+=1
             console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
             console.print(x=x+3+16, y=y+i+add_to_y, string=f"{hd: =4}", fg=hc)
             
-            add_to_y+=1
-        
         except KeyError:
             pass
         
@@ -375,7 +373,8 @@ def print_ship_info(
             scanned = scan[k][0]
             scan_color = scan[k][1]
             #k = keys[i-(s+3)]
-            n__n = f"{n:>17}"
+            #n__n = f"{n:>17}"
+            n__n = scan[k][2]
             s__s = f"{scanned}"
             console.print(x=x+3, y=y+i+add_to_y, string=f"{n__n}", fg=colors.white)
             console.print(x=x+3+17, y=y+i+add_to_y, string=f"{s__s}", fg=scan_color)
