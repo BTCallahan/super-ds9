@@ -205,6 +205,10 @@ class WarpOrder(Order):
             )
         
         self.entity.turn_repairing = 0
+        
+        wto = WarpTravelOrder(self.entity)
+        
+        wto.perform()
     
     def raise_warning(self):
         if not self.entity.sys_warp_drive.is_opperational:

@@ -1639,9 +1639,11 @@ class TransporterHandler(MinMaxInitator):
                 self.engine.message_log.add_message(
                     f"No spacecraft is selected, {self.engine.player.nation.captain_rank_name}.", colors.red
                 )
-        if event.sym == tcod.event.K_ESCAPE:
+        elif event.sym == tcod.event.K_ESCAPE:
             
             return CommandEventHandler(self.engine)
+        
+        self.amount_button.handle_key(event)
             
 class BeamArrayHandler(MinMaxInitator):
 
