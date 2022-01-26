@@ -571,7 +571,48 @@ class EnergyWeaponOrder(Order):
             return OrderWarning.ZERO_VALUE_ENTERED
         
         return OrderWarning.NOT_ENOUGHT_ENERGY if self.amount > self.entity.energy else OrderWarning.SAFE
+      
+class TransportOrder(Order):
+    
+    def __init__(self, entity: Starship, target: Starship, amount: int) -> None:
+        super().__init__(entity)
+        self.target = target
+        self.amount = amount
+    
+    def __hash__(self) -> int:
+        return hash((self.entity, self.target, self.amount))
+    
+    def raise_warning(self):
         
+        if self.target.is_automated:
+            return OrderWarning.TRANSPORT_CANNOT_RECREW
+        
+        if self.amount >= self.entity.able_crew:
+            return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
+        
+        if self.amount <= 0:
+            return OrderWarning.TRANSPORT_NO_CREW_SELECTED
+        
+        is_recrewable = self.target.ship_status.is_recrewable
+        same_nation = self.target.nation is self.entity.nation
+        
+        if not (is_recrewable or same_nation):
+        
+            return OrderWarning.TRANSPORT_WRONG_NATION
+        
+        free = (
+            self.target.able_crew + self.target.injured_crew
+        ) - self.target.ship_class.max_crew
+        
+        return OrderWarning.TRANSPORT_NOT_ENOUGH_SPACE if free <= self.amount else OrderWarning.SAFE
+    
+    def perform(self) -> None:
+        
+        self.entity.able_crew -= self.amount
+        self.target.able_crew += self.amount
+        if self.target.nation != self.entity.nation:
+            self.target.override_nation_code = self.entity.ship_class.nation_code
+    
 class TorpedoOrder(Order):
 
     def __init__(
