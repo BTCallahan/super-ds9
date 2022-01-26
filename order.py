@@ -33,7 +33,6 @@ class OrderWarning(Enum):
     SHIP_WILL_COLLIDE_WITH_STAR = auto()
     SHIP_COULD_COLLIDE_WITH_SHIP = auto()
     NOT_ENOUGHT_ENERGY = auto()
-    NOT_ENOUGHT_CREW = auto()
     OUT_OF_RANGE = auto()
     NO_TARGET = auto()
     NO_TARGETS = auto()
@@ -47,6 +46,11 @@ class OrderWarning(Enum):
     CLOAK_COOLDOWN = auto()
     DECLOAK_FIRST = auto()
     UNDOCK_FIRST = auto()
+    TRANSPORT_NO_CREW_SELECTED = auto()
+    TRANSPORT_NOT_ENOUGHT_CREW = auto()
+    TRANSPORT_WRONG_NATION = auto()
+    TRANSPORT_CANNOT_RECREW = auto()
+    TRANSPORT_NOT_ENOUGH_SPACE = auto()
     
 blocks_action = {
     OrderWarning.NOT_ENOUGHT_ENERGY : "Error: We possess insufficent energy reserves.",
@@ -65,7 +69,12 @@ blocks_action = {
     OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY : "Error: There is no change in shield energy.",
     OrderWarning.DECLOAK_FIRST : "Error: We must decloak first.",
     OrderWarning.CLOAK_COOLDOWN : "Error: Our cloaking system is still cooling down.",
-    OrderWarning.UNDOCK_FIRST : "Error: We must undock first."
+    OrderWarning.UNDOCK_FIRST : "Error: We must undock first.",
+    OrderWarning.TRANSPORT_NO_CREW_SELECTED : "Error: We have not selected any crew to transport over.",
+    OrderWarning.TRANSPORT_CANNOT_RECREW : "Error: That spacecraft cannot be boarded",
+    OrderWarning.TRANSPORT_WRONG_NATION : "Error: We would be beaming our boarding team onto a hostile ship!",
+    OrderWarning.TRANSPORT_NOT_ENOUGH_SPACE : "Error: There is not enough space for our boarding team.",
+    OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW : "Error: If we sent over that amount of crew, it would criticly impare our ability to opperate our own ship."
 }
 
 
