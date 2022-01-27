@@ -1082,11 +1082,16 @@ class WarpHandler(HeadingBasedHandler):
                 )
                 warning = warp_order.raise_warning()
 
-                if warning == OrderWarning.SAFE:
-                    return warp_order
+                try:
+                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                except KeyError:
                 
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
-
+                    if warning == OrderWarning.SAFE:
+                        self.is_at_warp = True
+                        return warp_order
+                finally:
+                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
+                
             elif self.heading_button.cursor_overlap(event):
                 self.selected_handeler = self.heading_button
                 self.heading_button.is_active = True
@@ -1122,11 +1127,15 @@ class WarpHandler(HeadingBasedHandler):
                 )
                 warning = warp_order.raise_warning()
 
-                if warning == OrderWarning.SAFE:
-                    self.is_at_warp = True
-                    return warp_order
+                try:
+                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                except KeyError:
                 
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                    if warning == OrderWarning.SAFE:
+                        self.is_at_warp = True
+                        return warp_order
+                finally:
+                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
             else:
                 self.selected_handeler.handle_key(event)
                 
@@ -1216,12 +1225,16 @@ class WarpHandlerEasy(CoordBasedHandler):
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
                 warning = warp_order.raise_warning()
-
-                if warning == OrderWarning.SAFE:
-                    self.is_at_warp = True
-                    return warp_order
                 
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                try:
+                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                except KeyError:
+                        
+                    if warning == OrderWarning.SAFE:
+                        self.is_at_warp = True
+                        return warp_order
+                finally:
+                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
             else:
                 x, y = select_sector_space(event)
 
@@ -1255,11 +1268,15 @@ class WarpHandlerEasy(CoordBasedHandler):
                 )
                 warning = warp_order.raise_warning()
 
-                if warning == OrderWarning.SAFE:
-                    self.is_at_warp = True
-                    return warp_order
-                
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                try:
+                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                except KeyError:
+                        
+                    if warning == OrderWarning.SAFE:
+                        self.is_at_warp = True
+                        return warp_order
+                finally:
+                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
             else:
                 self.selected_handeler.handle_key(event)
                 
@@ -1315,7 +1332,7 @@ class MoveHandler(HeadingBasedHandler):
             self.heading_button.is_active = False
             self.distance_button.is_active = True
             
-        elif self.confirm_button.cursor_overlap(event):
+        elif self.confirm_button.cursor_overlap(event) and self.can_render_confirm_button:
             
             move_order = MoveOrder.from_heading(
                 self.engine.player, self.heading_button.add_up(), self.distance_button.add_up(), self.energy_cost
@@ -1331,6 +1348,8 @@ class MoveHandler(HeadingBasedHandler):
                     return move_order
                 self.engine.message_log.add_message(collision_warnings[warning], colors.orange)
                 self.warned_once = True
+            finally:
+                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
 
         elif self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
@@ -1340,7 +1359,7 @@ class MoveHandler(HeadingBasedHandler):
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
-        if event.sym in confirm and not self.heading_button.is_empty and not self.distance_button.is_empty:
+        if event.sym in confirm and not self.heading_button.is_empty and not self.distance_button.is_empty and self.can_render_confirm_button:
             move_order = MoveOrder.from_heading(
                 self.engine.player, self.heading_button.add_up(), self.distance_button.add_up(), self.energy_cost
             )
@@ -1356,6 +1375,8 @@ class MoveHandler(HeadingBasedHandler):
                     return move_order
                 self.engine.message_log.add_message(collision_warnings[warning], colors.orange)
                 self.warned_once = True
+            finally:
+                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
         else:
             self.selected_handeler.handle_key(event)
             
@@ -1405,9 +1426,11 @@ class MoveHandlerEasy(CoordBasedHandler):
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
         if self.cancel_button.cursor_overlap(event):
+            
             return CommandEventHandler(self.engine)
             
-        elif self.confirm_button.cursor_overlap(event):
+        elif self.confirm_button.cursor_overlap(event) and self.engine.player.sys_impulse.is_opperational:
+            
             warp_order = MoveOrder.from_coords(
                 self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
             )
@@ -1417,11 +1440,17 @@ class MoveHandlerEasy(CoordBasedHandler):
                 return warp_order
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                
             except KeyError:
+                
                 if not self.engine.crash_warning or self.warned_once:
+                    
                     return warp_order
+                
                 self.engine.message_log.add_message(collision_warnings[warning], fg=colors.orange)
                 self.warned_once = True
+            finally:
+                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
         else:
             x,y = select_sub_sector_space(event)
 
@@ -1442,7 +1471,7 @@ class MoveHandlerEasy(CoordBasedHandler):
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
-        if event.sym in confirm:
+        if event.sym in confirm and self.engine.player.sys_impulse.is_opperational:
             
             warp_order = MoveOrder.from_coords(
                 self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
@@ -1458,6 +1487,8 @@ class MoveHandlerEasy(CoordBasedHandler):
                     return warp_order
                 self.engine.message_log.add_message(collision_warnings[warning], fg=colors.orange)
                 self.warned_once =True
+            finally:
+                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
         else:
             self.selected_handeler.handle_key(event)
             self.energy_cost = round(
@@ -1535,9 +1566,15 @@ class ShieldsHandler(MinMaxInitator):
             
             try:
                 self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.warned_once = False
+                
             except KeyError:
                 
+                if self.warned_once:
+                    return recharge_order
+                
                 self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.warned_once = True
             
         elif self.cancel_button.cursor_overlap(event):
 
@@ -1559,11 +1596,17 @@ class ShieldsHandler(MinMaxInitator):
             
             try:
                 self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.warned_once = False
             except KeyError:
                 
+                if self.warned_once:
+                    return recharge_order
+                
                 self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.warned_once = True
         else:
             self.amount_button.handle_key(event)
+            self.warned_once = False
 
 class TransporterHandler(MinMaxInitator):
     
@@ -1610,11 +1653,15 @@ class TransporterHandler(MinMaxInitator):
                 
                 warning = order.raise_warning()
                 
-                if warning == OrderWarning.SAFE:
-                    
-                    return order
-                    
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                try:
+                    self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                except KeyError:
+                
+                    if warning == OrderWarning.SAFE:
+                        
+                        return order
+                finally:
+                    self.can_render_confirm_button = self.engine.player.sys_transporter.is_opperational
             else:
                 self.engine.message_log.add_message(
                     f"No spacecraft is selected, {self.engine.player.nation.captain_rank_name}.", colors.red
@@ -1655,13 +1702,16 @@ class TransporterHandler(MinMaxInitator):
                 
                 warning = order.raise_warning()
                 
-                if warning == OrderWarning.SAFE:
-                    
-                    return order
-                    
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
-            else:
+                try:
+                    self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                except KeyError:
                 
+                    if warning == OrderWarning.SAFE:
+                        
+                        return order
+                finally:
+                    self.can_render_confirm_button = self.engine.player.sys_transporter.is_opperational
+            else:
                 self.engine.message_log.add_message(
                     f"No spacecraft is selected, {self.engine.player.nation.captain_rank_name}.", colors.red
                 )
@@ -1704,19 +1754,9 @@ class BeamArrayHandler(MinMaxInitator):
         )
         super().on_render(console)
         
-        self.amount_button.render(console)
-        
-        self.min_button.render(console)
-        
-        self.max_button.render(console)
-        
         self.auto_target_button.render(console)
 
-        self.confirm_button.render(console)
-
         self.fire_all_button.render(console)
-
-        self.cancel_button.render(console)
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
@@ -1774,17 +1814,21 @@ class BeamArrayHandler(MinMaxInitator):
                 )
             warning = fire_order.raise_warning()
 
-            if warning == OrderWarning.SAFE:
-                self.amount_button.max_value = min(
-                    self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+            try:
+                self.engine.message_log.add_message(
+                    blocks_action[warning], colors.red
                 )
-                if self.amount_button.add_up() > self.amount_button.max_value:
-                    self.amount_button.set_text(self.amount_button.max_value)
-                return fire_order
+            except KeyError:
+                if warning == OrderWarning.SAFE:
+                    self.amount_button.max_value = min(
+                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+                    )
+                    if self.amount_button.add_up() > self.amount_button.max_value:
+                        self.amount_button.set_text(self.amount_button.max_value)
+                    return fire_order
+            finally:
+                self.can_render_confirm_button = self.engine.player.ship_can_fire_beam_arrays
             
-            self.engine.message_log.add_message(
-                blocks_action[warning], colors.red
-            )
         elif self.fire_all_button.cursor_overlap(event):
             
             self.fire_all_button.is_active = not self.fire_all_button.is_active
@@ -1843,17 +1887,20 @@ class BeamArrayHandler(MinMaxInitator):
                 )
             warning = fire_order.raise_warning()
 
-            if warning == OrderWarning.SAFE:
-                self.amount_button.max_value = min(
-                    self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+            try:
+                self.engine.message_log.add_message(
+                    blocks_action[warning], colors.red
                 )
-                if self.amount_button.add_up() > self.amount_button.max_value:
-                    self.amount_button.set_text(self.amount_button.max_value)
-                return fire_order
-            
-            self.engine.message_log.add_message(
-                blocks_action[warning], colors.red
-            )
+            except KeyError:
+                if warning == OrderWarning.SAFE:
+                    self.amount_button.max_value = min(
+                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+                    )
+                    if self.amount_button.add_up() > self.amount_button.max_value:
+                        self.amount_button.set_text(self.amount_button.max_value)
+                    return fire_order
+            finally:
+                self.can_render_confirm_button = self.engine.player.ship_can_fire_beam_arrays
         else:
             self.amount_button.handle_key(event)
 
@@ -1887,17 +1934,7 @@ class CannonHandler(MinMaxInitator):
         )
         super().on_render(console)
         
-        self.amount_button.render(console)
-        
-        self.min_button.render(console)
-        
-        self.max_button.render(console)
-        
         self.auto_target_button.render(console)
-
-        self.confirm_button.render(console)
-
-        self.cancel_button.render(console)
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
@@ -1940,18 +1977,23 @@ class CannonHandler(MinMaxInitator):
                 self.engine.game_data.selected_ship_planet_or_star
             )
             warning = fire_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                self.amount_button.max_value = min(
-                    self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
-                )
-                if self.amount_button.add_up() > self.amount_button.max_value:
-                    self.amount_button.set_text(self.amount_button.max_value)
-                return fire_order
             
-            self.engine.message_log.add_message(
-                blocks_action[warning], colors.red
-            )
+            try:
+                self.engine.message_log.add_message(
+                    blocks_action[warning], colors.red
+                )
+            except:
+                
+                if warning == OrderWarning.SAFE:
+                    self.amount_button.max_value = min(
+                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
+                    )
+                    if self.amount_button.add_up() > self.amount_button.max_value:
+                        self.amount_button.set_text(self.amount_button.max_value)
+                    return fire_order
+            finally:
+                self.can_render_confirm_button = self.engine.player.ship_can_fire_cannons
+            
         elif self.cancel_button.cursor_overlap(event):
 
             return CommandEventHandler(self.engine)
@@ -1995,17 +2037,21 @@ class CannonHandler(MinMaxInitator):
             )
             warning = fire_order.raise_warning()
 
-            if warning == OrderWarning.SAFE:
-                self.amount_button.max_value = min(
-                    self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
+            try:
+                self.engine.message_log.add_message(
+                    blocks_action[warning], colors.red
                 )
-                if self.amount_button.add_up() > self.amount_button.max_value:
-                    self.amount_button.set_text(self.amount_button.max_value)
-                return fire_order
-            
-            self.engine.message_log.add_message(
-                blocks_action[warning], colors.red
-            )
+            except:
+                
+                if warning == OrderWarning.SAFE:
+                    self.amount_button.max_value = min(
+                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
+                    )
+                    if self.amount_button.add_up() > self.amount_button.max_value:
+                        self.amount_button.set_text(self.amount_button.max_value)
+                    return fire_order
+            finally:
+                self.can_render_confirm_button = self.engine.player.ship_can_fire_cannons
         else:
             self.amount_button.handle_key(event)
 
@@ -2198,23 +2244,24 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             self.y_button.is_active = False
             self.number_button.is_active = True
             
-        elif self.confirm_button.cursor_overlap(event):
+        elif self.confirm_button.cursor_overlap(event) and self.engine.player.ship_can_fire_torps:
             
             torpedo_order = TorpedoOrder.from_coords(
                 self.engine.player, self.number_button.add_up(), self.x_button.add_up(), self.y_button.add_up()
             )
             warning = torpedo_order.raise_warning()
-
-            if warning == OrderWarning.SAFE:
-                return torpedo_order
+            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             except KeyError:
-                if not self.engine.torpedo_warning or self.warned_once:
+                
+                if warning == OrderWarning.SAFE or not self.engine.torpedo_warning or self.warned_once:
                     return torpedo_order
                 
                 self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
                 self.warned_once = True
+            finally:
+                self.can_render_confirm_button = self.engine.player.ship_can_fire_torps
         else:
             game_data = self.engine.game_data
             ship_planet_or_star = select_ship_planet_star(game_data, event)
@@ -2250,16 +2297,18 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             torpedo_order = TorpedoOrder(self, self.heading.add_up(), self.number.add_up())
             warning = torpedo_order.raise_warning()
 
-            if warning == OrderWarning.SAFE:
-                return torpedo_order
+            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             except KeyError:
-                if not self.engine.torpedo_warning or self.warned_once:
+                
+                if warning == OrderWarning.SAFE or not self.engine.torpedo_warning or self.warned_once:
                     return torpedo_order
                 
                 self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
                 self.warned_once = True
+            finally:
+                self.can_render_confirm_button = self.engine.player.ship_can_fire_torps
         else:
             self.selected_handeler.handle_key(event)
                 
