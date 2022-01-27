@@ -253,7 +253,7 @@ class MinMaxInitator(CancelConfirmHandler):
         engine: Engine, can_render_confirm_button:bool=True,
         *,
         max_value:int, starting_value:int
-        ) -> None:
+    ) -> None:
         super().__init__(engine, can_render_confirm_button)
         
         self.max_button = SimpleElement(
@@ -1039,7 +1039,7 @@ class WarpHandler(HeadingBasedHandler):
         self.warp_speed = speed_button(round(9 * self.engine.player.sys_warp_drive.get_effective_value))
         
         self.is_at_warp = self.engine.player.is_at_warp
-
+        
     def on_render(self, console: tcod.Console) -> None:
                 
         render_command_box(
@@ -2434,11 +2434,13 @@ class SelfDestructHandler(CancelConfirmHandler):
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_CANCEL:
+            
             return CommandEventHandler(self.engine)
 
         if event.sym in confirm:
 
             if self.code_handler.text_to_print == self.code:
+                
                 if self.warned_once:
 
                     return SelfDestructOrder(self.engine.player)
@@ -2471,7 +2473,9 @@ class SelfDestructHandler(CancelConfirmHandler):
         if self.cancel_button.cursor_overlap(event):
             
             return CommandEventHandler(self.engine)
+        
         if self.confirm_button.cursor_overlap(event):
+            
             if self.code_handler.text_to_print == self.code:
 
                 if self.warned_once:
@@ -2500,7 +2504,9 @@ class GameOverEventHandler(EventHandler):
 
     def __init__(self, engine: Engine):
         super().__init__(engine)
+        
         if engine.player.ship_status.is_active:
+            
             engine.message_log.add_message(
                 f"Incomming message from {engine.player.ship_class.nation.command_name}...", fg=colors.orange
             )
