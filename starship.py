@@ -715,7 +715,7 @@ class Starship(CanDockWith):
         except IndexError:
             self.torpedo_loaded = "NONE"
 
-        #print(ai_cls)
+        self.shields_up = True
 
         self.ai: Optional[BaseAi] = ai_cls(entity=self)
     
@@ -1543,7 +1543,7 @@ It's actually value is {precision}."
         except KeyError:
             shield_effectiveness = 1
         
-        shields_are_already_down = shield_effectiveness <= 0 or current_shields <= 0 or not old_status.do_shields_work
+        shields_are_already_down = shield_effectiveness <= 0 or current_shields <= 0 or not old_status.do_shields_work or not self.shields_up
         
         shields_dam = 0
         armorDam = amount

@@ -1,21 +1,20 @@
 from __future__ import annotations
 from collections import OrderedDict
 from decimal import Decimal
-import os
 from random import choice
 from textwrap import wrap
-from turtle import distance
 from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from engine import CONFIG_OBJECT
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
-from nation import ALL_NATIONS
-from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, torpedo_warnings, collision_warnings, misc_warnings, \
-    Order, DockOrder, OrderWarning, EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Tuple, Union
+from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, \
+    torpedo_warnings, collision_warnings, misc_warnings, Order, DockOrder, OrderWarning, \
+    EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from global_functions import stardate
 from space_objects import Planet, Star
 from starship import Starship
 from torpedo import ALL_TORPEDO_TYPES
-from ui_related import BooleanBox, ButtonBox, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, TextHandeler, confirm
+from ui_related import BooleanBox, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, \
+    TextHandeler, confirm
 import tcod
 import tcod.event
 import tcod.constants
@@ -218,7 +217,7 @@ def auto_target_button():
 
 class CancelConfirmHandler(MainGameEventHandler):
     
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: Engine, can_render_confirm_button:bool=True) -> None:
         super().__init__(engine)
         
         self.confirm_button = SimpleElement(
@@ -239,21 +238,23 @@ class CancelConfirmHandler(MainGameEventHandler):
             active_fg=colors.white,
             bg=colors.black,
         )
+        self.can_render_confirm_button = can_render_confirm_button
     
     def on_render(self, console: tcod.Console) -> None:
         super().on_render(console)
         self.cancel_button.render(console)
-        self.confirm_button.render(console)
+        if self.can_render_confirm_button:
+            self.confirm_button.render(console)
 
 class MinMaxInitator(CancelConfirmHandler):
     
     def __init__(
         self, 
-        engine: Engine, 
+        engine: Engine, can_render_confirm_button:bool=True,
         *,
         max_value:int, starting_value:int
         ) -> None:
-        super().__init__(engine)
+        super().__init__(engine, can_render_confirm_button)
         
         self.max_button = SimpleElement(
             x=3+12+CONFIG_OBJECT.command_display_x,
@@ -297,8 +298,8 @@ class MinMaxInitator(CancelConfirmHandler):
         
 class HeadingBasedHandler(CancelConfirmHandler):
         
-    def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
+    def __init__(self, engine: Engine, can_render_confirm_button:bool=True) -> None:
+        super().__init__(engine, can_render_confirm_button)
         
         self.heading_button = NumberHandeler(
             limit=3, 
@@ -446,7 +447,7 @@ class HeadingBasedHandler(CancelConfirmHandler):
 class CoordBasedHandler(CancelConfirmHandler):
     
     def __init__(
-        self, engine: Engine, 
+        self, engine: Engine, can_render_confirm_button:bool=True,
         *,
         max_x:int,
         max_y:int,
@@ -454,7 +455,7 @@ class CoordBasedHandler(CancelConfirmHandler):
         starting_y:int,
         ) -> None:
         
-        super().__init__(engine)
+        super().__init__(engine, can_render_confirm_button)
                 
         self.x_button = NumberHandeler(
             limit=2, 
@@ -1023,7 +1024,7 @@ class CommandEventHandler(MainGameEventHandler):
 class WarpHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
+        super().__init__(engine, engine.player.sys_warp_drive.is_opperational)
         
         self.distance = distance_button(
             limit=3,
@@ -1144,6 +1145,7 @@ class WarpHandlerEasy(CoordBasedHandler):
         sector_coords = engine.game_data.player.sector_coords
         super().__init__(
             engine,
+            can_render_confirm_button=engine.player.sys_warp_drive.is_opperational,
             max_x=CONFIG_OBJECT.sector_width,
             max_y=CONFIG_OBJECT.sector_height,
             starting_x=sector_coords.x,
@@ -1272,13 +1274,15 @@ class MoveHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
         
-        super().__init__(engine)
+        player = engine.player
+        
+        super().__init__(engine, can_render_confirm_button=player.sys_impulse.is_opperational)
         
         self.distance_button = distance_button(
             limit=3, max_value=CONFIG_OBJECT.max_move_distance, min_value=1,
         )
         self.energy_cost = round(
-            self.distance_button.add_up() * LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
+            self.distance_button.add_up() * LOCAL_ENERGY_COST * player.sys_impulse.affect_cost_multiplier
         )
         self.cost_button = cost_button(f"{self.energy_cost}")
         
@@ -1371,16 +1375,17 @@ class MoveHandlerEasy(CoordBasedHandler):
     def __init__(self, engine: Engine) -> None:
         
         local_coords = engine.game_data.player.local_coords
+        player = engine.player
         
         super().__init__(
-            engine, 
+            engine, can_render_confirm_button=engine.player.sys_impulse.is_opperational,
             starting_x=local_coords.x, starting_y=local_coords.y,
             max_x=CONFIG_OBJECT.sector_width,
             max_y=CONFIG_OBJECT.sector_height
         )
         self.energy_cost = round(
-            self.engine.player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST * 
-            self.engine.player.sys_impulse.affect_cost_multiplier
+            player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST * 
+            player.sys_impulse.affect_cost_multiplier
         )
         self.cost_button = cost_button(cost=f"{self.energy_cost}")
         
@@ -1470,9 +1475,20 @@ class ShieldsHandler(MinMaxInitator):
         player = engine.player
         
         super().__init__(
-            engine, 
+            engine, can_render_confirm_button=player.sys_shield_generator.is_opperational,
             starting_value=player.shields,
             max_value=min(player.shields + player.energy, player.get_max_effective_shields)
+        )
+        self.shield_status = BooleanBox(
+            x=18+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=8,
+            title="Shields",
+            active_text="Up", inactive_text="Down",
+            active_fg=colors.green, inactive_fg=colors.red,
+            bg=colors.black,
+            initally_active=True
         )
         
     def on_render(self, console: tcod.Console) -> None:
@@ -1489,6 +1505,7 @@ class ShieldsHandler(MinMaxInitator):
         
         self.max_button.render(console)
         self.min_button.render(console)
+        self.shield_status.render(console)
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
 
@@ -1499,10 +1516,17 @@ class ShieldsHandler(MinMaxInitator):
         elif self.min_button.cursor_overlap(event):
             
             self.amount_button.set_text(0)
+            
+        elif self.shield_status.cursor_overlap(event):
+            
+            self.shield_status.is_active = not self.shield_status.is_active
+            self.warned_once = False
 
         elif self.confirm_button.cursor_overlap(event):
             
-            recharge_order = RechargeOrder(self.engine.player, self.amount_button.add_up())
+            recharge_order = RechargeOrder(
+                self.engine.player, self.amount_button.add_up(), self.shield_status.is_active
+            )
 
             warning = recharge_order.raise_warning()
 
@@ -1524,7 +1548,9 @@ class ShieldsHandler(MinMaxInitator):
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            recharge_order = RechargeOrder(self.engine.player, self.amount_button.add_up())
+            recharge_order = RechargeOrder(
+                self.engine.player, self.amount_button.add_up(), self.shield_status.is_active
+            )
 
             warning = recharge_order.raise_warning()
 
@@ -1544,7 +1570,7 @@ class TransporterHandler(MinMaxInitator):
     def __init__(self, engine: Engine) -> None:
         max_value=engine.player.able_crew
         super().__init__(
-            engine, 
+            engine, can_render_confirm_button=engine.player.sys_transporter.is_opperational,
             max_value=max_value, 
             starting_value=0
         )
@@ -1650,7 +1676,7 @@ class BeamArrayHandler(MinMaxInitator):
     def __init__(self, engine: Engine) -> None:
         player = engine.player
         super().__init__(
-            engine, 
+            engine, can_render_confirm_button=player.ship_can_fire_beam_arrays,
             max_value=player.get_max_effective_beam_firepower,
             starting_value=0
         )
@@ -1838,7 +1864,7 @@ class CannonHandler(MinMaxInitator):
         player = engine.player
         
         super().__init__(
-            engine, 
+            engine, can_render_confirm_button=player.ship_can_fire_cannons,
             max_value=min(player.get_max_effective_cannon_firepower, player.energy),
             starting_value=0
         )
@@ -1987,12 +2013,14 @@ class TorpedoHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
         
-        super().__init__(engine)
+        player = engine.player
+        
+        super().__init__(engine, can_render_confirm_button=player.sys_shield_generator.is_opperational)
         
         self.number_button = torpedo_number_button(
-            max_value=self.engine.player.ship_class.torp_tubes
+            max_value=player.ship_class.torp_tubes
         )
-        torpedos = self.engine.player.ship_class.torp_types
+        torpedos = player.ship_class.torp_types
         
         self.torpedo_select = torpedo_select_button(
             index_items=[
@@ -2106,18 +2134,19 @@ class TorpedoHandlerEasy(CoordBasedHandler):
     def __init__(self, engine: Engine) -> None:
         
         local_coords = engine.game_data.player.local_coords
+        player = engine.player
 
         super().__init__(
-            engine,
+            engine, can_render_confirm_button=player.ship_can_fire_torps,
             max_x=CONFIG_OBJECT.subsector_width,
             max_y=CONFIG_OBJECT.subsector_height,
             starting_x=local_coords.x,
             starting_y=local_coords.y
         )
         self.number_button = torpedo_number_button(
-            max_value=self.engine.player.ship_class.torp_tubes
+            max_value=player.ship_class.torp_tubes
         )
-        torpedos = self.engine.player.ship_class.torp_types
+        torpedos = player.ship_class.torp_types
         
         self.torpedo_select = torpedo_select_button(
             index_items=[
@@ -2237,7 +2266,8 @@ class TorpedoHandlerEasy(CoordBasedHandler):
 class SelfDestructHandler(CancelConfirmHandler):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine)
+        
+        super().__init__(engine, can_render_confirm_button=True)
         
         player = engine.player
         
