@@ -4,11 +4,10 @@
 # NAME: - The name of the ship class. This can contain letters, spaces, brackets, and apostriphes.
 # SHIELDS: - The maximum shield strength of the ship. Must be in intiger.
 # HULL: - The maximum hull strength of the ship. Must be in intiger.
-# TORPEDOS: - The maximum number of torpedos the ship class can carry. Must be in intiger. Optional, defaults to 0 if missing.
+# TORPEDOS: - This contains alternated torpedo type codes and torpedo type numbers, seperated by commas. The codes determin what types of torpedos the ship can carry. These codes can contain uppercase letters, numbers, and underscores. Valid codes can be found in the file library/torpdeos.txt. The numbers determin the number of torpedos of that type that ships of the class will start with. The numbers must be in intiger. Optional, can be omitted. If missing, then the ship will be treated as having no torpedos.
+# TORPEDO_TUBES: - This set the maximum number of torpedos that can be fired at once. Must be in intiger. Optional, defaults to 0 if missing.
 # CREW: - The maximum crew of the ship. Must be in intiger. Optional, defaults to 0 is missing. If missing the ship will be treated as automated.
 # ENERGY: The maximum energy of the ship. Must be in intiger.
-# TORPEDO_TYPES: - Codes for the torpedos that the ship can carry. This can contain uppercase letters, numbers, and underscores. Optional, can be omitted. Valid codes can be found in the file library/torpdeos.txt.
-# TORPEDO_TUBES: - This set the maximum number of torpedos that can be fired at once. Must be in intiger. Optional, defaults to 0 if missing.
 # DAMAGE_CONTROL: - Damage control. Used to determin how much of a ships is repaired. This must be a floating point value greater then 0.
 # MAX_CANNON_ENERGY: - The maximum amount of energy that that can be fired from the ships cannons. Must be an intiger. Optional, defaults to 0 if missing.
 # MAX_BEAM_ENERGY: - The maximum amount of energy that that can be fired from the ships beam arrays. Must be an intiger. Optional, defaults to 0 if missing.
@@ -69,11 +68,10 @@ SYM:C
 NAME:Constitution
 SHIELDS:1000
 HULL:500
-TORPEDOS:80
+TORPEDOS:PHOTON,80
 CREW:203
 ENERGY:3000
 TORPEDO_TUBES:2
-TORPEDO_TYPES:PHOTON
 ENERGY_WEAPON:PHASER
 DAMAGE_CONTROL:0.5
 DETECTION_STRENGTH:0.25
@@ -91,10 +89,9 @@ SYM:D
 NAME:Defiant
 SHIELDS:2700
 HULL:1000
-TORPEDOS:20
 CREW:50
 ENERGY:5000
-TORPEDO_TYPES:QUANTIUM,PHOTON
+TORPEDO_TYPES:QUANTIUM,20,PHOTON,10
 TORPEDO_TUBES:2
 ENERGY_WEAPON:PHASER
 DAMAGE_CONTROL:0.45
@@ -117,10 +114,9 @@ SYM:I
 NAME:Intrepid
 SHIELDS:3000
 HULL:1200
-TORPEDOS:30
+TORPEDOS:PHOTON,65,TRI_COLBALT,5
 CREW:450
 ENERGY:6000
-TORPEDO_TYPES:PHOTON
 TORPEDO_TUBES:2
 ENERGY_WEAPON:PHASER
 DAMAGE_CONTROL:0.45
@@ -161,10 +157,9 @@ SYM:K
 NAME:K'Vort
 SHIELDS:1900
 HULL:800
-TORPEDOS:20
+TORPEDOS:PHOTON,20
 CREW:12
 ENERGY:4000
-TORPEDO_TYPES:PHOTON
 TORPEDO_TUBES:1
 ENERGY_WEAPON:DISTRUPTOR
 DAMAGE_CONTROL:0.35
@@ -185,10 +180,9 @@ SYM:K
 NAME:K't'inga
 SHIELDS:2800
 HULL:1100
-TORPEDOS:20
+TORPEDOS:PHOTON,60
 CREW:600
 ENERGY:4600
-TORPEDO_TYPES:PHOTON
 TORPEDO_TUBES:1
 ENERGY_WEAPON:DISTRUPTOR
 DAMAGE_CONTROL:0.35
@@ -234,10 +228,9 @@ SYM:F
 NAME:Gem'Hader Fighter (Advanced)
 SHIELDS:900
 HULL:400
-TORPEDOS:5
+TORPEDOS:POLARON,5
 CREW:15
 ENERGY:2500
-TORPEDO_TYPES:POLARON
 TORPEDO_TUBES:1
 ENERGY_WEAPON:PHA_POLERON
 DAMAGE_CONTROL:0.15
@@ -257,10 +250,9 @@ SYM:C
 NAME:Gem'Hader Cruiser
 SHIELDS:3000
 HULL:1200
-TORPEDOS:10
+TORPEDOS:POLARON,30
 CREW:1200
 ENERGY:5250
-TORPEDO_TYPES:POLARON
 TORPEDO_TUBES:2
 ENERGY_WEAPON:PHA_POLERON
 DAMAGE_CONTROL:0.125
@@ -280,10 +272,9 @@ SYM:B
 NAME:Gem'Hader Battleship
 SHIELDS:5500
 HULL:1500
-TORPEDOS:20
+TORPEDOS:POLARON,80
 CREW:1200
 ENERGY:8000
-TORPEDO_TYPES:POLARON
 TORPEDO_TUBES:6
 ENERGY_WEAPON:PHA_POLERON
 DAMAGE_CONTROL:0.075
