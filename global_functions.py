@@ -173,3 +173,29 @@ def stardate(date_time:datetime):
     dec = ret * SD_DIV_DEC
 
     return dec
+
+def scan_assistant(v:IntOrFloat, precision:int):
+    """This takes a value, v and devides it by the precision. Next, the quotent is rounded to the nearest intiger and then multiplied by the precision. The product is then returned. A lower precision value ensures more accurate results. If precision is 1, then v is returned
+
+    E.g.:
+    v = 51.25
+    p = 25
+
+    round(51.25 / 25) * 25
+    round(2.41) * 25
+    2 * 25
+    50
+
+    Args:
+        v (IntOrFloat): The value that is modified
+        precision (int): This value is used to calucalate the crecision. Lower values are more precise.
+
+    Returns:
+        int: The modified value
+    """
+    assert isinstance(precision, int)
+    if precision == 1:
+        return round(v)
+    r = round(v / precision) * precision
+    assert isinstance(r, float) or isinstance(r, int)
+    return r

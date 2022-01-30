@@ -17,40 +17,14 @@ from components.transporter import Transporter
 from components.warp_drive import WarpDrive
 from get_config import CONFIG_OBJECT
 
-from global_functions import get_first_group_in_pattern, inverse_square_law
+from global_functions import inverse_square_law, scan_assistant
 from nation import ALL_NATIONS
 from ship_class import ShipClass
 from space_objects import SubSector, CanDockWith, ALL_TORPEDO_TYPES
 from torpedo import Torpedo, find_most_powerful_torpedo
 from coords import Coords, IntOrFloat, MutableCoords
 import colors
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, SMALLEST, STATUS_AT_WARP, WARP_FACTOR, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
-
-def scan_assistant(v:IntOrFloat, precision:int):
-    """This takes a value, v and devides it by the precision. Next, the quotent is rounded to the nearest intiger and then multiplied by the precision. The product is then returned. A lower precision value ensures more accurate results. If precision is 1, then v is returned
-
-    E.g.:
-    v = 51.25
-    p = 25
-
-    round(51.25 / 25) * 25
-    round(2.41) * 25
-    2 * 25
-    50
-
-    Args:
-        v (IntOrFloat): The value that is modified
-        precision (int): This value is used to calucalate the crecision. Lower values are more precise.
-
-    Returns:
-        int: The modified value
-    """
-    assert isinstance(precision, int)
-    if precision == 1:
-        return round(v)
-    r = round(v / precision) * precision
-    assert isinstance(r, float) or isinstance(r, int)
-    return r
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, STATUS_AT_WARP, WARP_FACTOR, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
 if TYPE_CHECKING:
     from game_data import GameData
