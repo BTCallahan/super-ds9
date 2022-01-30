@@ -1,15 +1,15 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from decimal import DivisionByZero
-import re
-from typing import TYPE_CHECKING, Dict, Final, Iterable, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Type, Union
 from random import choice, uniform, random, randint
-from math import ceil, floor, inf
+from math import ceil, floor
 from itertools import accumulate
 from components.beam_array import BeamArray
+from components.cannon import Cannon
 from components.cloak import Cloak
 from components.crew import Crew
 from components.impulse_ingine import ImpulseEngine
+from components.power_generator import PowerGenerator
+from components.sensors import Sensors
 from components.shields import Shields
 from components.starship_system import StarshipSystem
 from components.torpedo_launcher import TorpedoLauncher
@@ -101,8 +101,53 @@ class Starship(CanDockWith):
         self._hull = ship_class.max_hull
         
         self._hull_damage = 0
+        
+        self.power_generator = PowerGenerator(ship_class)
+        self.power_generator.starship = self
+        
+        self.sensors = Sensors()
+        self.sensors.starship = self
+        
+        if ship_class.max_shields:#if has shields
+            self.shield_generator = Shields(ship_class)
+            self.shield_generator.starship = self
+        
+        if ship_class.ship_type_can_fire_torps:#if has torpedos
+            
+            self.torpedo_launcher = TorpedoLauncher(ship_class)
+            self.torpedo_launcher.starship = self
 
-        self.torps = set_torps(ship_class.torp_types, ship_class.max_torpedos)
+        #self.torps = set_torps(ship_class.torp_types, ship_class.max_torpedos)
+
+        if not ship_class.is_automated:#if has crew
+            
+            self.crew = Crew(ship_class)
+        
+        if ship_class.cloak_strength > 0.0:#if can cloak
+            
+            self.cloak = Cloak()
+            self.cloak.starship = self
+
+        if ship_class.max_beam_energy > 0:
+            
+            self.beam_array = BeamArray(ship_class)
+            self.beam_array.starship = self
+        
+        if ship_class.max_cannon_energy > 0:
+            
+            self.cannons = Cannon(ship_class)
+            self.cannons.starship = self
+        
+        if ship_class.evasion > 0.0:
+            
+            self.warp_drive = WarpDrive()
+            self.warp_drive.starship = self
+            
+            self.impulse_engine = ImpulseEngine()
+            self.impulse_engine.starship = self
+
+        self.transporter = Transporter()
+        self.transporter.starship = self
 
         self.able_crew = ship_class.max_crew
         self.injured_crew = 0
