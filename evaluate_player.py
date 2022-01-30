@@ -12,7 +12,14 @@ if TYPE_CHECKING:
     from game_data import GameData
 
 def evaluate_ships(ships:Iterable[Starship]):
-    
+    """This is a pretyy complex function. It looks at the score values of the iterable of starships that was passed in and evaluate them. Idealy, it would check to see what the mission objective is to know how to score them. For example, for the mission objective was to find derlict ships and capture them befre the enemy could destroy them, then it would devide the iterable into three lists. The first list is for captured ship. These would be scored based on the condition they were in. The second list would be for ship that are still delrict. Pherhaps these would be treated as failures on the players fart for failing to capture them, and be scored at zero, or perhaps they woiuld be scored at half their condition. Finally the ships that were destroyed would be scored at zero. 
+
+    Args:
+        ships (Iterable[Starship]): Ad itterable of Starship objects
+
+    Returns:
+        [type]: [description]
+    """
     total_ships = len(ships)
     
     _alive_ships = [ship for ship in ships if ship.ship_status.is_active]
@@ -33,20 +40,60 @@ def evaluate_ships(ships:Iterable[Starship]):
     
     number_of_derlict_ships = len(derlict_ships)
     
-    alive_ships_scores = tuple(
+    _alive_ships_scores = (
         (ship.calculate_ship_stragic_value()) for ship in alive_ships
     )
-    captured_ships_scores = tuple(
+    alive_ships_scores = tuple(
+        ship[1] for ship in _alive_ships_scores
+    )
+    possible_alive_ships_scores = tuple(
+        ship[0] for ship in _alive_ships_scores
+    )
+    _captured_ships_scores = (
         (ship.calculate_ship_stragic_value()) for ship in captured_ships
     )
-    derlict_ship_scores = tuple(
+    captured_ships_scores = tuple(
+        ship[1] for ship in _captured_ships_scores
+    )
+    possible_captured_ships_scores = tuple(
+        ship[0] for ship in _captured_ships_scores
+    )
+    _derlict_ship_scores = (
         (ship.calculate_ship_stragic_value(value_multiplier_for_derlict=1.0)) for ship in derlict_ships
     )
-    destroyed_ship_scores = tuple(
-        (ship.calculate_ship_stragic_value(value_multiplier_for_destroyed=1.0)) for ship in destroyed_ships
+    derlict_ship_scores = tuple(
+        ship[1] for ship in _derlict_ship_scores
     )
-    
-    return number_of_alive_ships / total_ships, number_of_captured_ships / total_ships, number_of_destroyed_ships
+    possible_derlict_ship_scores = tuple(
+        ship[0] for ship in _derlict_ship_scores
+    )
+    destroyed_ship_scores = tuple(
+        (ship.calculate_ship_stragic_value(value_multiplier_for_destroyed=0.0)[0]) for ship in destroyed_ships
+    )
+    alive_ships_percent = number_of_alive_ships / total_ships
+    captured_ships_percent = number_of_captured_ships / total_ships
+    derlict_ships_percent = number_of_derlict_ships / total_ships
+    destroyed_ships_percent = number_of_destroyed_ships / total_ships
+    total_alive_ships_scores = sum(alive_ships_scores)
+    total_possible_alive_ships_scores = sum(possible_alive_ships_scores)
+    total_captured_ships_scores = sum(captured_ships_scores)
+    total_possible_captured_ships_scores = sum(possible_captured_ships_scores)
+    total_derlict_ship_scores = sum(derlict_ship_scores)
+    total_possible_derlict_ship_scores = sum(possible_derlict_ship_scores)
+    total_destroyed_ship_scores = sum(destroyed_ship_scores)
+    return (
+        alive_ships_percent,
+        captured_ships_percent,
+        derlict_ships_percent,
+        destroyed_ships_percent,
+        total_alive_ships_scores,
+        total_possible_alive_ships_scores,
+        total_captured_ships_scores,
+        total_possible_captured_ships_scores,
+        total_derlict_ship_scores,
+        total_possible_derlict_ship_scores,
+        total_destroyed_ship_scores
+    )
 
 class ScenerioEvaluation:
     
