@@ -35,6 +35,9 @@ class Shields(StarshipSystem):
     def get_max_effective_shields(self):
         return ceil(self.starship.ship_class.max_shields * self.get_effective_value)
     
+    def determin_max_effective_shields(self, precision:int, effective_value=True):
+        return ceil(self.starship.ship_class.max_shields * self.get_info(precision, effective_value=effective_value) )
+    
     @property
     def get_energy_cost_per_turn(self):
         try:

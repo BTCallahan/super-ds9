@@ -259,7 +259,6 @@ def print_ship_info(
         x=x+2, y=y+2,
         string=f"Position: {self.local_coords.x}, {self.local_coords.y}", fg=colors.white
     )
-    
     if ship_status == STATUS_HULK:
         
         console.print_box(
@@ -268,9 +267,7 @@ def print_ship_info(
             height=4,
             string=f"Remains of the {self.proper_name}", fg=colors.white
         )
-    
     else:
-        
         add_to_y = 4
         
         for i, n, d, c, m in zip(
