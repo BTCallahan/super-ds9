@@ -463,7 +463,12 @@ It's actually value is {precision}."
             d["hull_damage"] = hull_damage, print_color(hull_damage, ship_class.max_hull)
         
         if ship_type_can_fire_torps:
+            total_torps = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
+            
+            all_torps = sum([v for k,v in total_torps])
+            
             d["number_of_torps"] = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
+            d["torpedo_color"] = colors.white if all_torps == self.ship_class.max_torpedos else colors.planet_hostile
         
         has_crew = not self.ship_class.is_automated
         

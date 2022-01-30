@@ -98,8 +98,8 @@ It's actually value is {precision}."
             )
         
         if precision == 1:
-            for k,v in self.starship. ship_class.torp_dict.items():
+            for k,v in self.torps.items():
                 yield (k, v)
         else:
-            for k,v in self.starship. ship_class.torp_dict.items():
+            for k,v in self.torps.items():
                 yield (k, scan_assistant(v, precision))

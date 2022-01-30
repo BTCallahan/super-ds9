@@ -13,9 +13,8 @@ class BeamArray(StarshipSystem):
     starship:Starship
     
     def __init__(self, shipclass:ShipClass) -> None:
-        super().__init__(f"{shipclass.get_energy_weapon.short_beam_name_cap}s")
+        super().__init__(f"{shipclass.get_energy_weapon.short_beam_name_cap}s:")
         
-    
     @property
     def ship_can_fire_beam_arrays(self):
         return self.starship.ship_class.ship_type_can_fire_beam_arrays and self.is_opperational

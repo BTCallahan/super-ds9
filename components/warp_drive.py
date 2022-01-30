@@ -9,7 +9,7 @@ from data_globals import WARP_FACTOR
 class WarpDrive(StarshipSystem):
         
     def __init__(self) -> None:
-        super().__init__("Warp Drive")
+        super().__init__("Warp Drive:")
         
         self.warp_destinations:Optional[Tuple[Coords]] = None
         self.warp_progress:float=0.0
