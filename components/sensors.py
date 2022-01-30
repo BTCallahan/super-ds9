@@ -1,17 +1,20 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from random import uniform
+from typing import TYPE_CHECKING, Dict, Tuple, Union
+from data_globals import STATUS_ACTIVE, STATUS_OBLITERATED, STATUS_HULK, STATUS_DERLICT, CloakStatus, ShipStatus
+from get_config import CONFIG_OBJECT
 
 if TYPE_CHECKING:
-    from ship_class import ShipClass
+    from starship import Starship
 
+from global_functions import scan_assistant
 from components.starship_system import StarshipSystem
 import colors
 
 class Sensors(StarshipSystem):
     
     def __init__(self):
-        
-        pass
+        super().__init__("Sensors:")
     
     @property
     def determin_precision(self):
@@ -45,6 +48,44 @@ class Sensors(StarshipSystem):
             return 100
         
         return 200 if getEffectiveValue >= 0.3 else 500
+    
+    @property
+    def get_targeting_power(self):
+        return self.starship.ship_class.targeting * self.get_effective_value
+    
+    def detect_cloaked_ship(self, ship:Starship):
+        if ship.cloak.cloak_status != CloakStatus.ACTIVE:
+            raise AssertionError(f"The ship {self.starship.name} is atempting to detect the ship {ship.name}, even though {ship.name} is not cloaked.")
+
+        if not self.is_opperational:
+            return False
+        
+        detected = True
+        
+        detection_strength = self.starship.ship_class.detection_strength * self.get_effective_value
+        
+        cloak_strength = ship.get_cloak_power
+
+        for i in range(CONFIG_OBJECT.chances_to_detect_cloak):
+
+            if uniform(
+                0.0, detection_strength
+            ) < uniform(
+                0.0, cloak_strength
+            ):
+                detected = False
+                break
+            
+        player = self.starship.game_data.player
+        
+        if detected and player.sector_coords == self.starship.sector_coords:
+            
+            cr = player.nation.captain_rank_name
+            
+            self.starship.game_data.engine.message_log.add_message(
+f'{f"{cr}, we have" if self is player else f"The {self.name} has"} detected {"us" if ship is player else ship.name}!'
+            )
+        return detected
     
     def scan_for_print(self, precision: int=1):
         

@@ -1,9 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from ship_class import ShipClass
-
 from components.starship_system import StarshipSystem
 
 class ImpulseEngine(StarshipSystem):

@@ -6,12 +6,9 @@ from coords import Coords
 
 from data_globals import WARP_FACTOR
 
-if TYPE_CHECKING:
-    from ship_class import ShipClass
-
 class WarpDrive(StarshipSystem):
         
-    def __init__(self, shipclass:ShipClass) -> None:
+    def __init__(self) -> None:
         super().__init__("Warp Drive")
         
         self.warp_destinations:Optional[Tuple[Coords]] = None

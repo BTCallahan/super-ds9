@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 
 from components.starship_system import StarshipSystem
 
-
 class BeamArray(StarshipSystem):
     
     starship:Starship

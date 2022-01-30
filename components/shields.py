@@ -13,7 +13,7 @@ class Shields(StarshipSystem):
         super().__init__("Shield Gen.:")
         
         self._shields = shipclass.max_shields
-        self._shields_up = True
+        self.shields_up = True
         
     @property
     def shields(self):
@@ -37,7 +37,12 @@ class Shields(StarshipSystem):
     
     @property
     def get_energy_cost_per_turn(self):
-        return self.shields * 0.01 if self._shields_up else 0
+        try:
+            is_cloaked = self.starship.cloak.cloak_is_turned_on
+        except AttributeError:
+            is_cloaked = False
+            
+        return self.shields * 0.01 if self.shields_up and self.is_opperational and is_cloaked else 0
     
     @property
     def shields_percentage(self):
