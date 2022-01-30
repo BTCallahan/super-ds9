@@ -3,7 +3,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from random import choice
 from textwrap import wrap
-from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
+from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR
 from engine import CONFIG_OBJECT
 from typing import TYPE_CHECKING, Any, Iterable, Optional, Tuple, Union
 from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, \
@@ -12,7 +12,7 @@ from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder
 from global_functions import stardate
 from space_objects import Planet, Star
 from starship import Starship
-from torpedo import ALL_TORPEDO_TYPES, Torpedo
+from torpedo import Torpedo
 from ui_related import BooleanBox, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, \
     TextHandeler, confirm
 import tcod
@@ -978,7 +978,6 @@ class CommandEventHandler(MainGameEventHandler):
         if self.warned_once:
             return repair
         try:
-            
             self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
             self.warned_once = True
             

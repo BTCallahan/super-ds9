@@ -58,7 +58,7 @@ blocks_action = {
     OrderWarning.OUT_OF_RANGE : "Error: Our destination is out of range.",
     OrderWarning.SYSTEM_INOPERATIVE : "Error: That ship system is off line.",
     OrderWarning.SYSTEM_MISSING : "Error: The required system is not present on this ship.",
-    OrderWarning.PLANET_AFRAID : "Error: The planet is too afarid of the nearby hostile forces.",
+    OrderWarning.PLANET_AFRAID : "Error: The planet is too afaid of the nearby hostile forces.",
     OrderWarning.PLANET_TOO_DISTANT : "Error: The planet is too far from our ship.",
     OrderWarning.PLANET_TOO_PRIMITIVE : "Error: The planet lacks the infurstucture to repaire and repsuply our ship.",
     OrderWarning.PLANET_UNFRIENDLY : "Error: The planet is hostile to us.",
@@ -357,7 +357,6 @@ class MoveOrder(Order):
                     star = sub_sector.stars_dict[co]
                     
                 except KeyError:
-
                     try:
                         ship = self.ships[co]
                         try:
@@ -383,7 +382,6 @@ class MoveOrder(Order):
 
                     except KeyError:
                         pass
-            
         else:
             for co in self.coord_list:
                 try:
@@ -458,12 +456,10 @@ class MoveOrder(Order):
                 planet = sub_sector.planets_dict[co]
                 return OrderWarning.SHIP_WILL_COLLIDE_WITH_PLANET
             except KeyError:
-                
                 try:
                     star = sub_sector.stars_dict[co]
                     return OrderWarning.SHIP_WILL_COLLIDE_WITH_STAR
                 except KeyError:
-            
                     try:
                         ship = self.ships[co]
                         could_collide_with_ship = True
@@ -471,7 +467,6 @@ class MoveOrder(Order):
                     except KeyError:
                         pass
         else:
-
             for co in self.coord_list:
                 try:
                     planet = sub_sector.planets_dict[co]
@@ -507,7 +502,6 @@ class EnergyWeaponOrder(Order):
                 raise ValueError(
                     "Cannons can only be used to target a single ship. If the parameter 'use_cannons' is True, then the parameter 'targets' must be None"
                 )
-            
             self.targets
     
     def __hash__(self):

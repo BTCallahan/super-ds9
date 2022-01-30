@@ -1,8 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Type, Union
 from random import choice, uniform, random, randint
-from math import ceil, floor
-from itertools import accumulate
+from math import ceil
 from components.beam_array import BeamArray
 from components.cannon import Cannon
 from components.cloak import Cloak
@@ -11,20 +10,18 @@ from components.impulse_ingine import ImpulseEngine
 from components.power_generator import PowerGenerator
 from components.sensors import Sensors
 from components.shields import Shields
-from components.starship_system import StarshipSystem
 from components.torpedo_launcher import TorpedoLauncher
 from components.transporter import Transporter
 from components.warp_drive import WarpDrive
-from get_config import CONFIG_OBJECT
 
 from global_functions import inverse_square_law, scan_assistant
 from nation import ALL_NATIONS
 from ship_class import ShipClass
-from space_objects import SubSector, CanDockWith, ALL_TORPEDO_TYPES
+from space_objects import SubSector, CanDockWith
 from torpedo import Torpedo
-from coords import Coords, IntOrFloat, MutableCoords
+from coords import Coords, MutableCoords
 import colors
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, STATUS_AT_WARP, WARP_FACTOR, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, STATUS_AT_WARP, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
 if TYPE_CHECKING:
     from game_data import GameData
@@ -35,7 +32,7 @@ def randomNeumeral(n:int) -> str:
         yield choice(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 
 class Starship(CanDockWith):
-    """
+    """This class is the bread and butter of the game
     """
 
     game_data: GameData

@@ -43,7 +43,9 @@ class ConfigObject:
         
         elif seconds_per_turn == 0:
             
-            raise ValueError("The value of 'seconds_per_turn' is zero, which means that no time will pass between turns")
+            raise ValueError(
+                "The value of 'seconds_per_turn' is zero, which means that no time will pass between turns"
+            )
         
         self.time_per_turn = timedelta(seconds=seconds_per_turn)
         
