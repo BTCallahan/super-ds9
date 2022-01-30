@@ -21,7 +21,7 @@ class PlanetHabitation:
 
     def generate_development(self):
         
-        return uniform(self.min_development, self.max_development) if self.max_development > 0 else 0.0
+        return float(uniform(self.min_development, self.max_development) if self.max_development > 0 else 0.0)
             
 PLANET_PREWARP:Final = PlanetHabitation(
     color=colors.orange, 

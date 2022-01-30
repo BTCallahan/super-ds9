@@ -31,7 +31,7 @@ class TorpedoLauncher(StarshipSystem):
         } if shipclass.torp_dict else {}
         
         try:
-            self.torpedo_loaded = self.torps.keys()[0]
+            self.torpedo_loaded = tuple(self.torps.keys())[0]
         except IndexError:
             self.torpedo_loaded = ALL_TORPEDO_TYPES["NONE"]
     
