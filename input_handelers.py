@@ -12,7 +12,7 @@ from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder
 from global_functions import stardate
 from space_objects import Planet, Star
 from starship import Starship
-from torpedo import ALL_TORPEDO_TYPES
+from torpedo import ALL_TORPEDO_TYPES, Torpedo
 from ui_related import BooleanBox, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, \
     TextHandeler, confirm
 import tcod
@@ -2061,16 +2061,16 @@ class TorpedoHandler(HeadingBasedHandler):
         
         player = engine.player
         
-        super().__init__(engine, can_render_confirm_button=player.sys_shield_generator.is_opperational)
+        super().__init__(engine, can_render_confirm_button=player.shield_generator.is_opperational)
         
         self.number_button = torpedo_number_button(
             max_value=player.ship_class.torp_tubes
         )
-        torpedos = player.ship_class.torp_types
+        torpedos = player.ship_class.allowed_torpedos_tuple
         
         self.torpedo_select = torpedo_select_button(
             index_items=[
-                ALL_TORPEDO_TYPES[name].cap_name for name in torpedos
+                name.cap_name for name in torpedos
             ],
             keys=torpedos
         )
@@ -2094,11 +2094,11 @@ class TorpedoHandler(HeadingBasedHandler):
             return CommandEventHandler(self.engine)
         if self.torpedo_select.cursor_overlap(event):
             if self.torpedo_select.handle_click(event):
-                key:str = self.torpedo_select.index_key
+                key:Torpedo = self.torpedo_select.index_key
+                                
+                self.engine.player.torpedo_launcher.torpedo_loaded = key
                 
-                self.engine.player.torpedo_loaded = key
-                
-                cap_name = ALL_TORPEDO_TYPES[key].cap_name
+                cap_name = key.cap_name
                 
                 captain_name = self.engine.player.ship_class.nation.captain_rank_name
                 
@@ -2192,13 +2192,13 @@ class TorpedoHandlerEasy(CoordBasedHandler):
         self.number_button = torpedo_number_button(
             max_value=player.ship_class.torp_tubes
         )
-        torpedos = player.ship_class.torp_types
+        torpedos = player.torpedo_launcher.torps.keys()
         
         self.torpedo_select = torpedo_select_button(
             index_items=[
-                ALL_TORPEDO_TYPES[name].cap_name for name in torpedos
+                t.cap_name for t in torpedos
             ],
-            keys=torpedos
+            keys=tuple(torpedos)
         )
         
     def on_render(self, console: tcod.Console) -> None:

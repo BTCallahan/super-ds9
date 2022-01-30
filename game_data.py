@@ -312,10 +312,10 @@ class GameData:
                 elif ship.ship_class.ship_type == "ESCORT":
                     subsec.small_ships += 1
 
-    def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:str, ships_in_area:Dict[Coords, Starship]):
+    def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:Torpedo, ships_in_area:Dict[Coords, Starship]):
         #global PLAYER
         #heading_to_direction
-        torpedo = ALL_TORPEDO_TYPES[torpedo_type]
+        torpedo = torpedo_type
 
         posX, posY = shipThatFired.local_coords.x, shipThatFired.local_coords.y
         

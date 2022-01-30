@@ -337,7 +337,8 @@ class Planet(InterstellerObject, CanDockWith):
     def can_supply_torpedos(self, ship:Starship):
         
         if ship.ship_type_can_fire_torps:
-            supply = ship.ship_class.max_torpedos - ship.get_total_torpedos
+            
+            supply = ship.ship_class.max_torpedos - ship.torpedo_launcher.get_total_number_of_torpedos
             
             if supply > 0:
                 
@@ -345,10 +346,10 @@ class Planet(InterstellerObject, CanDockWith):
                 
                 old_damage = 0
                 
-                for t in ship.ship_class.torp_types:
+                for t in ship.ship_class.allowed_torpedos_tuple:
                     
-                    dam = ALL_TORPEDO_TYPES[t].damage
-                    req = ALL_TORPEDO_TYPES[t].infrastructure
+                    dam = t.damage
+                    req = t.infrastructure
                     
                     if dam > old_damage and req <= self.infastructure:
                         
