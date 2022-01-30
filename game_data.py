@@ -12,12 +12,13 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Type, Union,
 from get_config import CONFIG_OBJECT
 from global_functions import stardate
 from scenario import Scenerio
-from starship import ALL_SHIP_CLASSES, Starship
+from starship import Starship
+from ship_class import ALL_SHIP_CLASSES
 from space_objects import Star, SubSector, Planet
 import colors
 import numpy as np
 
-from torpedo import ALL_TORPEDO_TYPES
+from torpedo import ALL_TORPEDO_TYPES, Torpedo
 
 if TYPE_CHECKING:
     from engine import Engine
