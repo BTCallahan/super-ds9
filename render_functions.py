@@ -292,13 +292,11 @@ def print_ship_info(
                 self.ship_class.max_shields,
                 self.ship_class.max_hull,
                 self.ship_class.max_energy, 
-                
             )
         ):
             console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
             console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
             console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}", fg=colors.white)
-        
         try:
             hd, hc = scan["hull_damage"]
             n = "Perm. Hull Dam.:"
@@ -312,19 +310,28 @@ def print_ship_info(
         add_to_y+=3
         
         if not self.ship_class.is_automated:
+            
+            try:
+                injured_crew_amount = scan['injured_crew'][0]
+                injured_crew_color = scan['injured_crew'][1]
+                r=2
+            except KeyError:
+                injured_crew_amount=0
+                injured_crew_color=colors.white
+                r=1
                 
             for i, n, d, c, m in zip(
-                range(2), 
+                range(r), 
                 (
                     "Able Crew:", "Injured Crew:"
                 ),
                 (
                     scan['able_crew'][0],
-                    scan['injured_crew'][0]
+                    injured_crew_amount
                 ),
                 (
                     scan['able_crew'][1],
-                    scan['injured_crew'][1]
+                    injured_crew_color
                 ),
                 (
                     self.ship_class.max_crew,
@@ -334,38 +341,49 @@ def print_ship_info(
                 console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
                 console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
                 console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}", fg=colors.white)
-            add_to_y += 2
+            add_to_y += r
             
         if self.ship_type_can_cloak:
             d_n = scan["cloak_cooldown"][0]
             d_c = scan["cloak_cooldown"][1]
             m = self.ship_class.cloak_cooldown
-            console.print(x=x+3, y=y+add_to_y, string=f"{'C. Cooldown':>16}", fg=colors.white)
+            console.print(x=x+3, y=y+add_to_y, string=f"{'C. Cooldown:':>16}", fg=colors.white)
             console.print(x=x+3+16, y=y+add_to_y, string=f"{d_n: =4}", fg=d_c)
             console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}", fg=colors.white)
             add_to_y+=1
         
-        add_to_y+=2
+        add_to_y+=1
         
         if self.ship_class.ship_type_can_fire_torps:
             max_torps = self.ship_class.max_torpedos 
             console.print(
                 x=x+3+2, y=y+add_to_y, string=f"Torpedo Tubes:{self.ship_class.torp_tubes: =2}", fg=colors.white
             )
+            '''
             console.print(
                 x=x+3+3, y=y+add_to_y+1, string=f"Max Torpedos:{max_torps: =2}", fg=colors.white
             )
-            add_to_y+=2
+            '''
+            add_to_y+=1
             for i, t in enumerate(self.ship_class.torp_dict.keys()):
                 console.print(
                     x=x+3, y=y+add_to_y, 
-                    string=f"{t.cap_name + ':':>16}{self.torpedo_launcher.torps[t]: =2}", fg=colors.white
+                    string=f"{t.cap_name + ':':>16}", fg=colors.white
                 )
+                console.print(
+                    x=x+3+16, y=y+add_to_y,
+                    string=f"{self.torpedo_launcher.torps[t]: =2}", fg=scan["torpedo_color"]
+                )
+                console.print(
+                    x=x+3+16+4, y=y+add_to_y, 
+                    string=f"/{max_torps: =2}", fg=colors.white
+                )
+                
                 add_to_y+=1
         
         names, keys = self.ship_class.system_names, self.ship_class.system_keys
 
-        add_to_y+=2
+        add_to_y+=1
         
         sys_x_position = (width - 2) // 2
 

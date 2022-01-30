@@ -274,40 +274,6 @@ class Starship(CanDockWith):
     def is_enemy(self):
         return self.game_data.player.nation is not self.nation
 
-    def get_number_of_torpedos(self, precision:int = 1):
-        """This generates the number of torpedos that the ship has @ precision - must be an intiger not less then 0 and 
-        not more then 100 
-        Yields tuples containing the torpedo type and the number of torpedos
-
-        Args:
-            precision (int, optional): The precision value. 1 is best, higher values are worse. Defaults to 1.
-
-        Raises:
-            TypeError: Raised if precision is a float.
-            ValueError: Rasied if precision is lower then 1 or higher then 100
-
-        Yields:
-            [type]: [description]
-        """
-        #scanAssistant = lambda v, p: round(v / p) * p
-        if  isinstance(precision, float):
-            raise TypeError("The value 'precision' MUST be a intiger inbetween 1 and 100")
-        if precision not in {1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500}:
-            raise ValueError(
-f"The intiger 'precision' MUST be one of the following: 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, or 500. \
-It's actually value is {precision}."
-            )
-
-        if self.ship_type_can_fire_torps:
-            if precision == 1:
-                for t in self.ship_class.torp_dict.keys():
-                    yield (t, self.torpedo_launcher.torps[t])
-            else:
-                for t in self.ship_class.torp_dict.keys():
-                    yield (t, scan_assistant(self.torpedo_launcher.torps[t], precision))
-        else:
-            yield ("NONE", 0)
-
     @property
     def get_combat_effectivness(self):
         divisor = 7
@@ -365,7 +331,6 @@ It's actually value is {precision}."
         value_multiplier_for_derlict:float=0.0, 
         value_multiplier_for_active:float=1.0
     ):
-        
         def calculate_value(
             hull:float, shields:float, energy:float, crew:int, 
             weapon_energy:int, cannon_energy:int, torpedo_value:int, multiplier_value:float
@@ -476,7 +441,8 @@ It's actually value is {precision}."
             able_crew = scan_assistant(self.crew.able_crew, precision)
             injured_crew = scan_assistant(self.crew.injured_crew, precision)
             d["able_crew"] = (able_crew, print_color(able_crew, ship_class.max_crew))
-            d["injured_crew"] = (injured_crew, print_color(injured_crew, ship_class.max_crew, True))
+            if injured_crew:
+                d["injured_crew"] = (injured_crew, print_color(injured_crew, ship_class.max_crew, True))
         
         ship_type_can_cloak = self.ship_type_can_cloak
 
