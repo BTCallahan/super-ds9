@@ -408,6 +408,92 @@ class Starship(CanDockWith):
                 return colors.orange
             return colors.alert_red
 
+        co_dict = {
+            Coords(x=2,y=2) : (f"Position: {self.local_coords.x}, {self.local_coords.y}", colors.white)
+        }
+        
+        if self.ship_status is STATUS_HULK:
+            
+            co_dict[Coords(x=2,y=3)] = ("Remains of the", colors.white)
+            co_dict[Coords(x=4,y=4)] = (self.name, colors.white)
+        
+        else:
+            y = 0
+            
+            def create_scan_value(
+                base_x:int,
+                base_y:int,
+                dict:Dict[Coords, Tuple[str,Tuple[int,int,int]]], 
+                value_name:str,
+                base_value:int, 
+                max_value:int, 
+                ajusted_max_value:int,
+                add_to_x_1:int,
+                add_to_x_2:int
+            ):
+                """Needs a better name
+                """
+                dict[
+                    Coords(x=base_x,y=base_y)
+                ] = (
+                    f"{value_name:>16}", colors.white
+                )
+                
+                dict[
+                    Coords(x=base_x + add_to_x_1,y=base_y)
+                ] = (
+                    f"{base_value: =4}", print_color(base_value, max_value)
+                )
+                
+                dict[
+                    Coords(x=base_x + add_to_x_2,y=base_y)
+                ] = (
+                    f"{ajusted_max_value: =4}", print_color(ajusted_max_value, max_value, True)
+                )
+            
+            hull = scan_assistant(self.hull, precision)
+            max_hull = self.ship_class.max_hull
+            perm_hull_damage = scan_assistant(self.hull_damage, precision)
+            acutall_max_hull = max_hull - perm_hull_damage
+            
+            create_scan_value(
+                3,4,
+                co_dict,"Hull:",
+                hull, max_hull, acutall_max_hull, 
+                
+            )
+            
+            
+            
+            co_dict[Coords(x=3, y=4+y)] = (
+                f"{'Hull:':>16}", 
+                colors.white
+            )
+            
+            co_dict[Coords(x=3+16, y=4+y)] = (
+                f"{hull: =4}", 
+                print_color(hull, max_hull)
+            )
+            
+            y+=1
+            
+            get_max_effective_shields = self.shield_generator.determin_max_effective_shields(precision)
+            
+            co_dict[Coords(x=3, y=4+y)] = (f"{'Shields:':>16}", colors.white)
+            
+            observed_shields=scan_assistant(self.shield_generator.shields, precision)
+            
+            co_dict[Coords(x=3+16, y=4+y)] = (
+                f"{observed_shields: =4}", 
+                print_color(observed_shields, self.ship_class.max_shields)
+            )
+            
+            co_dict[Coords(x=3+16+4, y=4+y)] = (
+                f"{get_max_effective_shields: =4}",
+                print_color(get_max_effective_shields, self.ship_class.max_shields)
+            )
+            
+
         shields = scan_assistant(self.shield_generator.shields, precision)
         hull = scan_assistant(self.hull, precision)
         energy = scan_assistant(self.power_generator.energy, precision)
