@@ -144,7 +144,7 @@ class GameData:
             
         if isinstance(self.selected_ship_planet_or_star, Starship):
             self.ship_scan = self.selected_ship_planet_or_star.scan_for_print(
-                player.determin_precision
+                player.sensors.determin_precision
             )
 
     def set_up_game(self, ship_name:str, captain_name:str):
@@ -365,15 +365,21 @@ class GameData:
                         try:
                             ship = shipsInArea[co]
                             #hitSomething = shipThatFired.attack_torpedo(self, ship, torpedo)
-                            crew_readyness = shipThatFired.crew_readyness# * 0.5 + 0.5
-                            target_crew_readyness = ship.crew_readyness
+                            try:
+                                crew_readyness = shipThatFired.crew.crew_readyness# * 0.5 + 0.5
+                            except AttributeError:
+                                crew_readyness = 1
+                            try:
+                                target_crew_readyness = ship.crew.crew_readyness
+                            except AttributeError:
+                                target_crew_readyness = 1
                             
                             hitSomething = shipThatFired.roll_to_hit(
                                 ship, 
                                 damage_type=DAMAGE_TORPEDO,
                                 systems_used_for_accuray=(
-                                    shipThatFired.sys_sensors.get_effective_value,
-                                    shipThatFired.sys_torpedos.get_effective_value
+                                    shipThatFired.sensors.get_effective_value,
+                                    shipThatFired.torpedos.get_effective_value
                                 ),
                                 crew_readyness=crew_readyness,
                                 target_crew_readyness=target_crew_readyness
@@ -400,4 +406,4 @@ class GameData:
                     f"The torpedo vears off into space at {x}, {y}!", colors.orange
                 )
         
-        shipThatFired.torps[torpedo_type] -= torpsFired
+        shipThatFired.torpedo_launcher.torps[torpedo] -= torpsFired

@@ -25,7 +25,7 @@ class BaseAi(Order):
         
         self.order_dict_size = 0
         
-        self.precision = self.entity.determin_precision
+        self.precision = self.entity.sensors.determin_precision
     
     def determin_order(self):
         
@@ -99,7 +99,7 @@ class EasyEnemy(BaseAi):
         
     def perform(self) -> None:
         
-        if self.entity.is_at_warp:
+        if self.entity.warp_drive.is_at_warp:
             wto = WarpTravelOrder(self.entity)
             wto.perform()
             return
@@ -114,7 +114,7 @@ class EasyEnemy(BaseAi):
             return
         self.order:Optional[Order] = None
 
-        if self.entity.energy <= 0:
+        if self.entity.power_generator.energy <= 0:
             
             self.order =  RepairOrder(self.entity, 1)
         else:
@@ -150,7 +150,7 @@ class EasyEnemy(BaseAi):
         energy_weapon=EnergyWeaponOrder.single_target_beam(
             entity=self.entity,
             target=self.target,
-            amount=min(self.entity.get_max_effective_beam_firepower, self.entity.energy)
+            amount=min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
         )
         self.order_dict[energy_weapon] = 1000
         self.order_dict_size+=1
@@ -160,7 +160,7 @@ class EasyEnemy(BaseAi):
         cannon_weapon = EnergyWeaponOrder.cannon(
             entity=self.entity,
             target=self.target,
-            amount=min(self.entity.get_max_effective_cannon_firepower, self.entity.energy)
+            amount=min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
         )
         self.order_dict[cannon_weapon] = 1000
         self.order_dict_size+=1
@@ -169,7 +169,7 @@ class MediumEnemy(BaseAi):
     
     def perform(self) -> None:
         
-        if self.entity.is_at_warp:
+        if self.entity.warp_drive.is_at_warp:
             wto = WarpTravelOrder(self.entity)
             wto.perform()
             return
@@ -184,7 +184,7 @@ class MediumEnemy(BaseAi):
             return
         self.order:Optional[Order] = None
 
-        if self.entity.energy <= 0:
+        if self.entity.power_generator.energy <= 0:
             
             self.order =  RepairOrder(self.entity, 1)
         else:
@@ -213,7 +213,7 @@ class MediumEnemy(BaseAi):
     pass
 
     def calc_shields(self):
-        recharge_amount = self.entity.get_max_effective_shields - self.entity.shields
+        recharge_amount = self.entity.shield_generator.get_max_effective_shields - self.entity.shield_generator.shields
                 
         recharge= RechargeOrder(self.entity, recharge_amount)
                         
@@ -246,15 +246,20 @@ class MediumEnemy(BaseAi):
                 OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
                 OrderWarning.TORPEDO_WILL_MISS
             }:
+                try:
+                    c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+                except AttributeError:
+                    c_value = 100
+                    
                 self.order_dict[torpedo] = (
-                        300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                        c_value
                     ) * (total_shield_dam + total_hull_dam + (1000 if ship_kills else 0))
                 
                 self.order_dict_size+=1
 
     def calc_beam_weapon(self):
         
-        energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.energy)
+        energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
         
         averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
             self.target, 5, energy_to_use
@@ -263,14 +268,19 @@ class MediumEnemy(BaseAi):
             
             energy_weapon = EnergyWeaponOrder.single_target_beam(self.entity, energy_to_use, target=self.target)
             
+            try:
+                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+            except AttributeError:
+                c_value = 100
+                    
             self.order_dict[energy_weapon] = (
-                300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                c_value
             ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills))
             
             self.order_dict_size+=1
 
     def calc_cannon_waepon(self):
-        energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.energy)
+        energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
         
         averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
             self.target, 5, energy_to_use,
@@ -280,8 +290,13 @@ class MediumEnemy(BaseAi):
             
             energy_weapon = EnergyWeaponOrder.cannon(self.entity, energy_to_use, target=self.target)
             
+            try:
+                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+            except AttributeError:
+                c_value = 100
+            
             self.order_dict[energy_weapon] = (
-                300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                c_value
             ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills))
             
             self.order_dict_size+=1
@@ -303,7 +318,7 @@ class HardEnemy(BaseAi):
     
     def perform(self) -> None:
         
-        if self.entity.is_at_warp:
+        if self.entity.warp_drive.is_at_warp:
             wto = WarpTravelOrder(self.entity)
             wto.perform()
             return
@@ -322,17 +337,17 @@ class HardEnemy(BaseAi):
             return
         order:Optional[Order] = None
 
-        if self.entity.energy <= 0:
+        if self.entity.power_generator.energy <= 0:
             order =  RepairOrder(self.entity, 1)
         else:
             #scan = self.target.scanThisShip(self.entity.determinPrecision)
-            precision = self.entity.determin_precision
+            precision = self.entity.sensors.determin_precision
             
             scan = self.target.scan_this_ship(precision, use_effective_values=True)
             
             player_is_present = self.target.sector_coords == self.entity.sector_coords
             
-            has_energy = self.entity.energy > 0
+            has_energy = self.entity.power_generator.energy > 0
             
             player_is_not_cloaked = player_status.is_visible
             
@@ -371,11 +386,11 @@ class HardEnemy(BaseAi):
                         
                     if self.entity.can_move_stl and self.entity.local_coords.distance(
                         coords=self.target.local_coords
-                    ) * LOCAL_ENERGY_COST * self.entity.sys_impulse.affect_cost_multiplier <= self.entity.energy:
+                    ) * LOCAL_ENERGY_COST * self.entity.impulse_engine.affect_cost_multiplier <= self.entity.power_generator.energy:
                         
                         self.calc_ram()
                         
-                if self.entity.ship_can_cloak and self.entity.cloak_status == CloakStatus.INACTIVE:
+                if self.entity.ship_can_cloak and self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
                     
                     self.calc_cloak()
             else:
@@ -394,9 +409,9 @@ class HardEnemy(BaseAi):
                 
                     self.calc_oppress()
                     
-            max_effective_shields = self.entity.get_max_effective_shields
+            max_effective_shields = self.entity.shield_generator.get_max_effective_shields
             
-            if self.entity.sys_shield_generator.is_opperational and self.entity.shields < max_effective_shields:
+            if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
                 
                 self.calc_shields()
             
@@ -409,7 +424,7 @@ class HardEnemy(BaseAi):
                 self.entity.game_data, self.entity
             ) if self.entity.sector_coords.distance(
                 coords=planet
-            ) * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier <= self.entity.energy
+            ) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier <= self.entity.power_generator.energy
         )
 
         number_of_unoppressed_planets = len(unopressed_planets)
@@ -418,13 +433,13 @@ class HardEnemy(BaseAi):
             
             planet = unopressed_planets[0]
             
-            energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier
+            energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier
                 
             warp_to = WarpOrder.from_coords(
                 self.entity, x=planet.x, y=planet.y, speed=1, 
                 start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
             )
-            self.order_dict[warp_to] = self.entity.energy - round(energy_cost)
+            self.order_dict[warp_to] = self.entity.power_generator.energy - round(energy_cost)
             
             self.order_dict_size+=1
             
@@ -445,9 +460,9 @@ class HardEnemy(BaseAi):
                 self.entity, x=planet.x, y=planet.y, speed=1, 
                 start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
             )
-            energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.sys_warp_drive.affect_cost_multiplier
+            energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier
             
-            self.order_dict[warp_to] = self.entity.energy - round(energy_cost)
+            self.order_dict[warp_to] = self.entity.power_generator.energy - round(energy_cost)
             
             self.order_dict_size+=1
         
@@ -467,8 +482,8 @@ class HardEnemy(BaseAi):
         shields_percentage = scan["shields"] / self.target.hull_percentage
         
         ram_damage = round(
-            self.entity.sys_impulse.get_effective_value / (
-                self.entity.hull_percentage + self.entity.shields_percentage
+            self.entity.impulse_engine.get_effective_value / (
+                self.entity.hull_percentage + self.entity.shield_generator.shields_percentage
             ) - (min(scan["sys_impulse"] * 1.25, 1.0) / (hull_percentage + shields_percentage)))
         
         if ram_damage > 0:
@@ -477,7 +492,7 @@ class HardEnemy(BaseAi):
                 self.entity.local_coords.distance(
                     x=self.target.local_coords.x, y=self.target.local_coords.y
                 ) * LOCAL_ENERGY_COST * 
-                self.entity.sys_impulse.affect_cost_multiplier
+                self.entity.impulse_engine.affect_cost_multiplier
             )
             ram = MoveOrder.from_coords(
                 self.entity, self.target.local_coords.x, self.target.local_coords.y, energy_cost
@@ -519,7 +534,7 @@ class HardEnemy(BaseAi):
                 self.order_dict_size+=1
 
     def calc_shields(self):
-        recharge_amount = self.entity.get_max_effective_shields - self.entity.shields
+        recharge_amount = self.entity.shield_generator.get_max_effective_shields - self.entity.shield_generator.shields
                 
         recharge= RechargeOrder(self.entity, recharge_amount)
                         
@@ -529,7 +544,7 @@ class HardEnemy(BaseAi):
     
     def calc_beam_weapon(self):
         
-        energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.energy)
+        energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
         
         averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
             self.target, 10, energy_to_use, simulate_systems=True
@@ -538,8 +553,13 @@ class HardEnemy(BaseAi):
             
             energy_weapon = EnergyWeaponOrder.single_target_beam(self.entity, energy_to_use, target=self.target)
             
+            try:
+                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+            except AttributeError:
+                c_value = 100
+                
             self.order_dict[energy_weapon] = (
-                300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                c_value
             ) * (
                 total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
             )
@@ -547,7 +567,7 @@ class HardEnemy(BaseAi):
     
     def calc_cannon_waepon(self):
         
-        energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.energy)
+        energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
         
         averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_energy_hit(
             self.target, 10, energy_to_use, simulate_systems=True, cannon=True
@@ -556,8 +576,13 @@ class HardEnemy(BaseAi):
             
             energy_weapon = EnergyWeaponOrder.cannon(self.entity, energy_to_use, target=self.target)
             
+            try:
+                c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+            except AttributeError:
+                c_value = 100
+                
             self.order_dict[energy_weapon] = (
-                300 if self.entity.cloak_status != CloakStatus.INACTIVE else 100
+                c_value
             ) * (
                 total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills)
             )
@@ -566,9 +591,9 @@ class HardEnemy(BaseAi):
     def calc_cloak(self):
         cloak = CloakOrder(self.entity, deloak=False)
                     
-        cloak_str = self.entity.sys_cloak.get_effective_value * self.entity.ship_class.cloak_strength
+        cloak_str = self.entity.cloak.get_effective_value * self.entity.ship_class.cloak_strength
         
-        detect_str = self.target.sys_cloak.get_info(
+        detect_str = self.target.cloak.get_info(
             precision=self.precision, effective_value=True
         ) * self.target.ship_class.detection_strength
         
@@ -588,7 +613,7 @@ class HardEnemy(BaseAi):
             
             if all_derelicts:
                 
-                weight = self.entity.able_crew
+                weight = self.entity.crew.able_crew
                 
                 derelicts = [ship for ship in all_derelicts if ship.sector_coords == self.entity.sector_coords]
                 

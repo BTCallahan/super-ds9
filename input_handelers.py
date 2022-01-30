@@ -569,6 +569,11 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
+        try:
+            cloak_status = self.engine.player.cloak.cloak_is_turned_on
+        except AttributeError:
+            cloak_status = False
+        
         self.cloak_button = BooleanBox(
             x=2+CONFIG_OBJECT.command_display_x,
             y=8+CONFIG_OBJECT.command_display_y,
@@ -578,7 +583,7 @@ class CommandEventHandler(MainGameEventHandler):
             inactive_text="De(C)loak",
             active_fg=colors.white,
             inactive_fg=colors.white,
-            initally_active=self.engine.player.cloak_status == CloakStatus.INACTIVE
+            initally_active=cloak_status
         )
         self.dock_button = BooleanBox(
             x=2+13+CONFIG_OBJECT.command_display_x,
@@ -650,7 +655,12 @@ class CommandEventHandler(MainGameEventHandler):
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
-        if self.engine.player.is_at_warp:
+        try:
+            is_at_warp = self.engine.player.warp_drive.is_at_warp
+        except AttributeError:
+            is_at_warp = False
+        
+        if is_at_warp:
             if self.warp_travel.cursor_overlap(event):
             
                 return WarpTravelOrder(self.engine.player)
@@ -715,14 +725,19 @@ class CommandEventHandler(MainGameEventHandler):
                             ship_planet_or_star is not self.engine.player and 
                             ship_planet_or_star is not game_data.selected_ship_planet_or_star
                         ):    
-                            game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.determin_precision)
+                            game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.sensors.determin_precision)
                             game_data.selected_ship_planet_or_star = ship_planet_or_star
                     else:
                         game_data.selected_ship_planet_or_star = None
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
         
-        if self.engine.player.is_at_warp:
+        try:
+            is_at_warp = self.engine.player.warp_drive.is_at_warp
+        except AttributeError:
+            is_at_warp = False
+            
+        if is_at_warp:
             
             return WarpTravelOrder(self.engine.player)
         else:
@@ -774,7 +789,7 @@ class CommandEventHandler(MainGameEventHandler):
     def cloak(self):
         
         player = self.engine.player
-        cloak_order = CloakOrder(player, player.cloak_status != CloakStatus.INACTIVE)
+        cloak_order = CloakOrder(player, player.cloak.cloak_is_turned_on)
         warning = cloak_order.raise_warning()
 
         if warning == OrderWarning.SAFE:
@@ -856,7 +871,7 @@ class CommandEventHandler(MainGameEventHandler):
         if not self.engine.player.ship_can_fire_torps:
             self.engine.message_log.add_message(
                 text=f"Error: Torpedo systems are inoperative, {captain}." 
-                if not self.engine.player.sys_torpedos.is_opperational else 
+                if not self.engine.player.torpedo_launcher.is_opperational else 
                 f"Error: This ship has not remaining torpedos, {captain}.", fg=colors.red
             )
         elif self.engine.player.docked:
@@ -868,12 +883,12 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.warned_once = False
             
-        if not self.engine.player.sys_beam_array.is_opperational:
+        if not self.engine.player.beam_array.is_opperational:
             
             p = self.engine.player.ship_class.get_energy_weapon.beam_name
             self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
-        elif self.engine.player.energy <= 0:
+        elif self.engine.player.power_generator.energy <= 0:
             
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             
@@ -887,14 +902,14 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.warned_once = False
             
-        if not self.engine.player.sys_cannon_weapon.is_opperational:
+        if not self.engine.player.cannons.is_opperational:
             
             p = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
             
             self.engine.message_log.add_message(
                 f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
             )
-        elif self.engine.player.energy <= 0:
+        elif self.engine.player.power_generator.energy <= 0:
             
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             
@@ -908,11 +923,11 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.warned_once = False
             
-        if not self.engine.player.sys_warp_drive.is_opperational:
+        if not self.engine.player.warp_drive.is_opperational:
             
             self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
 
-        elif self.engine.player.energy <= 0:
+        elif self.engine.player.power_generator.energy <= 0:
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
         elif self.engine.player.docked:
             self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
@@ -923,12 +938,12 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.warned_once = False
         
-        if not self.engine.player.sys_impulse.is_opperational:
+        if not self.engine.player.impulse_engine.is_opperational:
             
             self.engine.message_log.add_message(
                 f"Error: Impulse systems are inoperative, {captain}.", fg=colors.red
             )
-        elif self.engine.player.energy <= 0:
+        elif self.engine.player.power_generator.energy <= 0:
             
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
             
@@ -942,11 +957,11 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.warned_once = False
             
-        if not self.engine.player.sys_shield_generator.is_opperational:
+        if not self.engine.player.shield_generator.is_opperational:
             
             self.engine.message_log.add_message(f"Error: Shield systems are inoperative, {captain}.", fg=colors.red)
 
-        elif self.engine.player.energy <= 0:
+        elif self.engine.player.power_generator.energy <= 0:
             
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
         #elif self.engine.player.docked:
@@ -991,7 +1006,12 @@ class CommandEventHandler(MainGameEventHandler):
             gameData=self.engine.game_data,
             title=f"Your orders, {captain}?"
         )
-        if self.engine.player.is_at_warp:
+        try:
+            is_at_warp = self.engine.player.warp_drive.is_at_warp
+        except AttributeError:
+            is_at_warp = False
+        
+        if is_at_warp:
             
             self.warp_travel.render(console)
         else:
@@ -1024,7 +1044,7 @@ class CommandEventHandler(MainGameEventHandler):
 class WarpHandler(HeadingBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
-        super().__init__(engine, engine.player.sys_warp_drive.is_opperational)
+        super().__init__(engine, engine.player.warp_drive.is_opperational)
         
         self.distance = distance_button(
             limit=3,
@@ -1036,9 +1056,9 @@ class WarpHandler(HeadingBasedHandler):
         )
         self.cost_button:SimpleElement = cost_button(cost=f"{self.energy_cost}")
         
-        self.warp_speed = speed_button(round(9 * self.engine.player.sys_warp_drive.get_effective_value))
+        self.warp_speed = speed_button(round(9 * self.engine.player.warp_drive.get_effective_value))
         
-        self.is_at_warp = self.engine.player.is_at_warp
+        self.is_at_warp = self.engine.player.warp_drive.is_at_warp
         
     def on_render(self, console: tcod.Console) -> None:
                 
@@ -1072,7 +1092,7 @@ class WarpHandler(HeadingBasedHandler):
             return CommandEventHandler(self.engine)
         if not self.is_at_warp:
             if self.confirm_button.cursor_overlap(event):
-                if self.engine.player.is_at_warp:
+                if self.engine.player.warp_drive.is_at_warp:
                     return CommandEventHandler(self.engine)
                 
                 warp_order = WarpOrder.from_heading(
@@ -1090,7 +1110,7 @@ class WarpHandler(HeadingBasedHandler):
                         self.is_at_warp = True
                         return warp_order
                 finally:
-                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
+                    self.can_render_confirm_button = self.engine.player.warp_drive.is_opperational
                 
             elif self.heading_button.cursor_overlap(event):
                 self.selected_handeler = self.heading_button
@@ -1135,7 +1155,7 @@ class WarpHandler(HeadingBasedHandler):
                         self.is_at_warp = True
                         return warp_order
                 finally:
-                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
+                    self.can_render_confirm_button = self.engine.player.warp_drive.is_opperational
             else:
                 self.selected_handeler.handle_key(event)
                 
@@ -1154,7 +1174,7 @@ class WarpHandlerEasy(CoordBasedHandler):
         sector_coords = engine.game_data.player.sector_coords
         super().__init__(
             engine,
-            can_render_confirm_button=engine.player.sys_warp_drive.is_opperational,
+            can_render_confirm_button=engine.player.warp_drive.is_opperational,
             max_x=CONFIG_OBJECT.sector_width,
             max_y=CONFIG_OBJECT.sector_height,
             starting_x=sector_coords.x,
@@ -1162,14 +1182,14 @@ class WarpHandlerEasy(CoordBasedHandler):
         )
         self.energy_cost = round(
             self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-            self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+            self.engine.player.warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
         )
         self.cost_button:SimpleElement = cost_button(f"{self.energy_cost}")
         
         self.warp_speed = speed_button(
-            round(9 * self.engine.player.sys_warp_drive.get_effective_value)
+            round(9 * self.engine.player.warp_drive.get_effective_value)
         )
-        self.is_at_warp = self.engine.player.is_at_warp
+        self.is_at_warp = self.engine.player.warp_drive.is_at_warp
         
     def on_render(self, console: tcod.Console) -> None:
         
@@ -1234,7 +1254,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                         self.is_at_warp = True
                         return warp_order
                 finally:
-                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
+                    self.can_render_confirm_button = self.engine.player.warp_drive.is_opperational
             else:
                 x, y = select_sector_space(event)
 
@@ -1245,7 +1265,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                     
                     self.energy_cost = round(
                         self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-                        self.engine.player.sys_warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+                        self.engine.player.warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
                     )
                     self.cost_button.text = f"{self.energy_cost}"
                 else:
@@ -1276,7 +1296,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                         self.is_at_warp = True
                         return warp_order
                 finally:
-                    self.can_render_confirm_button = self.engine.player.sys_warp_drive.is_opperational
+                    self.can_render_confirm_button = self.engine.player.warp_drive.is_opperational
             else:
                 self.selected_handeler.handle_key(event)
                 
@@ -1293,13 +1313,13 @@ class MoveHandler(HeadingBasedHandler):
         
         player = engine.player
         
-        super().__init__(engine, can_render_confirm_button=player.sys_impulse.is_opperational)
+        super().__init__(engine, can_render_confirm_button=player.impulse_engine.is_opperational)
         
         self.distance_button = distance_button(
             limit=3, max_value=CONFIG_OBJECT.max_move_distance, min_value=1,
         )
         self.energy_cost = round(
-            self.distance_button.add_up() * LOCAL_ENERGY_COST * player.sys_impulse.affect_cost_multiplier
+            self.distance_button.add_up() * LOCAL_ENERGY_COST * player.impulse_engine.affect_cost_multiplier
         )
         self.cost_button = cost_button(f"{self.energy_cost}")
         
@@ -1349,7 +1369,7 @@ class MoveHandler(HeadingBasedHandler):
                 self.engine.message_log.add_message(collision_warnings[warning], colors.orange)
                 self.warned_once = True
             finally:
-                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
+                self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
 
         elif self.cancel_button.cursor_overlap(event):
             return CommandEventHandler(self.engine)
@@ -1376,7 +1396,7 @@ class MoveHandler(HeadingBasedHandler):
                 self.engine.message_log.add_message(collision_warnings[warning], colors.orange)
                 self.warned_once = True
             finally:
-                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
+                self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
         else:
             self.selected_handeler.handle_key(event)
             
@@ -1386,7 +1406,7 @@ class MoveHandler(HeadingBasedHandler):
             
                 self.energy_cost = round(
                     self.distance_button.add_up() * LOCAL_ENERGY_COST * 
-                    self.engine.player.sys_impulse.affect_cost_multiplier
+                    self.engine.player.impulse_engine.affect_cost_multiplier
                 )
                 
                 self.cost_button.text = f"{self.energy_cost}"
@@ -1399,14 +1419,14 @@ class MoveHandlerEasy(CoordBasedHandler):
         player = engine.player
         
         super().__init__(
-            engine, can_render_confirm_button=engine.player.sys_impulse.is_opperational,
+            engine, can_render_confirm_button=engine.player.impulse_engine.is_opperational,
             starting_x=local_coords.x, starting_y=local_coords.y,
             max_x=CONFIG_OBJECT.sector_width,
             max_y=CONFIG_OBJECT.sector_height
         )
         self.energy_cost = round(
             player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST * 
-            player.sys_impulse.affect_cost_multiplier
+            player.impulse_engine.affect_cost_multiplier
         )
         self.cost_button = cost_button(cost=f"{self.energy_cost}")
         
@@ -1429,7 +1449,7 @@ class MoveHandlerEasy(CoordBasedHandler):
             
             return CommandEventHandler(self.engine)
             
-        elif self.confirm_button.cursor_overlap(event) and self.engine.player.sys_impulse.is_opperational:
+        elif self.confirm_button.cursor_overlap(event) and self.engine.player.impulse_engine.is_opperational:
             
             warp_order = MoveOrder.from_coords(
                 self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
@@ -1450,7 +1470,7 @@ class MoveHandlerEasy(CoordBasedHandler):
                 self.engine.message_log.add_message(collision_warnings[warning], fg=colors.orange)
                 self.warned_once = True
             finally:
-                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
+                self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
         else:
             x,y = select_sub_sector_space(event)
 
@@ -1461,7 +1481,7 @@ class MoveHandlerEasy(CoordBasedHandler):
                 self.warned_once = False
                 self.energy_cost = round(
                     self.engine.player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * 
-                    LOCAL_ENERGY_COST * self.engine.player.sys_impulse.affect_cost_multiplier
+                    LOCAL_ENERGY_COST * self.engine.player.impulse_engine.affect_cost_multiplier
                 )
                 self.cost_button.text = f"{self.energy_cost}"
             else:
@@ -1471,7 +1491,7 @@ class MoveHandlerEasy(CoordBasedHandler):
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
-        if event.sym in confirm and self.engine.player.sys_impulse.is_opperational:
+        if event.sym in confirm and self.engine.player.impulse_engine.is_opperational:
             
             warp_order = MoveOrder.from_coords(
                 self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
@@ -1488,7 +1508,7 @@ class MoveHandlerEasy(CoordBasedHandler):
                 self.engine.message_log.add_message(collision_warnings[warning], fg=colors.orange)
                 self.warned_once =True
             finally:
-                self.can_render_confirm_button = self.engine.player.sys_impulse.is_opperational
+                self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
         else:
             self.selected_handeler.handle_key(event)
             self.energy_cost = round(
@@ -1506,9 +1526,9 @@ class ShieldsHandler(MinMaxInitator):
         player = engine.player
         
         super().__init__(
-            engine, can_render_confirm_button=player.sys_shield_generator.is_opperational,
-            starting_value=player.shields,
-            max_value=min(player.shields + player.energy, player.get_max_effective_shields)
+            engine, can_render_confirm_button=player.shield_generator.is_opperational,
+            starting_value=player.shield_generator.shields,
+            max_value=min(player.shield_generator.shields + player.power_generator.energy, player.shield_generator.get_max_effective_shields)
         )
         self.shield_status = BooleanBox(
             x=18+CONFIG_OBJECT.command_display_x,
@@ -1611,9 +1631,9 @@ class ShieldsHandler(MinMaxInitator):
 class TransporterHandler(MinMaxInitator):
     
     def __init__(self, engine: Engine) -> None:
-        max_value=engine.player.able_crew
+        max_value=engine.player.crew.able_crew
         super().__init__(
-            engine, can_render_confirm_button=engine.player.sys_transporter.is_opperational,
+            engine, can_render_confirm_button=engine.player.transporter.is_opperational,
             max_value=max_value, 
             starting_value=0
         )
@@ -1639,7 +1659,7 @@ class TransporterHandler(MinMaxInitator):
             
         elif self.confirm_button.cursor_overlap(event):
             
-            if not self.engine.player.sys_transporter.is_opperational:
+            if not self.engine.player.transporter.is_opperational:
                 self.engine.message_log.add_message(
                     f"The transporters are off line, {self.engine.player.nation.captain_rank_name}.", colors.red
                 )
@@ -1661,7 +1681,7 @@ class TransporterHandler(MinMaxInitator):
                         
                         return order
                 finally:
-                    self.can_render_confirm_button = self.engine.player.sys_transporter.is_opperational
+                    self.can_render_confirm_button = self.engine.player.transporter.is_opperational
             else:
                 self.engine.message_log.add_message(
                     f"No spacecraft is selected, {self.engine.player.nation.captain_rank_name}.", colors.red
@@ -1680,7 +1700,7 @@ class TransporterHandler(MinMaxInitator):
             
             ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
         ):
-            self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.determin_precision)
+            self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.sensors.determin_precision)
             
             self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
             
@@ -1688,7 +1708,7 @@ class TransporterHandler(MinMaxInitator):
         
         if event.sym in confirm:
             
-            if not self.engine.player.sys_transporter.is_opperational:
+            if not self.engine.player.transporter.is_opperational:
                 self.engine.message_log.add_message(
                     f"The transporters are off line, {self.engine.player.nation.captain_rank_name}.", colors.red
                 )
@@ -1710,7 +1730,7 @@ class TransporterHandler(MinMaxInitator):
                         
                         return order
                 finally:
-                    self.can_render_confirm_button = self.engine.player.sys_transporter.is_opperational
+                    self.can_render_confirm_button = self.engine.player.transporter.is_opperational
             else:
                 self.engine.message_log.add_message(
                     f"No spacecraft is selected, {self.engine.player.nation.captain_rank_name}.", colors.red
@@ -1783,7 +1803,7 @@ class BeamArrayHandler(MinMaxInitator):
                     
                     self.engine.game_data.selected_ship_planet_or_star = ship
                     
-                    self.engine.game_data.ship_scan = ship.scan_for_print(self.engine.player.determin_precision)
+                    self.engine.game_data.ship_scan = ship.scan_for_print(self.engine.player.sensors.determin_precision)
                     
                     self.engine.game_data.selected_ship_planet_or_star = ship
                     
@@ -1821,7 +1841,7 @@ class BeamArrayHandler(MinMaxInitator):
             except KeyError:
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
@@ -1847,7 +1867,7 @@ class BeamArrayHandler(MinMaxInitator):
             
             ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
         ):
-            self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.determin_precision)
+            self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.sensors.determin_precision)
             
             self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
             
@@ -1894,7 +1914,7 @@ class BeamArrayHandler(MinMaxInitator):
             except KeyError:
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.energy
+                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
@@ -1912,7 +1932,7 @@ class CannonHandler(MinMaxInitator):
         
         super().__init__(
             engine, can_render_confirm_button=player.ship_can_fire_cannons,
-            max_value=min(player.get_max_effective_cannon_firepower, player.energy),
+            max_value=min(player.get_max_effective_cannon_firepower, player.power_generator.energy),
             starting_value=0
         )
         self.auto_target_button = SimpleElement(
@@ -1961,7 +1981,7 @@ class CannonHandler(MinMaxInitator):
                     
                     self.engine.game_data.selected_ship_planet_or_star = ship
                     
-                    self.engine.game_data.ship_scan = ship.scan_for_print(self.engine.player.determin_precision)
+                    self.engine.game_data.ship_scan = ship.scan_for_print(self.engine.player.sensors.determin_precision)
                     
                 except IndexError:
                     captain_rank_name = self.engine.player.ship_class.nation.captain_rank_name
@@ -1986,7 +2006,7 @@ class CannonHandler(MinMaxInitator):
                 
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
+                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
@@ -2008,7 +2028,7 @@ class CannonHandler(MinMaxInitator):
             
             ship_planet_or_star is not self.engine.game_data.selected_ship_planet_or_star
         ):
-            self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.determin_precision)
+            self.engine.game_data.ship_scan = ship_planet_or_star.scan_for_print(self.engine.player.sensors.determin_precision)
             
             self.engine.game_data.selected_ship_planet_or_star = ship_planet_or_star
             
@@ -2045,7 +2065,7 @@ class CannonHandler(MinMaxInitator):
                 
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.energy
+                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
@@ -2145,7 +2165,7 @@ class TorpedoHandler(HeadingBasedHandler):
                         ship_planet_or_star is not self.engine.player and 
                         ship_planet_or_star is not game_data.selected_ship_planet_or_star
                     ):
-                        game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.determin_precision)
+                        game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.sensors.determin_precision)
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
                     game_data.selected_ship_planet_or_star = None
@@ -2275,7 +2295,7 @@ class TorpedoHandlerEasy(CoordBasedHandler):
                         ship_planet_or_star is not self.engine.player and 
                         ship_planet_or_star is not game_data.selected_ship_planet_or_star
                     ):
-                        game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.determin_precision)
+                        game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.sensors.determin_precision)
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
                     game_data.selected_ship_planet_or_star = None
@@ -2294,9 +2314,8 @@ class TorpedoHandlerEasy(CoordBasedHandler):
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            torpedo_order = TorpedoOrder(self, self.heading.add_up(), self.number.add_up())
+            torpedo_order = TorpedoOrder.from_coords(self, self.x_button.add_up(), self.y_button.add_up())
             warning = torpedo_order.raise_warning()
-
             
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)

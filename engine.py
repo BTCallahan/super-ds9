@@ -48,44 +48,55 @@ class Engine:
 
     def handle_enemy_turns(self):
         
-        if self.player.cloak_status == CloakStatus.COMPRIMISED:
-            self.player.cloak_status = CloakStatus.ACTIVE
+        try:
+            if self.player.cloak.cloak_status == CloakStatus.COMPRIMISED:
+                self.player.cloak.cloak_status = CloakStatus.ACTIVE
+        except AttributeError:
+            pass
 
         for entity in self.game_data.all_enemy_ships:
+            try:
+                if entity.cloak.cloak_status == CloakStatus.COMPRIMISED:
+                    entity.cloak.cloak_status = CloakStatus.ACTIVE
+            except AttributeError:
+                pass
 
             if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status.is_active:
                 
-                if entity.cloak_cooldown > 0:
-                    entity.cloak_cooldown -= 1
-                
                 if not self.player.ship_status.is_visible:
-
-                    if self.player.cloak_status == CloakStatus.ACTIVE and entity.detect_cloaked_ship(self.player) :
-                        
-                        self.player.cloak_status = CloakStatus.COMPRIMISED
+                    try:
+                        if self.player.cloak.cloak_status == CloakStatus.ACTIVE and entity.sensors.detect_cloaked_ship(self.player) :
+                            
+                            self.player.cloak.cloak_status = CloakStatus.COMPRIMISED
+                    except AttributeError:
+                        pass
                         
                 entity.ai.perform()
                 entity.repair()
-        
-        if self.game_data.player.cloak_cooldown > 0:
-        
-            self.game_data.player.cloak_cooldown -= 1
-        
-            if self.game_data.player.cloak_cooldown == 0:
-        
-                self.game_data.engine.message_log.add_message(
-                    f"The cloaking device is readly, {self.game_data.player.nation.captain_rank_name}."
-                )
-        
+        try:
+            if self.game_data.player.cloak.cloak_cooldown > 0:
+            
+                self.game_data.player.cloak.cloak_cooldown -= 1
+            
+                if self.game_data.player.cloak.cloak_cooldown == 0:
+            
+                    self.game_data.engine.message_log.add_message(
+                        f"The cloaking device is ready, {self.game_data.player.nation.captain_rank_name}."
+                    )
+        except AttributeError:
+            pass
+            
         self.game_data.visible_ships_in_same_sub_sector_as_player = [
             ship for ship in self.game_data.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
         ]
         
         for ship in self.game_data.ships_in_same_sub_sector_as_player:
-                        
-            if ship.cloak_status == CloakStatus.ACTIVE and self.game_data.player.detect_cloaked_ship(ship):
-                
-                ship.cloak_status = CloakStatus.COMPRIMISED
+            try:            
+                if ship.cloak.cloak_status == CloakStatus.ACTIVE and self.game_data.player.sensors.detect_cloaked_ship(ship):
+                    
+                    ship.cloak.cloak_status = CloakStatus.COMPRIMISED
+            except AttributeError:
+                pass
         
         selected_ship_planet_or_star = self.game_data.selected_ship_planet_or_star
         

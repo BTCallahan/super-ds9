@@ -67,7 +67,7 @@ blocks_action = {
     OrderWarning.NO_TORPEDOS_LEFT : "Error: We have no remaining torpedos.",
     OrderWarning.ZERO_VALUE_ENTERED : "Error: You have entered a value of zero.",
     OrderWarning.NO_CHANGE_IN_POSITION : "Error: There is no change in our position.", # reword this later
-    OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY : "Error: There is no change in shield energy.",
+    OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY : "Error: There is no change in shield energy or status.",
     OrderWarning.DECLOAK_FIRST : "Error: We must decloak first.",
     OrderWarning.CLOAK_COOLDOWN : "Error: Our cloaking system is still cooling down.",
     OrderWarning.UNDOCK_FIRST : "Error: We must undock first.",
@@ -176,14 +176,14 @@ class WarpOrder(Order):
         
         co_tuples = co_tuple[:end_index+1]
         
-        self.entity.current_warp_factor = self.speed
-        self.entity.warp_destinations = co_tuples
+        self.entity.warp_drive.current_warp_factor = self.speed
+        self.entity.warp_drive.warp_destinations = co_tuples
         
         old_x, old_y = self.entity.sector_coords.x, self.entity.sector_coords.y
         
         energy_cost = self.cost
 
-        self.entity.energy -= energy_cost
+        self.entity.power_generator.energy -= energy_cost
         
         is_controllable = self.entity.is_controllable
         
@@ -212,7 +212,7 @@ class WarpOrder(Order):
         wto.perform()
     
     def raise_warning(self):
-        if not self.entity.sys_warp_drive.is_opperational:
+        if not self.entity.warp_drive.is_opperational:
             return OrderWarning.SYSTEM_INOPERATIVE
         
         if self.x == self.entity.sector_coords.x and self.y == self.entity.sector_coords.y:
@@ -221,23 +221,23 @@ class WarpOrder(Order):
         if not (0 <= self.x < CONFIG_OBJECT.sector_width and 0 <= self.y < CONFIG_OBJECT.subsector_height):
             return OrderWarning.OUT_OF_RANGE
         
-        return OrderWarning.NOT_ENOUGHT_ENERGY if self.cost > self.entity.energy else OrderWarning.SAFE
+        return OrderWarning.NOT_ENOUGHT_ENERGY if self.cost > self.entity.power_generator.energy else OrderWarning.SAFE
 
 class WarpTravelOrder(Order):
     """This is used to handle warp travel"""
     
     def perform(self) -> None:
-        self.entity.increment_warp_progress()
+        self.entity.warp_drive.increment_warp_progress()
         
-        co = self.entity.get_warp_current_warp_sector()
+        co = self.entity.warp_drive.get_warp_current_warp_sector()
         
         self.entity.sector_coords.x = co.x
         self.entity.sector_coords.y = co.y
         
-        if co != self.entity.warp_destinations[-1]:
+        if co != self.entity.warp_drive.warp_destinations[-1]:
             return
         
-        self.entity.current_warp_factor = 0
+        self.entity.warp_drive.current_warp_factor = 0
         
         subsector: SubSector = self.entity.game_data.grid[self.entity.sector_coords.y][self.entity.sector_coords.x]
 
@@ -280,7 +280,7 @@ class MoveOrder(Order):
         super().__init__(entity)
         self.heading = heading
         self.distance = distance
-        self.cost = ceil(distance * self.entity.sys_impulse.affect_cost_multiplier * LOCAL_ENERGY_COST)
+        self.cost = ceil(distance * self.entity.impulse_engine.affect_cost_multiplier * LOCAL_ENERGY_COST)
         self.x, self.y = x,y
         self.x_aim, self.y_aim = x_aim, y_aim
         
@@ -339,7 +339,7 @@ class MoveOrder(Order):
         
         energy_cost = self.cost
 
-        self.entity.energy -= energy_cost
+        self.entity.power_generator.energy -= energy_cost
 
         if self.entity.is_controllable:
             
@@ -360,14 +360,20 @@ class MoveOrder(Order):
 
                     try:
                         ship = self.ships[co]
-                        crew_readyness = self.entity.crew_readyness
-                        target_crew_readyness = ship.crew_readyness
+                        try:
+                            crew_readyness = self.entity.crew.crew_readyness
+                        except AttributeError:
+                            crew_readyness = 1
+                        try:
+                            target_crew_readyness = ship.crew.crew_readyness
+                        except AttributeError:
+                            target_crew_readyness = 1
                         
                         hit = self.entity.roll_to_hit(
                             ship, 
                             systems_used_for_accuray=(
-                                self.entity.sys_impulse.get_effective_value,
-                                self.entity.sys_sensors.get_effective_value
+                                self.entity.impulse_engine.get_effective_value,
+                                self.entity.sensors.get_effective_value
                             ),
                             damage_type=DAMAGE_RAMMING,
                             crew_readyness=crew_readyness,
@@ -393,14 +399,20 @@ class MoveOrder(Order):
 
                         try:
                             ship = self.ships[co]
-                            crew_readyness = self.entity.crew_readyness
-                            target_crew_readyness = ship.crew_readyness
+                            try:
+                                crew_readyness = self.entity.crew.crew_readyness
+                            except AttributeError:
+                                crew_readyness = 1
+                            try:
+                                target_crew_readyness = ship.crew.crew_readyness
+                            except AttributeError:
+                                target_crew_readyness = 1
                             
                             hit = self.entity.roll_to_hit(
                                 ship, 
                                 systems_used_for_accuray=(
-                                    self.entity.sys_impulse.get_effective_value,
-                                    self.entity.sys_sensors.get_effective_value
+                                    self.entity.impulse_engine.get_effective_value,
+                                    self.entity.sensors.get_effective_value
                                 ),
                                 damage_type=DAMAGE_RAMMING,
                                 crew_readyness=crew_readyness,
@@ -421,7 +433,7 @@ class MoveOrder(Order):
         if self.x == self.entity.local_coords.x and self.y == self.entity.local_coords.y:
             return OrderWarning.NO_CHANGE_IN_POSITION
 
-        if not self.entity.sys_impulse.is_opperational:
+        if not self.entity.impulse_engine.is_opperational:
             return OrderWarning.SYSTEM_INOPERATIVE
 
         last_coord = self.coord_list[-1]
@@ -431,7 +443,7 @@ class MoveOrder(Order):
         ) and last_coord.y not in range(CONFIG_OBJECT.subsector_height):
             return OrderWarning.OUT_OF_RANGE
         
-        if self.entity.energy < self.cost:
+        if self.entity.power_generator.energy < self.cost:
             return OrderWarning.NOT_ENOUGHT_ENERGY
 
         sub_sector:SubSector = self.entity.game_data.grid[self.entity.sector_coords.y][self.entity.sector_coords.x]
@@ -486,7 +498,7 @@ class EnergyWeaponOrder(Order):
         target:Optional[Starship]=None, targets:Optional[Tuple[Starship]]=None, use_cannons:bool
     ) -> None:
         super().__init__(entity)
-        self.amount = min(entity.energy, amount, entity.ship_class.max_beam_energy)
+        self.amount = min(entity.power_generator.energy, amount, entity.ship_class.max_beam_energy)
         self.target = target
         self.targets = targets
         self.use_cannons = use_cannons
@@ -529,12 +541,22 @@ class EnergyWeaponOrder(Order):
     
     def perform(self) -> None:
 
-        actual_amount = floor(self.entity.sys_beam_array.get_effective_value * self.amount)
+        actual_amount = floor(self.entity.beam_array.get_effective_value * self.amount)
         
-        if self.entity.cloak_status != CloakStatus.INACTIVE:
-            self.entity.cloak_cooldown = self.entity.ship_class.cloak_cooldown
+        try:
+            cloak_status = self.entity.cloak.force_fire_decloak()
             
-        self.entity.cloak_status = CloakStatus.INACTIVE
+            player = self.game_data.player
+            
+            if (
+                cloak_status and 
+                self.entity is not player and self.entity.sector_coords == player.sector_coords
+            ):
+                self.game_data.engine.message_log.add_message(
+                    "Enemy ship decloaking!", colors.alert_red
+                )
+        except AttributeError:
+            pass
 
         if self.multi_targets:
             
@@ -560,9 +582,9 @@ class EnergyWeaponOrder(Order):
     def raise_warning(self):
 
         if (
-            not self.use_cannons and not self.entity.sys_beam_array.is_opperational
+            not self.use_cannons and not self.entity.beam_array.is_opperational
         ) or (
-            self.use_cannons and not self.entity.sys_cannon_weapon.is_opperational
+            self.use_cannons and not self.entity.cannons.is_opperational
         ):
             return OrderWarning.SYSTEM_INOPERATIVE
         
@@ -589,10 +611,16 @@ class TransportOrder(Order):
     
     def raise_warning(self):
         
+        try:
+            if self.entity.cloak.cloak_is_turned_on:
+                return OrderWarning.DECLOAK_FIRST
+        except AttributeError:
+            pass
+        
         if self.target.is_automated:
             return OrderWarning.TRANSPORT_CANNOT_RECREW
         
-        if self.amount >= self.entity.able_crew:
+        if self.amount >= self.entity.crew.able_crew:
             return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
         
         if self.amount <= 0:
@@ -605,16 +633,15 @@ class TransportOrder(Order):
         
             return OrderWarning.TRANSPORT_WRONG_NATION
         
-        free = (
-            self.target.able_crew + self.target.injured_crew
-        ) - self.target.ship_class.max_crew
+        free = self.target.crew.get_total_crew - self.target.ship_class.max_crew
         
         return OrderWarning.TRANSPORT_NOT_ENOUGH_SPACE if free <= self.amount else OrderWarning.SAFE
     
     def perform(self) -> None:
         
-        self.entity.able_crew -= self.amount
-        self.target.able_crew += self.amount
+        self.entity.crew.able_crew -= self.amount
+        self.target.crew.able_crew += self.amount
+        
         if self.target.nation != self.entity.nation:
             self.target.override_nation_code = self.entity.ship_class.nation_code
     
@@ -679,28 +706,26 @@ class TorpedoOrder(Order):
 
     def perform(self) -> None:
         
-        if self.entity.cloak_status != CloakStatus.INACTIVE:
-            
-            self.entity.cloak_cooldown = self.entity.ship_class.cloak_cooldown
+        try:
+            cloak_status = self.entity.cloak.force_fire_decloak()
             
             player = self.game_data.player
             
             if (
-                self.entity.cloak_status == CloakStatus.ACTIVE and 
+                cloak_status and 
                 self.entity is not player and self.entity.sector_coords == player.sector_coords
             ):
                 self.game_data.engine.message_log.add_message(
                     "Enemy ship decloaking!", colors.alert_red
                 )
             
-        self.entity.cloak_status = CloakStatus.INACTIVE
+        except AttributeError:
+            pass
         
-        #torpedo = torpedo_types[self.entity.torpedoLoaded]
-
         self.entity.game_data.handle_torpedo(
             shipThatFired=self.entity,torpsFired=self.amount, 
             coords=self.coord_list, 
-            torpedo_type=self.entity.torpedo_loaded, 
+            torpedo_type=self.entity.torpedo_launcher.torpedo_loaded, 
             ships_in_area=self.ships, 
             heading=self.heading
         )
@@ -712,7 +737,7 @@ class TorpedoOrder(Order):
 
     def raise_warning(self):
 
-        if not self.entity.sys_torpedos.is_opperational:
+        if not self.entity.torpedo_launcher.is_opperational:
             return OrderWarning.SYSTEM_INOPERATIVE
 
         if self.amount == 0:
@@ -786,7 +811,7 @@ class DockOrder(Order):
             torp, num = self.planet.can_supply_torpedos(self.entity)
             
             if torp is not None and num > 0:
-                self.entity.torps[torp] += num
+                self.entity.torpedo_launcher.torps[torp] += num
     
     def raise_warning(self):
         
@@ -794,10 +819,15 @@ class DockOrder(Order):
         
         #is_cloaked = self.entity.cloak_status != CloakStatus.INACTIVE
         
-        if not self.undock and self.entity.cloak_status != CloakStatus.INACTIVE:
-            return OrderWarning.DECLOAK_FIRST
-
-        if self.undock and self.ships:
+        if not self.undock:
+            
+            try:
+                if self.entity.cloak.cloak_is_turned_on:
+                    return OrderWarning.DECLOAK_FIRST
+            except AttributeError:
+                pass
+        
+        elif self.ships:
             return OrderWarning.ENEMY_SHIPS_NEARBY
 
         if not self.planet.local_coords.is_adjacent(other=self.entity.local_coords):
@@ -818,13 +848,13 @@ class RechargeOrder(Order):
     def __init__(self, entity:Starship, amount:int, active:bool) -> None:
         super().__init__(entity)
         
-        self.cost = amount - self.entity.shields
-        if amount >= self.entity.shields:
+        self.cost = amount - self.entity.shield_generator.shields
+        if amount >= self.entity.shield_generator.shields:
             
-            amount = floor(amount * self.entity.sys_shield_generator.get_effective_value)
+            amount = floor(amount * self.entity.shield_generator.get_effective_value)
 
         else:
-            self.cost =  ceil(self.cost * self.entity.sys_shield_generator.get_effective_value)
+            self.cost =  ceil(self.cost * self.entity.shield_generator.get_effective_value)
             
         self.amount = amount
         self.active = active
@@ -838,20 +868,46 @@ class RechargeOrder(Order):
         
         energy_cost = self.cost
         
-        self.entity.energy -= energy_cost
+        self.entity.power_generator.energy -= energy_cost
         
-        old = self.entity.shields_up
+        old = self.entity.shield_generator.shields_up
         
-        self.entity.shields_up = self.active
+        self.entity.shield_generator.shields_up = self.active
+        
+        is_player = self.entity.is_controllable
+        
+        is_in_same_system = self.entity.sector_coords == self.game_data.player.sector_coords
+        
+        shields = self.entity.shield_generator.shields
         
         if old != self.active:
             
-            self.game_data.engine.message_log.add_message(
+            if is_player:
+            
+                self.game_data.engine.message_log.add_message(
                     "Shields up." if self.active <= 0 else "Shields down."
                 )
+            elif is_in_same_system:
+                
+                self.game_data.engine.message_log.add_message(
+                    f"The {self.entity.name} has {'raised' if self.active else 'lowered'} it's shields."
+                )
+        
+        if amount != shields:
+            
+            if is_player:
+                
+                self.game_data.engine.message_log.add_message(
+                    "Transfering energy to shields." if amount > shields else "Diverting shield energy."
+                )
+            elif is_in_same_system:
+                self.game_data.engine.message_log.add_message(
+                    f"The {self.entity.name} has {'transfered energy to' if amount > shields else 'diverted energy from'} its shields."
+                )
+                
         
         if self.entity.is_controllable:
-            shields = self.entity.shields
+            shields = self.entity.shield_generator.shields
             
             if amount > shields:
                 
@@ -864,18 +920,18 @@ class RechargeOrder(Order):
                     "Diverting shield energy"
                 )
             
-        self.entity.shields = amount
+        self.entity.shield_generator.shields = amount
         
         if self.entity.is_controllable:
             self.game_data.player_record["energy_used"] += energy_cost
     
     def raise_warning(self):
         
-        if self.amount == self.entity.shields and self.amount == self.entity.shields_up:
+        if self.amount == self.entity.shield_generator.shields and self.active == self.entity.shield_generator.shields_up:
             
             return OrderWarning.NO_CHANGE_IN_SHIELD_ENERGY
         
-        if self.cost > self.entity.energy:
+        if self.cost > self.entity.power_generator.energy:
             
             return OrderWarning.NOT_ENOUGHT_ENERGY
         
@@ -886,7 +942,7 @@ class RechargeOrder(Order):
             
             if nearbye_ships: 
                 return OrderWarning.ENEMY_SHIPS_NEARBY_WARN 
-        OrderWarning.SAFE
+        return OrderWarning.SAFE
 
 class RepairOrder(Order):
 
@@ -911,19 +967,63 @@ class RepairOrder(Order):
         if self.number:
             return OrderWarning.ENEMY_SHIPS_NEARBY_WARN
         
+        try:
+            beam_i = self.entity.beam_array.integrety
+        except AttributeError:
+            beam_i = 1.0
+        
+        try:
+            cannon_i = self.entity.cannons.integrety
+        except AttributeError:
+            cannon_i = 1.0
+            
+        try:
+            impulse_i = self.entity.impulse_engine.integrety
+        except AttributeError:
+            impulse_i = 1.0
+            
+        try:
+            shield_i = self.entity.shield_generator.integrety
+            shield_e = self.entity.shield_generator.shields_percentage
+        except AttributeError:
+            shield_i = 1.0
+            shield_e = 1.0
+        
+        try:
+            torpedo_i = self.entity.torpedo_launcher.integrety
+        except AttributeError:
+            torpedo_i = 1.0
+        
+        try:
+            warp_i = self.entity.warp_drive.integrety
+        except AttributeError:
+            warp_i = 1.0
+        
+        try:
+            transport_i = self.entity.transporter.integrety
+        except AttributeError:
+            transport_i = 1.0
+        
+        try:
+            cloak_i = self.entity.cloak.integrety
+        except AttributeError:
+            cloak_i = 1.0
+        
         if all(
             (
-                self.entity.sys_beam_array.integrety == 1.0,
-                self.entity.sys_impulse.integrety == 1.0,
-                self.entity.sys_sensors.integrety == 1.0,
-                self.entity.sys_shield_generator.integrety == 1.0,
-                self.entity.sys_torpedos.integrety == 1.0,
-                self.entity.sys_warp_core.integrety == 1.0,
-                self.entity.sys_warp_drive.integrety == 1.0,
+                beam_i == 1.0,
+                cannon_i == 1.0,
+                impulse_i == 1.0,
+                cloak_i == 1.0,
+                self.entity.sensors.integrety == 1.0,
+                shield_i == 1.0,
+                torpedo_i == 1.0,
+                self.entity.power_generator.integrety == 1.0,
+                warp_i == 1.0,
                 self.entity.hull_percentage == 1.0,
-                self.entity.shields_percentage == 1.0,
-                self.entity.sys_transporter.integrety == 1.0,
-                self.entity.energy == self.entity.ship_class.max_energy
+                shield_e == 1.0,
+                transport_i == 1.0,
+                self.entity.power_generator.energy_percentage == 1.0
             )
         ):
             return OrderWarning.NO_REPAIRS_NEEDED
@@ -949,7 +1049,7 @@ class CloakOrder(Order):
                 f"The {self.entity.name} has {clo}!", fg=colors.alert_blue
             )
 
-        self.entity.cloak_status = CloakStatus.INACTIVE if self.deloak else CloakStatus.ACTIVE
+        self.entity.cloak.cloak_status = CloakStatus.INACTIVE if self.deloak else CloakStatus.ACTIVE
 
     def raise_warning(self):
         
@@ -957,7 +1057,7 @@ class CloakOrder(Order):
             if self.entity.docked:
                 return OrderWarning.UNDOCK_FIRST
             
-            if self.entity.cloak_cooldown > 0:
+            if self.entity.cloak.cloak_cooldown > 0:
                 return OrderWarning.CLOAK_COOLDOWN
             
             if not self.entity.ship_can_cloak:
@@ -1014,7 +1114,7 @@ class ReactivateDerlict(Order):
         if self.entity.ship_class.is_automated or self.entity.ship_class.is_automated:
             return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
 
-        if self.crew >= self.entity.able_crew:
+        if self.crew >= self.entity.crew.able_crew:
             return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
 
         if self.target.sector_coords != self.entity.sector_coords:
@@ -1031,5 +1131,5 @@ class ReactivateDerlict(Order):
 
         crew_to_send_over = min(max_crew, self.crew)
 
-        self.entity.able_crew -= crew_to_send_over
-        self.target.able_crew += crew_to_send_over
+        self.entity.crew.able_crew -= crew_to_send_over
+        self.target.crew.able_crew += crew_to_send_over

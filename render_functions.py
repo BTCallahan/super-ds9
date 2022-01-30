@@ -238,8 +238,13 @@ def print_ship_info(
     
     #assert ship_status.is_visible
     
+    try:
+        cloak_is_on = self.cloak.cloak_is_turned_on
+    except AttributeError:
+        cloak_is_on = False
+    
     frame_fg = (
-        colors.cloaked if self is self.game_data.player and self.cloak_status != CloakStatus.INACTIVE else colors.white
+        colors.cloaked if self is self.game_data.player and cloak_is_on else colors.white
     )
     console.draw_frame(
         x=x, y=y, 
@@ -351,10 +356,10 @@ def print_ship_info(
                 x=x+3+3, y=y+add_to_y+1, string=f"Max Torpedos:{max_torps: =2}", fg=colors.white
             )
             add_to_y+=2
-            for i, t in enumerate(self.ship_class.torp_types):
+            for i, t in enumerate(self.ship_class.torp_dict.keys()):
                 console.print(
                     x=x+3, y=y+add_to_y, 
-                    string=f"{ALL_TORPEDO_TYPES[t].cap_name + ':':>16}{self.torps[t]: =2}", fg=colors.white
+                    string=f"{t.cap_name + ':':>16}{self.torpedo_launcher.torps[t]: =2}", fg=colors.white
                 )
                 add_to_y+=1
         
@@ -412,7 +417,7 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
             if not gamedata.ship_scan:
                 
                 gamedata.ship_scan = gamedata.selected_ship_planet_or_star.scan_for_print(
-                    gamedata.player.determin_precision
+                    gamedata.player.sensors.determin_precision
                 )
 
             print_ship_info(
@@ -423,7 +428,7 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 height=height,
                 self=ship_planet_or_star, 
                 scan=gamedata.ship_scan,
-                precision=gamedata.player.determin_precision
+                precision=gamedata.player.sensors.determin_precision
             )
 
         elif isinstance(ship_planet_or_star, Planet):
@@ -567,7 +572,7 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
                         #if game_data.ship_scan is None or game_data.selected_ship_planet_or_star is not ship:
                             #game_data.selected_ship_planet_or_star = ship
                             
-                            #game_data.ship_scan = ship.scan_this_ship(game_data.player.determin_precision)
+                            #game_data.ship_scan = ship.scan_this_ship(game_data.player.sensors.determin_precision)
                         #self.engine.game_data.selectedEnemyShip = ship
                         return ship
                 return True
