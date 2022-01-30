@@ -131,9 +131,13 @@ class EasyEnemy(BaseAi):
         
         chance_of_hit = self.entity.check_torpedo_los(self.entity.game_data.player)
         if chance_of_hit > 0:
-                
+            
+            t,n = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable
+            
+            self.entity.torpedo_launcher.torpedo_loaded = t
+            
             torpedos_to_fire = min(
-                self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes
+                n, self.entity.ship_class.torp_tubes
             )
             torpedo = TorpedoOrder.from_coords(
                 self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
@@ -222,11 +226,13 @@ class MediumEnemy(BaseAi):
             
         if chance_of_hit > 0.0:
             
-            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
-                self.target, 5
-            )
+            t, n = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable
+            
             torpedos_to_fire = min(
-                self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes
+                n, self.entity.ship_class.torp_tubes
+            )
+            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
+                self.target, t, 5, torpedos_to_fire
             )
             torpedo = TorpedoOrder.from_coords(
                 self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
@@ -485,10 +491,14 @@ class HardEnemy(BaseAi):
             
         if chance_of_hit > 0.0:
             
-            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(self.target, 10)
+            t, n = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable
             
-            torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes)
-
+            torpedos_to_fire = min(
+                n, self.entity.ship_class.torp_tubes
+            )
+            averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
+                self.target, t, 10, torpedos_to_fire
+            )
             torpedo = TorpedoOrder.from_coords(
                 self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
             )
