@@ -8,7 +8,7 @@ from global_functions import get_first_group_in_pattern
 class Torpedo:
     
     #__slots__ = ("cap_name", "name", "damage", "infrastructure", "infrastructure_damage")
-    
+    code:str
     name:str
     cap_name:str
     damage:int
@@ -40,6 +40,7 @@ def create_torpedos() -> Dict[str,Torpedo]:
     
     torpedo_dict = {
         "NONE" : Torpedo(
+            code="NONE",
             name="",
             cap_name="",
             damage=0,
@@ -54,13 +55,13 @@ def create_torpedos() -> Dict[str,Torpedo]:
         torpedo_code = torpedo.group(1)
         
         torpedo_txt = torpedo.group(2)
-                
+        
         name = get_first_group_in_pattern(torpedo_txt, name_pattern)
         
         cap_name = name.capitalize()
-                
+        
         damage = get_first_group_in_pattern(torpedo_txt, damage_pattern, type_to_convert_to=int)
-                
+        
         req_infrastructure = get_first_group_in_pattern(
             torpedo_txt, req_infrastructure_pattern, type_to_convert_to=float
         )
@@ -73,6 +74,7 @@ def create_torpedos() -> Dict[str,Torpedo]:
         #    planet_damage = float(planet_damage_[0])
         
         torp = Torpedo(
+            code=torpedo_code,
             name=name,
             cap_name=cap_name,
             damage=damage,
@@ -86,7 +88,9 @@ def create_torpedos() -> Dict[str,Torpedo]:
 
 ALL_TORPEDO_TYPES:Final = create_torpedos()
 
-def find_most_powerful_torpedo(iter_torpedo_type:Iterable[str]):
+#def find_most_powerful_torpedo_str(iter_torpedo_type:Iterable[Tor])
+
+def find_most_powerful_torpedo_str(iter_torpedo_type:Iterable[str]):
 
     torp_type = "NONE"
     damage = 0

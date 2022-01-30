@@ -5,11 +5,12 @@ from random import choice
 import re
 from string import digits
 from typing import Dict, Final, Optional, Tuple, List
+from frozendict import frozendict
 from energy_weapon import ALL_ENERGY_WEAPONS
 from global_functions import get_first_group_in_pattern
 from nation import ALL_NATIONS
 
-from torpedo import ALL_TORPEDO_TYPES, Torpedo, find_most_powerful_torpedo
+from torpedo import ALL_TORPEDO_TYPES, Torpedo
 
 VALID_SHIP_TYPES:Final = {
     "ESCORT",
@@ -96,7 +97,7 @@ class ShipClass:
     detection_strength:float
     targeting:float
     size:float
-    torp_dict:Optional[Dict[Torpedo,int]]=None
+    torp_dict:frozendict[Torpedo, int]
     evasion:float=0.0
     max_beam_energy:int=0
     max_beam_targets:int=1
@@ -174,7 +175,7 @@ to one.'''
         max_crew:int=0, 
         max_energy:int, 
         damage_control:float, 
-        torp_dict:Dict[Torpedo,int], 
+        torp_dict:Optional[Dict[Torpedo,int]]=None,
         torp_tubes:int=0,
         max_beam_energy:int=0,
         max_beam_targets:int=1,
@@ -189,8 +190,10 @@ to one.'''
         evasion:float=0.0,
         cloak_cooldown:int=2
     ):
-        
-        max_torpedos = sum([t for t in torp_dict.values()])
+        try:
+            max_torpedos = sum([t for t in torp_dict.values()])
+        except AttributeError:
+            max_torpedos = 0
 
         #torp_types_:Tuple[str] = tuple(["NONE"] if not torp_types else torp_types)
         
@@ -206,6 +209,9 @@ to one.'''
             cannon_weapon_name=f"{short_can_name_cap}",
             mobile=evasion > 0.0
         )
+        
+        fd = frozendict(torp_dict)
+        
         return cla(
             ship_type=ship_type,
             name=name,
@@ -216,7 +222,7 @@ to one.'''
             max_crew=max_crew,
             max_energy=max_energy,
             damage_control=damage_control,
-            torp_dict=torp_dict,
+            torp_dict=fd,
             torp_tubes=torp_tubes,
             max_beam_energy=max_beam_energy,
             max_beam_targets=max_beam_targets,
@@ -233,6 +239,12 @@ to one.'''
             targeting=targeting,
             evasion=evasion
         )
+
+    @lru_cache
+    def get_torp_dict(self):
+        return {
+            k:v for k,v in self.torp_dict
+        }
 
     @property
     @lru_cache
@@ -252,7 +264,8 @@ to one.'''
         return ALL_ENERGY_WEAPONS[self.energy_weapon_code]
 
     def create_name(self):
-        return choice(self.nation.ship_names) if self.has_proper_name else "".join([choice(digits) for a in range(8)])
+        has_proper_name = self.has_proper_name
+        return choice(self.nation.ship_names) if has_proper_name else "".join([choice(digits) for a in range(8)])
 
     @property
     @lru_cache
@@ -262,7 +275,7 @@ to one.'''
         Returns:
             bool: True if the ship's nation has names AND it has crew, False otherwise
         """        
-        return self.nation.ship_names and self.max_crew > 0
+        return self.max_crew > 0 and self.nation.ship_names
 
     @property
     @lru_cache
@@ -271,29 +284,35 @@ to one.'''
 
     @property
     @lru_cache
+    def max_torpedos(self):
+        return sum(v for v in self.torp_dict.values())
+
+    @property
+    @lru_cache
     def ship_type_can_fire_torps(self):
-        return bool(self.torp_dict)
+        return self.max_torpedos > 0
 
     @property
     @lru_cache
     def get_most_powerful_torpedo_type(self):
         if not self.ship_type_can_fire_torps:
-            return "NONE"
+            return ALL_TORPEDO_TYPES["NONE"]
 
-        if len(self.torp_types) == 1:
-            return self.torp_types[0]
+        t = [k for k in self.torp_dict.keys()]
+        
+        t.sort(key=lambda a: a.damage, reverse=True)
 
-        return find_most_powerful_torpedo(self.torp_types)
-
-    @property
-    @lru_cache
-    def max_torpedos(self):
-        return sum([t for t in self.torp_dict.values()]) if self.torp_dict else 0
+        return t[0]
 
     @property
     @lru_cache
-    def allowed_torpedos(self):
+    def allowed_torpedos_set(self):
         return frozenset(self.torp_dict.keys()) if self.torp_dict else frozenset([ALL_TORPEDO_TYPES["NONE"]])
+
+    @property
+    @lru_cache
+    def allowed_torpedos_tuple(self):
+        return tuple(self.torp_dict.keys()) if self.torp_dict else tuple([ALL_TORPEDO_TYPES["NONE"]])
 
     @property
     @lru_cache
@@ -442,6 +461,12 @@ def create_ship_classes():
             type_to_convert_to=int
         )
         
+        if (len(torp_dict) == 0) != (torpedo_tubes == 0):
+            
+            raise ValueError(
+                f"In the ship class {shipclass_code} there are {len(torp_dict)} items in the torpedo dictionary, but the ship class has {torpedo_tubes} torpedo tubes."
+            )
+        
         #torpedo_types_ = get_first_group_in_pattern(shipclass_txt, torpedos_types_pattern, return_aux_if_no_match=True)
         
         #torpedo_types = torpedo_types_.split(",") if torpedo_types_ else None
@@ -501,7 +526,7 @@ def create_ship_classes():
             name=name,
             max_shields=shields,
             max_hull=hull,
-            max_torpedos=torpedos,
+            torp_dict=torp_dict,
             torp_tubes=torpedo_tubes,
             damage_control=damage_control,
             max_beam_energy=max_beam_energy,
@@ -509,7 +534,6 @@ def create_ship_classes():
             max_cannon_energy=max_cannon_energy,
             max_energy=energy,
             max_crew=crew,
-            torp_dict=torp_dict,
             cloak_strength=cloak_strength,
             cloak_cooldown=cloak_cooldown,
             detection_strength=detection_strength,
