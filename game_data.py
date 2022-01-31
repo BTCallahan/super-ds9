@@ -1,25 +1,22 @@
 from __future__ import annotations
-from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
-from itertools import accumulate
-from ai import BaseAi, HardEnemy
+from ai import BaseAi
 from coords import Coords
-from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
-from random import choice, choices, randrange
+from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, ShipStatus
+from random import choice, choices
 from typing import Any, Dict, FrozenSet, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Set, OrderedDict
 
 from get_config import CONFIG_OBJECT
 from global_functions import stardate
-from nation import ALL_NATIONS, Nation
+from nation import Nation
 from scenario import Scenerio
 from starship import Starship
 from ship_class import ALL_SHIP_CLASSES
 from space_objects import Star, SubSector, Planet
 import colors
-import numpy as np
 
-from torpedo import ALL_TORPEDO_TYPES, Torpedo
+from torpedo import Torpedo
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -216,7 +213,7 @@ class GameData:
                 
                 star_system = self.grid[co.y][co.x]
                 
-                all_ships = []
+                all_ships:List[str] = []
                 
                 for k,v in encounter.items():
                     all_ships.extend(

@@ -5,13 +5,13 @@ from functools import lru_cache, cached_property
 from itertools import accumulate
 from math import floor
 import re
-from typing import Dict, Final, FrozenSet, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, Final, FrozenSet, Optional, Pattern, Tuple, TYPE_CHECKING
 from random import randint
 from datetime import datetime
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 from evaluate_player import SCENARIO_TYPES
 from nation import ALL_NATIONS
-from starship import ALL_SHIP_CLASSES, ShipClass
+from ship_class import ALL_SHIP_CLASSES, ShipClass
 
 if TYPE_CHECKING:
     from evaluate_player import ScenerioEvaluation
@@ -203,7 +203,7 @@ def create_sceneraio():
                 ship_dict = {}
                 
                 for ship in ship_pattern.finditer(ships):
-                    
+                
                     sh = ship.group(1)
                     
                     ship_min = ship.group(2)
@@ -295,8 +295,6 @@ def create_sceneraio():
             minute=mini,
             second=sec
         )
-        
-        #end_date = end_date_pattern.search(scenario_txt)
         
         year_, mon_, day_, hour_, mini_, sec_ = get_multiple_groups_in_pattern(
             scenario_txt, end_date_pattern,
