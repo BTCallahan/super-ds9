@@ -22,6 +22,10 @@ def evaluate_ships(ships:Iterable[Starship]):
     """
     total_ships = len(ships)
     
+    _highest_possible_score = [ship.calculate_ship_stragic_value()[0] for ship in ships]
+    
+    highest_possible_score = sum(_highest_possible_score)
+    
     _alive_ships = [ship for ship in ships if ship.ship_status.is_active]
     
     alive_ships = [ship for ship in _alive_ships if not ship.ship_is_captured]
@@ -46,17 +50,11 @@ def evaluate_ships(ships:Iterable[Starship]):
     alive_ships_scores = tuple(
         ship[1] for ship in _alive_ships_scores
     )
-    possible_alive_ships_scores = tuple(
-        ship[0] for ship in _alive_ships_scores
-    )
     _captured_ships_scores = (
         (ship.calculate_ship_stragic_value()) for ship in captured_ships
     )
     captured_ships_scores = tuple(
         ship[1] for ship in _captured_ships_scores
-    )
-    possible_captured_ships_scores = tuple(
-        ship[0] for ship in _captured_ships_scores
     )
     _derlict_ship_scores = (
         (ship.calculate_ship_stragic_value(value_multiplier_for_derlict=1.0)) for ship in derlict_ships
@@ -64,34 +62,23 @@ def evaluate_ships(ships:Iterable[Starship]):
     derlict_ship_scores = tuple(
         ship[1] for ship in _derlict_ship_scores
     )
-    possible_derlict_ship_scores = tuple(
-        ship[0] for ship in _derlict_ship_scores
-    )
     destroyed_ship_scores = tuple(
         (ship.calculate_ship_stragic_value(value_multiplier_for_destroyed=0.0)[0]) for ship in destroyed_ships
     )
-    alive_ships_percent = number_of_alive_ships / total_ships
-    captured_ships_percent = number_of_captured_ships / total_ships
-    derlict_ships_percent = number_of_derlict_ships / total_ships
-    destroyed_ships_percent = number_of_destroyed_ships / total_ships
     total_alive_ships_scores = sum(alive_ships_scores)
-    total_possible_alive_ships_scores = sum(possible_alive_ships_scores)
     total_captured_ships_scores = sum(captured_ships_scores)
-    total_possible_captured_ships_scores = sum(possible_captured_ships_scores)
     total_derlict_ship_scores = sum(derlict_ship_scores)
-    total_possible_derlict_ship_scores = sum(possible_derlict_ship_scores)
     total_destroyed_ship_scores = sum(destroyed_ship_scores)
     return (
-        alive_ships_percent,
-        captured_ships_percent,
-        derlict_ships_percent,
-        destroyed_ships_percent,
+        total_ships,
+        number_of_alive_ships,
+        number_of_captured_ships,
+        number_of_derlict_ships,
+        number_of_destroyed_ships,
+        highest_possible_score,
         total_alive_ships_scores,
-        total_possible_alive_ships_scores,
         total_captured_ships_scores,
-        total_possible_captured_ships_scores,
         total_derlict_ship_scores,
-        total_possible_derlict_ship_scores,
         total_destroyed_ship_scores
     )
 
