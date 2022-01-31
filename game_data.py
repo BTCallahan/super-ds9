@@ -366,14 +366,10 @@ class GameData:
                 
                 subsec.allied_ships += 1
 
-<<<<<<< HEAD
-    def handle_torpedo(self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], torpedo_type:Torpedo, ships_in_area:Dict[Coords, Starship]):
-=======
     def handle_torpedo(
         self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], 
         torpedo_type:str, ships_in_area:Dict[Coords, Starship]
     ):
->>>>>>> f59a396 (Tweak function print_mega_sector)
         #global PLAYER
         #heading_to_direction
         torpedo = torpedo_type

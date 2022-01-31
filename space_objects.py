@@ -244,7 +244,7 @@ class SubSector:
             #self.astroObjects[y][x] = '*'
             self.total_stars+=1
             self.stars_dict[xy] = Star(
-                local_coords=xy, sector_coords=self.coords
+                local_coords=xy, sector_coords=self.coords, system=self
             )
             
         if self.number_of_stars > 0:
@@ -255,7 +255,8 @@ class SubSector:
 
                 p = Planet(
                     planet_habbitation=choice(PLANET_TYPES), 
-                    local_coords=local_coords, sector_coords=self.coords
+                    local_coords=local_coords, sector_coords=self.coords,
+                    system=self
                 )
 
                 self.planets_dict[local_coords] = p

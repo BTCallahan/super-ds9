@@ -97,7 +97,7 @@ allied_ships_pattern = re.compile(r"    ALLIED_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-
 
 ship_pattern = re.compile(r"([a-zA-Z_]+):(\d),(\d)\n")
 
-mission_critical_ships_pattern = re.compile(r"MISSION_CRITICAL_SHIPS:([\w,])")
+mission_critical_ships_pattern = re.compile(r"MISSION_CRITICAL_SHIPS:([\w,]+)")
 
 default_ship_name_pattern = re.compile(r"DEFAULT_SHIP_NAME:([a-zA-Z\-\'\ ]+)\n")
 
@@ -185,54 +185,16 @@ def create_sceneraio():
         
         _mission_critical_ships = get_first_group_in_pattern(scenario_txt, mission_critical_ships_pattern)
         
+        _t_mission_critical_ships = _mission_critical_ships.split(",")
+        
         mission_critical_ships = frozenset([
-            ALL_SHIP_CLASSES[ship] for ship in _mission_critical_ships.split()
+            ALL_SHIP_CLASSES[ship] for ship in _t_mission_critical_ships
         ])
         
-        enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
-        
-        all_enemy_encounters = []
-        
-        for encounter in enemy_ships_pattern.finditer(enemy_encounters):
+        def create_encounters(en_ship_pattern:Pattern[str], encounters_text_block:str):
             
-            min_encs = encounter.group(1)
-            max_encs = encounter.group(2)
+            for encounter in en_ship_pattern.finditer(encounters_text_block):
             
-            ships = encounter.group(3)
-            
-            ship_dict = {}
-            
-            for ship in ship_pattern.finditer(ships):
-                
-                sh = ship.group(1)
-                
-                ship_min = ship.group(2)
-                
-                ship_max = ship.group(2)
-                
-                ship_dict[sh] = (
-                    int(ship_min),
-                    int(ship_max)
-                )
-            
-            all_enemy_encounters.append(
-                Encounter(
-                    min_encounters=int(min_encs),
-                    max_encounters=int(max_encs),
-                    ships=ship_dict
-                )
-            )
-            
-        allied_encounters = get_first_group_in_pattern(
-            scenario_txt, allied_encounters_pattern, return_aux_if_no_match=True
-        )
-        
-        all_allied_encounters = []
-        
-        if allied_encounters:
-            
-            for encounter in allied_ships_pattern.finditer(allied_encounters):
-                
                 min_encs = encounter.group(1)
                 max_encs = encounter.group(2)
                 
@@ -252,31 +214,31 @@ def create_sceneraio():
                         int(ship_min),
                         int(ship_max)
                     )
-                
-                all_allied_encounters.append(
-                    Encounter(
+                    
+                    yield Encounter(
                         min_encounters=int(min_encs),
                         max_encounters=int(max_encs),
                         ships=ship_dict
                     )
-                )
+                
+                pass
+        
+        enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
+        
+        all_enemy_encounters = tuple(
+            create_encounters(enemy_ships_pattern, enemy_encounters)
+        )
+            
+        allied_encounters = get_first_group_in_pattern(
+            scenario_txt, allied_encounters_pattern, return_aux_if_no_match=True
+        )
+        
+        
+        all_allied_encounters = tuple(
+            create_encounters(enemy_ships_pattern, enemy_encounters)
+        )
         
         victory_percent = get_first_group_in_pattern(scenario_txt, victory_percent_pattern, type_to_convert_to=float)
-        
-        #e_ships:Dict[str,Tuple[int,int]] = {}
-        """
-        e_ships:OrderedDict[str,Tuple[int,int]] = OrderedDict()
-        
-        a_ships = ship_pattern.finditer(enemy_ships)
-        
-        for s in a_ships:
-            
-            k = s.group(1)
-            min_ = s.group(2)
-            max_ = s.group(3)
-            
-            e_ships[k] = (int(min_), int(max_))
-        """
         
         your_nation = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
         

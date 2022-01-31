@@ -823,7 +823,7 @@ class Starship(CanDockWith):
 
         hit_roll = self.roll_to_hit(
             other_ship, 
-            systems_used_for_accuray=[self.sys_impulse.get_effective_value, self.ship_class.evasion],
+            systems_used_for_accuray=[self.impulse_engine.get_effective_value, self.ship_class.evasion],
             damage_type=DAMAGE_RAMMING,
             crew_readyness=self.crew.crew_readyness,
             target_crew_readyness=other_ship.crew.crew_readyness
@@ -1499,8 +1499,8 @@ class Starship(CanDockWith):
         if self.roll_to_hit(
             enemy, 
             systems_used_for_accuray=(
-                self.sys_sensors.get_effective_value,
-                self.sys_torpedos.get_effective_value
+                self.sensors.get_effective_value,
+                self.torpedo_launcher.get_effective_value
             ),
             damage_type=DAMAGE_TORPEDO,
             crew_readyness = self.crew.crew_readyness,# * 0.5 + 0.5
@@ -1796,11 +1796,11 @@ class Starship(CanDockWith):
         
         self_status = self.ship_status
         
-        self_hp = (self.shields if self_status.do_shields_work else 0) + self.hull
+        self_hp = (self.shield_generator.shields if self_status.do_shields_work else 0) + self.hull
         
         self_damage = self_hp + self.ship_class.max_hull * 0.5
         
-        crew_readyness = self.crew_readyness
+        crew_readyness = self.crew.crew_readyness
         
         #other_status = target_scan["ship_status"]
         
@@ -1814,8 +1814,8 @@ class Starship(CanDockWith):
                 target, 
                 damage_type=DAMAGE_RAMMING,
                 crew_readyness=crew_readyness,
-                target_crew_readyness=target.scan_crew_readyness(precision),
-                systems_used_for_accuray=[self.sys_impulse.get_effective_value, self.ship_class.evasion],
+                target_crew_readyness=target.crew.scan_crew_readyness(precision),
+                systems_used_for_accuray=[self.impulse_engine.get_effective_value, self.ship_class.evasion],
                 estimated_enemy_impulse=target_scan["sys_impulse"]
             )
             if to_hit:

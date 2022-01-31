@@ -461,7 +461,7 @@ def create_ship_classes():
             type_to_convert_to=int
         )
         
-        if (len(torp_dict) == 0) != (torpedo_tubes == 0):
+        if (len(torp_dict) == 0) and (torpedo_tubes > 0):
             
             raise ValueError(
                 f"In the ship class {shipclass_code} there are {len(torp_dict)} items in the torpedo dictionary, but the ship class has {torpedo_tubes} torpedo tubes."

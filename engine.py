@@ -5,10 +5,11 @@ from typing import Dict, Tuple, TYPE_CHECKING
 import lzma, pickle
 from data_globals import STATUS_CLOAKED, CloakStatus
 from message_log import MessageLog
-from game_data import GameData
 from get_config import CONFIG_OBJECT
 
-#if TYPE_CHECKING:
+if TYPE_CHECKING:
+    from game_data import GameData
+
 from starship import Starship
 
 class Engine:
