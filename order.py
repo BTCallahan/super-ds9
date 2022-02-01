@@ -10,6 +10,7 @@ from nation import ALL_NATIONS
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
+from ai import AllyAI
 if TYPE_CHECKING:
     from starship import Starship
 
@@ -633,11 +634,22 @@ class TransportOrder(Order):
     
     def perform(self) -> None:
         
+        is_derlict = self.target.ship_status.is_recrewable
+        
         self.entity.crew.able_crew -= self.amount
         self.target.crew.able_crew += self.amount
         
-        if self.target.nation != self.entity.nation:
+        entity_in_allied_nation = self.entity.nation in self.target.game_data.scenerio.get_set_of_allied_nations()
+        
+        target_in_allied_nation = self.target.nation in self.target.game_data.scenerio.get_set_of_allied_nations()
+        
+        if is_derlict and entity_in_allied_nation != target_in_allied_nation:
+            
             self.target.override_nation_code = self.entity.ship_class.nation_code
+            
+            difficulty = AllyAI if target_in_allied_nation else self.game_data.difficulty
+            
+            self.target.ai = difficulty
     
 class TorpedoOrder(Order):
 
@@ -1088,42 +1100,3 @@ class SelfDestructOrder(Order):
         ]
 
         return OrderWarning.SAFE if ships_in_range else OrderWarning.NO_ENEMY_SHIPS_NEARBY
-
-class ReactivateDerlict(Order):
-
-    def __init__(self, entity: Starship, target:Starship, crew:int) -> None:
-        super().__init__(entity)
-        self.target = target
-        self.crew = crew
-
-        self.delrict_ships = [
-            ship for ship in self.entity.game_data.all_enemy_ships if ship.able_crew + ship.injured_crew < 1
-        ]
-
-        if self.delrict_ships:
-            self.delrict_ships.sort(lambda ship: ship.sector_coords.distance(coords=self.entity.sector_coords))
-
-    def raise_warning(self):
-        
-        if self.entity.ship_class.is_automated or self.entity.ship_class.is_automated:
-            return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
-
-        if self.crew >= self.entity.crew.able_crew:
-            return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
-
-        if self.target.sector_coords != self.entity.sector_coords:
-            return OrderWarning.NO_TARGET
-        
-        if not self.entity.local_coords.is_adjacent(self.target.local_coords):
-            return OrderWarning.OUT_OF_RANGE
-
-        return OrderWarning.SAFE
-
-    def perform(self) -> None:
-
-        max_crew = self.target.ship_class.max_crew
-
-        crew_to_send_over = min(max_crew, self.crew)
-
-        self.entity.crew.able_crew -= crew_to_send_over
-        self.target.crew.able_crew += crew_to_send_over
