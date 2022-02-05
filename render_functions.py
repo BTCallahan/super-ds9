@@ -191,6 +191,13 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     string=f"F{allied_ships}", fg=colors.green if allied_ships > 0 else colors.cyan
                 )
             
+            if sector_x.objectives:
+                
+                console.print(
+                    x=x+j2+2, y=y+i2+2,
+                    string=f"M{sector_x.objectives}", fg=colors.cyan
+                )
+            
 def get_system_color(percentage:float, reverse:bool):
 
     if reverse:

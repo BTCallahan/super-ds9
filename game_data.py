@@ -245,9 +245,20 @@ class GameData:
                     starship.game_data = self
 
                     if starship.nation in player_nation:
+                        
                         star_system.allied_ships+=1
+                        
                     elif starship.nation in enemy_nation:
+                        
                         star_system.hostile_ships+=1
+                    else:
+                        raise ValueError(
+f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.name_long}, but it is not in either the enemy nations ({enemy_nation}), or the allied nations ({player_nation})"
+                        )
+                    
+                    if ship_class in self.scenerio.mission_critical_ships:
+                        
+                        star_system.objectives += 1
                     
                     yield starship
             
@@ -283,8 +294,24 @@ class GameData:
         self.player = Starship(player_ship_class, BaseAi, locPos.x, locPos.y, randXsec, randYsec, name=ship_name)
         self.player.game_data = self
         self.engine.player = self.player
+        
+        all_other_ships = self.all_enemy_ships + self.all_allied_ships
+        
+        shuffle(all_other_ships)
+        
+        self.all_other_ships = all_other_ships
+        
+        for ship in all_other_ships:
+            
+            if ship.ship_class in self.scenerio.mission_critical_ships:
+                
+                x, y = ship.sector_coords.x, ship.sector_coords.y
+                
+                sub_sector:SubSector = self.grid[y][x]
+                
+                sub_sector.objectives += 1
 
-        self.total_starships = [self.player] + self.all_enemy_ships
+        self.total_starships = [self.player] + self.all_other_ships
 
         self.ships_in_same_sub_sector_as_player = self.grab_ships_in_same_sub_sector(
             self.player, accptable_ship_statuses={
@@ -354,16 +381,21 @@ class GameData:
                 
                 subsec.hostile_ships = 0
                 subsec.allied_ships = 0
+                subsec.objectives = 0
                 
         for ship in self.all_enemy_ships:
             
             status = ship.ship_status
             
-            if status.is_active:# and status.is_visible:
+            if status.is_active and status.is_visible:
                 x,y = ship.sector_coords.x, ship.sector_coords.y
                 subsec:SubSector = self.grid[y][x]
                 
                 subsec.hostile_ships += 1
+                
+                if ship.ship_class in self.scenerio.mission_critical_ships:
+                
+                    subsec.objectives += 1
                 
         for ship in self.all_allied_ships:
             
@@ -374,6 +406,10 @@ class GameData:
                 subsec:SubSector = self.grid[y][x]
                 
                 subsec.allied_ships += 1
+                
+                if ship.ship_class in self.scenerio.mission_critical_ships:
+                
+                    subsec.objectives += 1
 
     def handle_torpedo(
         self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], 
