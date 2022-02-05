@@ -235,20 +235,30 @@ def create_sceneraio():
         
         
         all_allied_encounters = tuple(
-            create_encounters(enemy_ships_pattern, enemy_encounters)
-        )
+            create_encounters(enemy_ships_pattern, allied_encounters)
+        ) if allied_encounters else tuple()
         
         victory_percent = get_first_group_in_pattern(scenario_txt, victory_percent_pattern, type_to_convert_to=float)
         
         your_nation = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
         
-        allied_nations = get_first_group_in_pattern(scenario_txt, allied_nations_pattern, return_aux_if_no_match=True)
+        allied_nations_ = get_first_group_in_pattern(scenario_txt, allied_nations_pattern, return_aux_if_no_match=True)
+        
+        try:
+            allied_nations = allied_nations_.split(",")
+        except AttributeError:
+            allied_nations = list()
         
         enemy_nation = get_first_group_in_pattern(scenario_txt, enemy_nation_pattern)
         
-        other_enemy_nations = get_first_group_in_pattern(
+        other_enemy_nations_ = get_first_group_in_pattern(
             scenario_txt, other_enemy_nations_pattern, return_aux_if_no_match=True
         )
+        
+        try:
+            other_enemy_nations = other_enemy_nations_.split(",")
+        except AttributeError:
+            allied_nations = list()
         
         your_commanding_officer = get_first_group_in_pattern(scenario_txt, your_commanding_officer_pattern)
         
