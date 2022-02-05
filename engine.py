@@ -3,7 +3,7 @@ from __future__ import annotations
 from coords import Coords, AnyCoords
 from typing import Dict, Tuple, TYPE_CHECKING
 import lzma, pickle
-from data_globals import STATUS_CLOAKED, CloakStatus
+from data_globals import STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK
 from message_log import MessageLog
 from get_config import CONFIG_OBJECT
 
@@ -48,56 +48,34 @@ class Engine:
             f.write(save_data)
 
     def handle_enemy_turns(self):
-        
-        try:
-            if self.player.cloak.cloak_status == CloakStatus.COMPRIMISED:
-                self.player.cloak.cloak_status = CloakStatus.ACTIVE
-        except AttributeError:
-            pass
 
-        for entity in self.game_data.all_enemy_ships:
+        for entity in self.game_data.all_other_ships:
+            
             try:
-                if entity.cloak.cloak_status == CloakStatus.COMPRIMISED:
-                    entity.cloak.cloak_status = CloakStatus.ACTIVE
+                entity.cloak.handle_cooldown_and_status_recovery()
+            except AttributeError:
+                pass
+            
+            try:
+                entity.sensors.detect_all_enemy_cloaked_ships_in_system()
             except AttributeError:
                 pass
 
-            if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status.is_active:
-                
-                if not self.player.ship_status.is_visible:
-                    try:
-                        if self.player.cloak.cloak_status == CloakStatus.ACTIVE and entity.sensors.detect_cloaked_ship(self.player) :
-                            
-                            self.player.cloak.cloak_status = CloakStatus.COMPRIMISED
-                    except AttributeError:
-                        pass
+            #if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status.is_active:
                         
-                entity.ai.perform()
-                entity.repair()
-        try:
-            if self.game_data.player.cloak.cloak_cooldown > 0:
-            
-                self.game_data.player.cloak.cloak_cooldown -= 1
-            
-                if self.game_data.player.cloak.cloak_cooldown == 0:
-            
-                    self.game_data.engine.message_log.add_message(
-                        f"The cloaking device is ready, {self.game_data.player.nation.captain_rank_name}."
-                    )
-        except AttributeError:
-            pass
-            
-        self.game_data.visible_ships_in_same_sub_sector_as_player = [
-            ship for ship in self.game_data.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
-        ]
+            entity.ai.perform()
+            entity.handle_repair_and_energy_consumption()
         
-        for ship in self.game_data.ships_in_same_sub_sector_as_player:
-            try:            
-                if ship.cloak.cloak_status == CloakStatus.ACTIVE and self.game_data.player.sensors.detect_cloaked_ship(ship):
-                    
-                    ship.cloak.cloak_status = CloakStatus.COMPRIMISED
-            except AttributeError:
-                pass
+        game_data = self.game_data
+        
+        game_data.ships_in_same_sub_sector_as_player = game_data.grab_ships_in_same_sub_sector(
+            game_data.player, accptable_ship_statuses={
+                STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK
+            }
+        )
+        game_data.visible_ships_in_same_sub_sector_as_player = [
+            ship for ship in game_data.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
+        ]
         
         selected_ship_planet_or_star = self.game_data.selected_ship_planet_or_star
         

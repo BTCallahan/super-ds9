@@ -1311,33 +1311,50 @@ class Starship(CanDockWith):
                 f"Peices of the {self.proper_name} break off."
             )
         
-    def repair(self):
-        """This method handles repairing the ship after each turn. Here's how it works:
+    def handle_repair_and_energy_consumption(self):
+        """This method handles repairing the ship after each turn, as well as energy consuption from have the shields up or the cloak turned on. Here's how it works:
         
         If the ship is not being fired on, manuivering, or firing topredos, then some rudimentory repairs are going to be done. Also, the ships batteries will be slowly be refilled by the warp core.
         
-        However, if the ship focuses its crews attention soley on fixing the ship (by using the RepairOrder order), then the repairs are going to be much more effective. For each consuctive turn the ship's crew spends on fixing things up, a small but clumitive bonus is applied. The ships batteries will also recharge much more quickly.
+        However, if the ship focuses its crews attention soley on fixing the ship (by using the RepairOrder order), then the repairs are going to be much more effective. For each consuctive turn the ship's crew spends on fixing things up, a small but clumitive bonus is applied. The ships batteries will also recharge much more quickly. However, the cost in energy from having the shields up or the cloak turned on will be subtracted from the recharge amount.
         
         If the ship is docked/landed at a friendly planet, then the ship will benifit even more from the expertise of the local eneriners.
-        """        
-        #self.crew_readyness
+        """
+        
         repair_factor:RepairStatus = REPAIR_DOCKED if self.docked else (
             REPAIR_DEDICATED if self.turn_repairing else REPAIR_PER_TURN
         )
         time_bonus = 1.0 + (self.turn_repairing / 25.0)
         energy_regeneration_bonus = 1.0 + (self.turn_repairing / 5.0)
+        
+        try:
+            energy_cost = self.cloak.get_energy_cost_per_turn
+        except AttributeError:
+            energy_cost = 0
+        
+        try:
+            energy_cost += self.shield_generator.get_energy_cost_per_turn
+        except AttributeError:
+            pass
+        
+        try:
+            crew_readyness = self.crew.crew_readyness
+        except AttributeError:
+            crew_readyness = 1
 
-        repair_amount = self.ship_class.damage_control * self.crew.crew_readyness * time_bonus
+        repair_amount = self.ship_class.damage_control * crew_readyness * time_bonus
 
         hull_repair_factor = repair_amount * repair_factor.hull_repair
         
         system_repair_factor = repair_amount * repair_factor.system_repair
         
-        status = self.ship_status
+        #status = self.ship_status
 
-        self.power_generator.energy+= (
+        energy_rengerated_this_turn = (
             repair_factor.energy_regeration * self.power_generator.get_effective_value * energy_regeneration_bonus
-        ) - ((REPAIR_PER_TURN.energy_regeration * 0.5) if status.energy_drain else 0)
+        ) - energy_cost
+        
+        self.power_generator.energy += energy_rengerated_this_turn
 
         if not self.ship_class.is_automated:
             self.crew.heal_crew(0.2, randint(2, 5))

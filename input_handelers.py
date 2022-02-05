@@ -86,7 +86,7 @@ class EventHandler(BaseEventHandler):
             self.engine.message_log.add_message(exc.args[0], colors.impossible)
             return False  # Skip enemy turn on exceptions.
         
-        self.engine.player.repair()
+        self.engine.player.handle_repair_and_energy_consumption()
 
         game_data = self.engine.game_data
         game_data.ships_in_same_sub_sector_as_player = game_data.grab_ships_in_same_sub_sector(
@@ -99,6 +99,16 @@ class EventHandler(BaseEventHandler):
         #game_data.stardate_text = f"{game_data.stardate:5.2}"
 
         self.engine.handle_enemy_turns()
+        
+        try:
+            game_data.player.cloak.handle_cooldown_and_status_recovery()
+        except AttributeError:
+            pass
+        
+        try:
+            game_data.player.sensors.detect_all_enemy_cloaked_ships_in_system()
+        except AttributeError:
+            pass
         
         return True
 
