@@ -15,6 +15,23 @@
 # END_NATION
 # feds have akira, Ambassador
 #
+# Debuging-only enemy empire 
+#
+NATION:BADNESS
+COLOR:125,119,200
+NAME_LONG:Badness Force
+NAME_SHORT:Force
+NAME_POSSESIVE:Badness
+COMMAND_NAME:Badness Force Command
+INTELLIGENCE_AGENCY:Badness Intel.
+NAVY_NAME:Badness Navy
+CONGRATULATIONS_TEXT:You did good!
+CAPTAIN_RANK_NAME:Phomba
+ADMIRAL_RANK_NAME:Great Phomba
+SHIP_NAMES:NONE
+SHIP_NAMES_END
+END_NATION
+#
 NATION:FEDERATION
 COLOR:50,45,235
 NAME_LONG:United Federation of Planets
