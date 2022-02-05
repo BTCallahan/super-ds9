@@ -284,20 +284,20 @@ class SubSector:
     
     def find_random_safe_spot(self, ship_list:Optional[Iterable[Starship]]=None):
         if ship_list:
-            ship_positions = [
-                ship.local_coords for ship in ship_list if 
+            ship_positions = set(
+                ship.local_coords.create_coords() for ship in ship_list if 
                 ship.sector_coords.x == self.x and ship.sector_coords.y == self.y
-            ]
+            )
             okay_spots = [c for c in self.safe_spots if c not in ship_positions]
             return choice(okay_spots)
         return choice(self.safe_spots)
 
     def find_random_safe_spots(self, how_many:int, ship_list:Optional[Iterable[Starship]]=None):
         if ship_list:
-            ship_positions = [
-                ship.local_coords for ship in ship_list if ship.sector_coords.x == self.x and 
+            ship_positions = set(
+                ship.local_coords.create_coords() for ship in ship_list if ship.sector_coords.x == self.x and 
                 ship.sector_coords.y == self.y
-            ]
+            )
             okay_spots = [c for c in self.safe_spots if c not in ship_positions]
             return choices(okay_spots, k=how_many)
         return choices(self.safe_spots, k=how_many)
