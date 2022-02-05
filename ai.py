@@ -605,15 +605,15 @@ class EasyEnemy(BaseAi):
         
     def perform(self) -> None:
         
-        if self.entity.warp_drive.is_at_warp:
-            wto = WarpTravelOrder(self.entity)
-            wto.perform()
-            return
-            
-        if not self.target:
-            self.target = self.game_data.player
+        try:
+            if self.entity.warp_drive.is_at_warp:
+                wto = WarpTravelOrder(self.entity)
+                wto.perform()
+                return
+        except AttributeError:
+            pass
         
-        player_status = self.target.ship_status
+        player_status = self.game_data.player.ship_status
         
         if not player_status.is_active:
             # player is not alive = do nothing
@@ -650,15 +650,15 @@ class MediumEnemy(BaseAi):
     
     def perform(self) -> None:
         
-        if self.entity.warp_drive.is_at_warp:
-            wto = WarpTravelOrder(self.entity)
-            wto.perform()
-            return
+        try:
+            if self.entity.warp_drive.is_at_warp:
+                wto = WarpTravelOrder(self.entity)
+                wto.perform()
+                return
+        except AttributeError:
+            pass
         
-        if not self.target:
-            self.target = self.game_data.player
-        
-        player_status = self.target.ship_status
+        player_status = self.game_data.player.ship_status
         
         if not player_status.is_active:
             # player is not alive = do nothing
@@ -704,10 +704,16 @@ class MediumEnemy(BaseAi):
 class HardEnemy(BaseAi):
     
     def perform(self) -> None:
-        if not self.target:
-            self.target = self.game_data.player
         
-        player_status = self.target.ship_status
+        try:
+            if self.entity.warp_drive.is_at_warp:
+                wto = WarpTravelOrder(self.entity)
+                wto.perform()
+                return
+        except AttributeError:
+            pass
+        
+        player_status = self.game_data.player.ship_status
         
         if not player_status.is_active:
             # player is not alive = do nothing
@@ -793,13 +799,13 @@ class AllyAI(BaseAi):
     
     def perform(self) -> None:
         
-        if self.entity.warp_drive.is_at_warp:
-            wto = WarpTravelOrder(self.entity)
-            wto.perform()
-            return
-        
-        if not self.target:
-            self.target = self.game_data.player
+        try:
+            if self.entity.warp_drive.is_at_warp:
+                wto = WarpTravelOrder(self.entity)
+                wto.perform()
+                return
+        except AttributeError:
+            pass
         
         player_status = self.game_data.player.ship_status
         

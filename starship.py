@@ -280,25 +280,39 @@ class Starship(CanDockWith):
 
     @property
     def get_combat_effectivness(self):
-        divisor = 7
+        
+        total = (self.hull / self.ship_class.max_hull) * 2
+        divisor = 1
+        
         try:
-            crew_readyness = self.crew.crew_readyness
+            total += self.crew.crew_readyness
+            divisor += 1
         except AttributeError:
-            crew_readyness = 1
+            pass
         
-        beam_power = self.beam_array.get_max_effective_beam_firepower
+        try:
+            total += self.beam_array.get_max_effective_beam_firepower
+            divisor += 1
+        except AttributeError:
+            pass
         
-        shield_power = self.shield_generator.get_max_effective_shields
+        try:
+            total += self.cannons.get_max_effective_cannon_firepower
+            divisor += 1
+        except AttributeError:
+            pass
         
-        total = (
-            self.power_generator.get_effective_value + beam_power + 
-            shield_power + self.sensors.get_targeting_power + 
-            crew_readyness + (self.hull / self.ship_class.max_hull) * 2
-        )
+        try:
+            total += self.shield_generator.get_max_effective_shields
+            divisor += 1
+        except AttributeError:
+            pass
         
-        if self.ship_type_can_fire_torps:
+        try:
             total += self.torpedo_launcher.get_effective_value
             divisor += 1
+        except AttributeError:
+            pass
         
         return total / divisor
 
@@ -308,16 +322,33 @@ class Starship(CanDockWith):
         hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting = self.ship_class.get_stragic_values
 
         hull_value = hull * self.hull_percentage
-        shields_value = shields * self.shield_generator.get_effective_value
+        
+        try:
+            shields_value = shields * self.shield_generator.get_effective_value
+        except AttributeError:
+            shields_value = 0
+            
         energy_value = energy * self.power_generator.get_effective_value
+        
         try:
             crew_value = self.crew.crew_readyness
         except AttributeError:
             crew_value = 1
 
-        beam_energy_value = beam_energy * self.beam_array.get_effective_value if beam_energy else 0
-        cannon_energy_value = cannon_energy * self.cannons.get_effective_value if cannon_energy else 0
-        torpedo_value_value = torpedo_value * self.torpedo_launcher.get_effective_value if torpedo_value else 0
+        try:
+            beam_energy_value = beam_energy * self.beam_array.get_effective_value
+        except AttributeError:
+            beam_energy_value = 0
+        
+        try:
+            cannon_energy_value = cannon_energy * self.cannons.get_effective_value
+        except AttributeError:
+            cannon_energy_value = 0
+            
+        try:
+            torpedo_value_value = torpedo_value * self.torpedo_launcher.get_effective_value
+        except AttributeError:
+            torpedo_value_value = 0
 
         return (
             hull_value + shields_value + energy_value + crew_value + 
@@ -821,12 +852,22 @@ class Starship(CanDockWith):
         self_damage = self_hp + self.ship_class.max_hull * 0.5
         #other_damage = other_hp + other_ship.ship_class.max_hull * 0.5
 
+        try:
+            crew_readyness = self.crew.crew_readyness
+        except AttributeError:
+            crew_readyness = 1
+        
+        try:
+            target_crew_readyness = other_ship.crew.crew_readyness
+        except AttributeError:
+            target_crew_readyness = 1
+
         hit_roll = self.roll_to_hit(
             other_ship, 
             systems_used_for_accuray=[self.impulse_engine.get_effective_value, self.ship_class.evasion],
             damage_type=DAMAGE_RAMMING,
-            crew_readyness=self.crew.crew_readyness,
-            target_crew_readyness=other_ship.crew.crew_readyness
+            crew_readyness=crew_readyness,
+            target_crew_readyness=target_crew_readyness
         )
         if hit_roll:
 
@@ -1392,7 +1433,10 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         
-        self.power_generator.integrety += system_repair_factor * (0.5 + random() * 0.5)
+        try:
+            self.power_generator.integrety += system_repair_factor * (0.5 + random() * 0.5)
+        except AttributeError:
+            pass
         
         try:
             self.transporter.integrety += system_repair_factor * (0.5 + random() * 0.5)
@@ -1479,6 +1523,16 @@ class Starship(CanDockWith):
             if attacker_is_player else 
             f"The {self.name} has fired on {'us' if target_is_player else f'the {enemy.name}'}!"
         )
+        try:
+            crew_readyness=self.crew.crew_readyness
+        except AttributeError:
+            crew_readyness=1
+            
+        try:
+            target_crew_readyness=enemy.crew.crew_readyness
+        except AttributeError:
+            target_crew_readyness=1
+        
         if self.roll_to_hit(
             enemy, 
             estimated_enemy_impulse=-1.0, 
@@ -1487,8 +1541,8 @@ class Starship(CanDockWith):
                 self.sensors.get_effective_value
             ),
             damage_type=damage_type,
-            crew_readyness=self.crew.crew_readyness,# * 0.5 + 0.5
-            target_crew_readyness=enemy.crew.crew_readyness
+            crew_readyness=crew_readyness,
+            target_crew_readyness=target_crew_readyness
         ):
             target_name = "We're" if target_is_player else f'The {enemy.name} is'
 
@@ -1513,6 +1567,16 @@ class Starship(CanDockWith):
         
         gd = self.game_data
         
+        try:
+            crew_readyness = self.crew.crew_readyness
+        except AttributeError:
+            crew_readyness = 1
+        
+        try:
+            target_crew_readyness = enemy.crew.crew_readyness
+        except AttributeError:
+            target_crew_readyness = 1
+        
         if self.roll_to_hit(
             enemy, 
             systems_used_for_accuray=(
@@ -1520,8 +1584,8 @@ class Starship(CanDockWith):
                 self.torpedo_launcher.get_effective_value
             ),
             damage_type=DAMAGE_TORPEDO,
-            crew_readyness = self.crew.crew_readyness,# * 0.5 + 0.5
-            target_crew_readyness=enemy.crew.crew_readyness
+            crew_readyness = crew_readyness,
+            target_crew_readyness = target_crew_readyness
         ):
             #chance to hit:
             #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
@@ -1717,7 +1781,10 @@ class Starship(CanDockWith):
 
         amount = min(self.energy, self.get_max_effective_beam_firepower, energy)
         
-        crew_readyness = self.crew.crew_readyness# * 0.5 + 0.5
+        try:
+            crew_readyness = self.crew.crew_readyness
+        except AttributeError:
+            crew_readyness = 1
         
         scan_target_crew = not target.ship_class.is_automated and simulate_crew
 
@@ -1817,7 +1884,10 @@ class Starship(CanDockWith):
         
         self_damage = self_hp + self.ship_class.max_hull * 0.5
         
-        crew_readyness = self.crew.crew_readyness
+        try:
+            crew_readyness = self.crew.crew_readyness
+        except AttributeError:
+            crew_readyness = 1
         
         #other_status = target_scan["ship_status"]
         
