@@ -20,7 +20,6 @@ class BaseAi(Order):
     def __init__(self, entity: Starship):
         
         self.entity = entity
-        self.target:Optional[Starship] = None
         
         self.order_dict = Counter([])
         
@@ -150,7 +149,7 @@ def calc_torpedos_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship],
                 self.entity.torpedo_launcher.get_most_powerful_torp_avaliable, self.entity.ship_class.torp_tubes
             )
             torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
+                self.entity, torpedos_to_fire, ship.local_coords.x, ship.local_coords.y
             )
             warning = torpedo.raise_warning()
             
@@ -197,7 +196,7 @@ def calc_beam_weapon_medium(self:BaseAi, enemies_in_same_system:Iterable[Starshi
         )
         if total_shield_dam + total_hull_dam > 0:
             
-            energy_weapon = EnergyWeaponOrder.single_target_beam(self.entity, energy_to_use, target=self.target)
+            energy_weapon = EnergyWeaponOrder.single_target_beam(self.entity, energy_to_use, target=ship)
             
             self.order_dict[energy_weapon] = (
                 c_value
@@ -229,7 +228,7 @@ def calc_cannon_weapon_medium(self:BaseAi, enemies_in_same_system:Iterable[Stars
         )
         if total_shield_dam + total_hull_dam > 0:
             
-            energy_weapon = EnergyWeaponOrder.cannon(self.entity, energy_to_use, target=self.target)
+            energy_weapon = EnergyWeaponOrder.cannon(self.entity, energy_to_use, target=ship)
             
             self.order_dict[energy_weapon] = (
                 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
@@ -248,30 +247,38 @@ def calc_shields_medium(self:BaseAi):
 
 def calc_cloak_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
     
-    cloak_strs = [
-        scan["sys_cloak"] * ship.ship_class.cloak_strength for ship, scan in zip(
+    detect_strs = [
+        scan["sys_sensors"] * ship.ship_class.detection_strength for ship, scan in zip(
             enemies_in_same_system, enemy_scans
         )
     ]
-    cloak_str = sum(cloak_strs) / len(cloak_strs)
+    
+    detect_str = sum(detect_strs) / len(detect_strs)
+
+    cloak_str = self.entity.ship_class.cloak_strength * self.entity.cloak.get_effective_value
+    
+    diff = cloak_str - detect_str
     
     cloak = CloakOrder(self.entity, deloak=False)
-
-    detect_str = self.target.ship_class.detection_strength
     
     self.order_dict[cloak] = (
-        500 * (cloak_str - detect_str)
+        500 * diff
     )
     self.order_dict_size+=1
 
 def calc_oppress_hard(self:BaseAi):
+    
+    try:
+        affect_cost_multiplier = self.entity.warp_drive.affect_cost_multiplier
+    except AttributeError:
+        return
         
     unopressed_planets = tuple(
         planet for planet in find_unopressed_planets(
             self.entity.game_data, self.entity
         ) if self.entity.sector_coords.distance(
             coords=planet
-        ) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier <= self.entity.power_generator.energy
+        ) * SECTOR_ENERGY_COST * affect_cost_multiplier <= self.entity.power_generator.energy
     )
 
     number_of_unoppressed_planets = len(unopressed_planets)
@@ -425,7 +432,7 @@ def calc_torpedos_hard(self:BaseAi, enemies_in_same_system:Iterable[Starship], e
                 simulate_systems=True, simulate_crew=True, target_scan=scan
             )
             torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, self.target.local_coords.x, self.target.local_coords.y
+                self.entity, torpedos_to_fire, ship.local_coords.x, ship.local_coords.y
             )
             warning = torpedo.raise_warning()
             
@@ -767,11 +774,7 @@ class HardEnemy(BaseAi):
                         
                         calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
                         
-                    if self.entity.can_move_stl and self.entity.local_coords.distance(
-                        coords=self.target.local_coords
-                    ) * LOCAL_ENERGY_COST * self.entity.impulse_engine.affect_cost_multiplier <= self.entity.power_generator.energy:
-                        
-                        calc_ram_hard(self, enemy_ships, enemy_scans)
+                    calc_ram_hard(self, enemy_ships, enemy_scans)
                         
                 if self.entity.ship_can_cloak and self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
                     
@@ -860,11 +863,7 @@ class AllyAI(BaseAi):
                         
                         calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
                         
-                    if self.entity.can_move_stl and self.entity.local_coords.distance(
-                        coords=self.target.local_coords
-                    ) * LOCAL_ENERGY_COST * self.entity.sys_impulse.affect_cost_multiplier <= self.entity.power_generator.energy:
-                        
-                        calc_ram_hard(self, enemy_ships, enemy_scans)
+                    calc_ram_hard(self, enemy_ships, enemy_scans)
                         
                 if self.entity.ship_can_cloak and self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
                     
