@@ -10,7 +10,6 @@ from nation import ALL_NATIONS
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
-from ai import AllyAI
 if TYPE_CHECKING:
     from starship import Starship
 
@@ -639,15 +638,15 @@ class TransportOrder(Order):
         self.entity.crew.able_crew -= self.amount
         self.target.crew.able_crew += self.amount
         
-        entity_in_allied_nation = self.entity.nation in self.target.game_data.scenerio.get_set_of_allied_nations()
+        entity_in_allied_nation = self.entity.nation in self.target.game_data.scenerio.get_set_of_allied_nations
         
-        target_in_allied_nation = self.target.nation in self.target.game_data.scenerio.get_set_of_allied_nations()
+        target_in_allied_nation = self.target.nation in self.target.game_data.scenerio.get_set_of_allied_nations
         
         if is_derlict and entity_in_allied_nation != target_in_allied_nation:
             
             self.target.override_nation_code = self.entity.ship_class.nation_code
             
-            difficulty = AllyAI if target_in_allied_nation else self.game_data.difficulty
+            difficulty = self.game_data.allied_ai if target_in_allied_nation else self.game_data.difficulty
             
             self.target.ai = difficulty
     
@@ -964,7 +963,6 @@ class RepairOrder(Order):
         return hash((self.entity, self.amount, self.ships, self.number))
     
     def perform(self) -> None:
-        self.entity.repair()
         
         self.entity.turn_repairing += 1
         

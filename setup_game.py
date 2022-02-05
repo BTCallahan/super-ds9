@@ -2,7 +2,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from random import choice, randint
 import re
-from ai import BaseAi, EasyEnemy, HardEnemy, MediumEnemy
+from ai import BaseAi, EasyEnemy, HardEnemy, MediumEnemy, AllyAI
 from engine import Engine
 from get_config import CONFIG_OBJECT
 from game_data import GameData
@@ -64,7 +64,7 @@ def load_game(filename: str) -> Engine:
 def set_up_game(
         *,
         easy_aim:bool, easy_move:bool, easy_warp:bool, torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
-        ship_name:str, captain_name:str, scenario:Scenerio, difficulty:type[BaseAi]
+        ship_name:str, captain_name:str, scenario:Scenerio, difficulty:type[BaseAi], allied_ai:type[BaseAi]
 
     ):
     #print('beginning setup')
@@ -87,7 +87,8 @@ def set_up_game(
         starting_stardate = stardate(scenario.create_date_time()),
         ending_stardate = stardate(scenario.enddate),
         scenerio=scenario,
-        difficulty=difficulty
+        difficulty=difficulty,
+        alliled_ai=allied_ai
     )
 
     engine = Engine(
@@ -768,7 +769,8 @@ class NewGame(input_handelers.BaseEventHandler):
                         ship_name=self.ship_name.send(),
                         captain_name=self.captain_name.send(),
                         scenario=self.scenario,
-                        difficulty=difficulty
+                        difficulty=difficulty,
+                        allied_ai=AllyAI
                     )
                 )
 
@@ -844,7 +846,8 @@ class NewGame(input_handelers.BaseEventHandler):
                     ship_name=self.ship_name.send(),
                     captain_name=self.captain_name.send(),
                     scenario=self.scenario,
-                    difficulty=difficulty
+                    difficulty=difficulty,
+                    allied_ai=AllyAI
                 )
             )
 

@@ -4,7 +4,7 @@ from decimal import Decimal
 from ai import BaseAi
 from coords import Coords
 from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, ShipStatus
-from random import choice, choices
+from random import choice, choices, shuffle
 from typing import Any, Dict, FrozenSet, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Set, OrderedDict
 
 from get_config import CONFIG_OBJECT
@@ -35,7 +35,8 @@ class GameData:
         easy_move:bool, easy_aim:bool, easy_warp:bool,
         torpedo_warning:bool, crash_warning:bool, three_d_movment:bool,
         scenerio:Scenerio,
-        difficulty:Type[BaseAi]
+        difficulty:Type[BaseAi],
+        alliled_ai:Type[BaseAi]
     ):
         self.subsecs_x = subsecs_x
         self.subsecs_y = subsecs_y
@@ -94,6 +95,8 @@ class GameData:
         self.condition = CONDITION_GREEN
 
         self.difficulty = difficulty
+        
+        self.allied_ai = alliled_ai
 
         self.ships_in_same_sub_sector_as_player:List[Starship] = []
         self.visible_ships_in_same_sub_sector_as_player:List[Starship] = []
