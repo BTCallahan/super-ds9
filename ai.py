@@ -2,9 +2,7 @@ from __future__ import annotations
 from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
-from coords import IntOrFloat
-from data_globals import DAMAGE_RAMMING, DAMAGE_TORPEDO, LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
-from nation import ALL_NATIONS
+from data_globals import LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
 
 from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, WarpOrder, WarpTravelOrder
 
@@ -580,7 +578,7 @@ def reactivate_derelict_hard(self:BaseAi):
     
     if not player_present and not self.entity.ship_class.is_automated:
         
-        all_derelicts = [ship for ship in self.game_data.all_enemy_ships if ship.ship_status.is_recrewable]
+        all_derelicts = [ship for ship in self.game_data.total_starships if ship.ship_status.is_recrewable]
         
         if all_derelicts:
             
