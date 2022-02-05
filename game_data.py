@@ -79,6 +79,8 @@ class GameData:
         self.player_scan:Optional[Dict[str,Any] ] = None
         self.ship_scan:Optional[Dict[str,Any] ] = None
 
+        self.all_other_ships:List[Starship] = []
+
         self.all_enemy_ships:List[Starship] = []
         
         # Ships that must be destroyed
@@ -129,7 +131,9 @@ class GameData:
 
         player = self.player
         
-        all_other_ships = [ship for ship in self.all_enemy_ships if ship.ship_status.is_active]
+        all_other_ships = [
+            ship for ship in self.all_other_ships if ship.ship_status.is_active and ship.nation in self.scenerio.get_set_of_enemy_nations
+        ]
         
         if not all_other_ships:
             self.condition = CONDITION_GREEN
@@ -210,9 +214,12 @@ class GameData:
             player_starting_coord = choice(coords_without_enemies)
         
         def generate_ships(
-            enemy_nation:FrozenSet[Nation], player_nation:FrozenSet[Nation], selected_encounters:List[Dict[str,int]]
+            enemy_nation:FrozenSet[Nation], 
+            player_nation:FrozenSet[Nation], 
+            selected_encounters:List[Dict[str,int]],
+            selected_coords:List[Coords]
         ):
-            for encounter, co in zip(selected_encounters, selected_enemy_coords):
+            for encounter, co in zip(selected_encounters, selected_coords):
                 
                 star_system = self.grid[co.y][co.x]
                 
@@ -248,7 +255,8 @@ class GameData:
             generate_ships(
                 self.scenerio.get_set_of_enemy_nations,
                 self.scenerio.get_set_of_allied_nations,
-                all_enemy_encounters
+                all_enemy_encounters,
+                selected_enemy_coords
             )
         )
         self.target_enemy_ships = [
@@ -258,7 +266,8 @@ class GameData:
             generate_ships(
                 self.scenerio.get_set_of_enemy_nations,
                 self.scenerio.get_set_of_allied_nations,
-                all_allied_encounters
+                all_allied_encounters,
+                selected_allied_coords
             )
         )
         self.target_allied_ships = [
