@@ -1,7 +1,7 @@
 from __future__ import annotations
 from random import uniform
 from typing import TYPE_CHECKING, Dict, Tuple, Union
-from data_globals import STATUS_ACTIVE, STATUS_OBLITERATED, STATUS_HULK, STATUS_DERLICT, CloakStatus, ShipStatus
+from data_globals import STATUS_ACTIVE, STATUS_CLOAKED, STATUS_OBLITERATED, STATUS_HULK, STATUS_DERLICT, CloakStatus, ShipStatus
 from get_config import CONFIG_OBJECT
 
 if TYPE_CHECKING:
@@ -52,6 +52,64 @@ class Sensors(StarshipSystem):
     @property
     def get_targeting_power(self):
         return self.starship.ship_class.targeting * self.get_effective_value
+    
+    def detect_all_enemy_cloaked_ships_in_system(self):
+        
+        if not self.is_opperational:
+            return
+        
+        # can't detect while at warp!
+        try:
+            if self.starship.warp_drive.is_at_warp:
+                return
+        except AttributeError:
+            pass
+        
+        allied_nations = self.starship.game_data.scenerio.get_set_of_allied_nations
+        
+        is_on_players_side = self.starship.nation in allied_nations
+        
+        nations = allied_nations if is_on_players_side else self.starship.game_data.scenerio.get_set_of_enemy_nations
+        
+        ships_in_same_system = self.starship.game_data.grab_ships_in_same_sub_sector(
+            self.starship, accptable_ship_statuses={STATUS_CLOAKED}
+        )
+        
+        cloaked_enemy_ships = [
+            ship for ship in ships_in_same_system if ship.nation in nations
+        ]
+        
+        player = self.starship.game_data.player
+        
+        for ship in cloaked_enemy_ships:
+            
+            detected = True
+            
+            detection_strength = self.starship.ship_class.detection_strength * self.get_effective_value
+            
+            cloak_strength = ship.get_cloak_power
+
+            for i in range(CONFIG_OBJECT.chances_to_detect_cloak):
+
+                if uniform(
+                    0.0, detection_strength
+                ) < uniform(
+                    0.0, cloak_strength
+                ):
+                    detected = False
+                    break
+                
+            if detected:
+                
+                ship.cloak.cloak_status = CloakStatus.COMPRIMISED
+                
+                if player.sector_coords == self.starship.sector_coords:
+                    
+                    cr = player.nation.captain_rank_name
+                    
+                    self.starship.game_data.engine.message_log.add_message(
+f'{f"{cr}, we have" if self is player else f"The {self.name} has"} detected {"us" if ship is player else ship.name}!'
+                    )
     
     def detect_cloaked_ship(self, ship:Starship):
         if ship.cloak.cloak_status != CloakStatus.ACTIVE:

@@ -38,3 +38,23 @@ class Cloak(StarshipSystem):
             self.cloak_status = CloakStatus.INACTIVE
             return True
         return False
+    
+    def handle_cooldown_and_status_recovery(self):
+        
+        if self.cloak_is_turned_on:
+            if self.is_opperational:
+                if self.cloak_status == CloakStatus.COMPRIMISED:
+                    self.cloak_status = CloakStatus.ACTIVE
+            else:
+                self.cloak_status = CloakStatus.COMPRIMISED
+        
+        if self.cloak_cooldown > 0:
+        
+            self.cloak_cooldown -= 1
+        
+            if self.cloak_cooldown == 0 and self.starship.is_controllable:
+        
+                self.starship.game_data.engine.message_log.add_message(
+                    f"The cloaking device is ready, {self.starship.game_data.player.nation.captain_rank_name}."
+                )
+    
