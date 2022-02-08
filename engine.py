@@ -51,6 +51,9 @@ class Engine:
 
         for entity in self.game_data.all_other_ships:
             
+            if not entity.ship_status.is_active:
+                continue
+            
             try:
                 entity.cloak.handle_cooldown_and_status_recovery()
             except AttributeError:
