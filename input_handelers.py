@@ -5,7 +5,7 @@ from random import choice
 from textwrap import wrap
 from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR
 from engine import CONFIG_OBJECT
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
 from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, \
     torpedo_warnings, collision_warnings, misc_warnings, Order, DockOrder, OrderWarning, \
     EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
@@ -2560,7 +2560,7 @@ class EvaluationHandler(EventHandler):
     def __init__(self, engine: Engine) -> None:
         super().__init__(engine)
         
-        text, self.evaluation, self.score = self.engine.game_data.scenerio.scenario_type.generate_evaluation(
+        text, self.evaluation = self.engine.game_data.scenerio.scenario_type.generate_evaluation(
             self.engine.game_data
         )
         width=CONFIG_OBJECT.screen_width - 4
@@ -2584,74 +2584,57 @@ class EvaluationHandler(EventHandler):
     
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[BaseEventHandler]:
         if self.score_button.cursor_overlap(event):
-            return ScoreHandler(self.engine, self.evaluation, self.score)
+            return ScoreHandler(self.engine, self.evaluation)
     
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[BaseEventHandler]:
 
         if event.sym in confirm or event.sym == tcod.event.K_s:
-            return ScoreHandler(self.engine, self.evaluation, self.score)
+            return ScoreHandler(self.engine, self.evaluation)
         self.text_box.handle_key(event)
 
 class ScoreHandler(EventHandler):
-    
-    def replace(self, s:str):
-        
-        if "_" in s:
             
-            s_list = s.split("_")
-            
-            s_list2 = [s2.capitalize() for s2 in s_list]
-            
-            return " ".join(s_list2)
-        else:
-            return s.capitalize()
-            
-    def __init__(self, engine: Engine, evaluation: OrderedDict[str,Tuple[int,int]], score:Decimal) -> None:
+    def __init__(self, engine: Engine, evaluation: List[Tuple[str,str,Tuple[int,int,int]]]) -> None:
         super().__init__(engine)
         
-        max_evaluation_key_len = max(
-            len(k) for k in evaluation.keys()
-        )
-        lines = [f"{self.replace(k):>{max_evaluation_key_len}}:{v[0]}/{v[1]}" for k,v in evaluation.items()]
+        self.descriptions = [s[0] for s in evaluation]
+        self.scores = [s[1] for s in evaluation]
+        self.score_colors = [s[2] for s in evaluation]
         
-        max_len = max(len(l) for l in lines)
+        self.description_width = max(len(d) for d in self.descriptions)
+        self.scores_width = max(len(s) for s in self.scores)
         
-        #self.info = self.engine.game_data.player_record
+        self.evaluation_length = len(evaluation)
         
-        self.evalu = SimpleElement(
-            x=5, y=5,
-            height=len(evaluation), width=max_len,
-            title="Score Info:",
-            text="\n".join(lines), alignment=tcod.LEFT
-        )
-        reccord = self.engine.game_data.player_record
-        
-        max_reccord_key_len = max(
-            len(k) for k in reccord.keys()
-        )
-        reccord_lines = [f"{self.replace(k):>{max_reccord_key_len}}:{v}" for k,v in reccord.items()]
-        
-        max_reccord_len = max(len(l) for l in reccord_lines)
-        
-        self.player_record = SimpleElement(
-            x=5, y=5 + self.evalu.y + self.evalu.height,
-            height=len(reccord_lines), width=max_reccord_len+4,
-            title="Player Record:", 
-            text="\n".join(reccord_lines), alignment=tcod.LEFT
-        )
-        self.score_record = SimpleElement(
-            x=5, y=5+self.player_record.y+self.player_record.height,
-            height=3,
-            width=40,
-            title="Score:",
-            text=f"{score:.6}"
-        )
+        self.evaluation_description_text = "\n".join([
+            f"{a:>{self.description_width}}" for a in self.descriptions
+        ])
         
     def on_render(self, console: tcod.Console) -> None:
-        self.evalu.render(console)
-        self.player_record.render(console)
-        self.score_record.render(console)
-    
+        #self.evalu.render(console)
+        
+        console.draw_frame(
+            x=5, y=5, 
+            width=self.description_width + self.scores_width + 2,
+            height=self.evaluation_length + 2
+        )
+        console.print_box(
+            x=5+1,
+            y=5+1,
+            width=self.description_width,
+            height=self.evaluation_length,
+            string=self.evaluation_description_text
+        )
+        for s, sc, i in zip(self.scores, self.score_colors, range(self.evaluation_length)):
+            
+            console.print(
+                x=5+1+self.description_width,
+                y=5+1+i,
+                string=s,
+                fg=sc,
+                bg=colors.black
+            )
+        
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[BaseEventHandler]:
         self.on_quit()
     
