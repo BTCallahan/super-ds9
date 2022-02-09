@@ -591,19 +591,23 @@ class EnergyWeaponOrder(Order):
         if self.amount == 0:
             return OrderWarning.ZERO_VALUE_ENTERED
         
-        return OrderWarning.NOT_ENOUGHT_ENERGY if self.amount > self.entity.energy else OrderWarning.SAFE
+        return OrderWarning.NOT_ENOUGHT_ENERGY if self.amount > self.entity.power_generator.energy else OrderWarning.SAFE
       
 class TransportOrder(Order):
     
-    def __init__(self, entity: Starship, target: Starship, amount: int) -> None:
+    def __init__(self, entity: Starship, target: Starship, amount: int, board:bool=False) -> None:
         super().__init__(entity)
         self.target = target
         self.amount = amount
+        self.board = board
     
     def __hash__(self) -> int:
-        return hash((self.entity, self.target, self.amount))
+        return hash((self.entity, self.target, self.amount, self.board))
     
     def raise_warning(self):
+        
+        if self.board and not self.entity.local_coords.is_adjacent(self.target.local_coords):
+            return OrderWarning.OUT_OF_RANGE
         
         try:
             if self.entity.cloak.cloak_is_turned_on:
