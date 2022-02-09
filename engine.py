@@ -80,7 +80,7 @@ class Engine:
             ship for ship in game_data.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
         ]
         
-        selected_ship_planet_or_star = self.game_data.selected_ship_planet_or_star
+        selected_ship_planet_or_star = game_data.selected_ship_planet_or_star
         
         if isinstance(
             selected_ship_planet_or_star, Starship

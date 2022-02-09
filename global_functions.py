@@ -69,6 +69,12 @@ def safe_division(n:IntOrFloat, d:IntOrFloat, return_number:IntOrFloat=0.0):
         return return_number
     return n / d
 
+def average(iter:Iterable[float]):
+    
+    return sum(iter) / len(iter)
+
+# pattern getter
+
 def get_first_group_in_pattern(
     text_to_search:str, pattern:Pattern[str],*, 
     return_aux_if_no_match:bool=False, 
@@ -173,6 +179,16 @@ def stardate(date_time:datetime):
     dec = ret * SD_DIV_DEC
 
     return dec
+
+def create_date_time(stardate_:Decimal):
+    # maybe I'll finish this later
+    sdd = stardate_ / SD_DIV_DEC
+    
+    sddd = sdd / SD_MULT_DEC
+    
+    aju = (sddd * 36525) / 100000
+    
+    
 
 def scan_assistant(v:IntOrFloat, precision:int):
     """This takes a value, v and devides it by the precision. Next, the quotent is rounded to the nearest intiger and then multiplied by the precision. The product is then returned. A lower precision value ensures more accurate results. If precision is 1, then v is returned

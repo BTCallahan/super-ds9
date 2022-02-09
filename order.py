@@ -167,7 +167,7 @@ class WarpOrder(Order):
         y_aim = self.y - self.start_y
         co_tuple = tuple(
             Coords(x=self.start_x+co.x, y=self.start_y+co.y) for co in self.game_data.engine.get_lookup_table(
-            direction_x=x_aim, direction_y=y_aim, normalise_direction=True
+                direction_x=x_aim, direction_y=y_aim, normalise_direction=True
             )
         )
         end = Coords(x=self.x, y=self.y)
@@ -325,7 +325,6 @@ class MoveOrder(Order):
             entity.local_coords.x, entity.local_coords.y,
             CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
         )
-
         return cls(entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
 
     def perform(self) -> None:
@@ -668,7 +667,6 @@ class TorpedoOrder(Order):
         torp_coords = self.game_data.engine.get_lookup_table(
             direction_x=x_aim, direction_y=y_aim, normalise_direction=False
         )
-        
         self.coord_list = tuple(
             Coords(
                 co.x+entity.local_coords.x, co.y+entity.local_coords.y
@@ -676,11 +674,6 @@ class TorpedoOrder(Order):
             co.x+entity.local_coords.x < CONFIG_OBJECT.subsector_width and 
             co.y+entity.local_coords.y < CONFIG_OBJECT.subsector_height
         )
-        
-        #entity.game_data.engine.message_log.add_message(
-        #    ", ".join([str(c) for c in self.coord_list])
-        #)
-        
         self.ships = {
             ship.local_coords.create_coords() : ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(
                 self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK}
@@ -738,7 +731,6 @@ class TorpedoOrder(Order):
             ships_in_area=self.ships, 
             heading=self.heading
         )
-        
         self.entity.turn_repairing = 0
         
         if self.entity.is_controllable:
@@ -861,7 +853,6 @@ class RechargeOrder(Order):
         if amount >= self.entity.shield_generator.shields:
             
             amount = floor(amount * self.entity.shield_generator.get_effective_value)
-
         else:
             self.cost =  ceil(self.cost * self.entity.shield_generator.get_effective_value)
             
@@ -914,7 +905,6 @@ class RechargeOrder(Order):
                     f"The {self.entity.name} has {'transfered energy to' if amount > shields else 'diverted energy from'} its shields."
                 )
                 
-        
         if self.entity.is_controllable:
             shields = self.entity.shield_generator.shields
             
@@ -958,9 +948,11 @@ class RepairOrder(Order):
     def __init__(self, entity:Starship, amount:int) -> None:
         super().__init__(entity)
         self.amount = amount
-        self.ships = tuple(self.entity.game_data.grab_ships_in_same_sub_sector(
-            self.entity, accptable_ship_statuses={STATUS_ACTIVE}
-        ))
+        self.ships = tuple(
+            self.entity.game_data.grab_ships_in_same_sub_sector(
+                self.entity, accptable_ship_statuses={STATUS_ACTIVE}
+            )
+        )
         self.number = len(self.ships)
         
     def __hash__(self) -> int:
@@ -1056,7 +1048,6 @@ class CloakOrder(Order):
                 if self.entity is player else 
                 f"The {self.entity.name} has {clo}!", fg=colors.alert_blue
             )
-
         self.entity.cloak.cloak_status = CloakStatus.INACTIVE if self.deloak else CloakStatus.ACTIVE
 
     def raise_warning(self):
@@ -1100,5 +1091,4 @@ class SelfDestructOrder(Order):
                 coords=ship.local_coords
             ) <= self.entity.ship_class.warp_breach_damage
         ]
-
         return OrderWarning.SAFE if ships_in_range else OrderWarning.NO_ENEMY_SHIPS_NEARBY

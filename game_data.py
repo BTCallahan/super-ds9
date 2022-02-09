@@ -164,14 +164,17 @@ class GameData:
 
         self.grid = [[SubSector(self, x, y) for x in self.subsecs_range_x] for y in self.subsecs_range_y]
         
+        # create stars and planets
         for x in self.subsec_size_range_x:
             for y in self.subsec_size_range_y:
                 self.grid[y][x].random_setup(self.star_number_weights, self.star_number_weights_len)
                 #self.sector_grid[x,y].random_setup()
 
+        # create a tuple that contains self.subsecs_range_x * self.subsecs_range_y Coords
         system_coords = tuple(
             Coords(x=x,y=y) for x in self.subsecs_range_x for y in self.subsecs_range_y
         )
+        
         all_enemy_encounters:List[Dict[str,int]] = []
         
         for a in self.scenerio.enemy_encounters:
@@ -415,11 +418,9 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
         self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], 
         torpedo_type:str, ships_in_area:Dict[Coords, Starship]
     ):
-        #global PLAYER
-        #heading_to_direction
         torpedo = torpedo_type
 
-        posX, posY = shipThatFired.local_coords.x, shipThatFired.local_coords.y
+        #posX, posY = shipThatFired.local_coords.x, shipThatFired.local_coords.y
         
         descriptive_number = "a" if torpsFired == 1 else f"{torpsFired}"
         plural = "torpedo" if torpsFired == 1 else "torpedos"
@@ -427,11 +428,8 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
         self.engine.message_log.add_message(
             f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading:3.2}...", colors.yellow
         )
-
         g: SubSector = self.grid[shipThatFired.sector_coords.y][shipThatFired.sector_coords.x]
         
-        #shipsInArea = [ship for ship in self.grab_ships_in_same_sub_sector(shipThatFired) if ship.local_coords in coords]
-
         shipsInArea = ships_in_area
 
         for t in range(torpsFired):
@@ -450,9 +448,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                     break
 
                 x,y = co.x, co.y
-
-                #xy = Coords(x,y)
-
+                
                 try:
                     star = g.stars_dict[co]
                     self.engine.message_log.add_message(f"The torpedo impacts against a star at {co.x}, {co.y}.")
@@ -466,7 +462,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                     except KeyError:
                         try:
                             ship = shipsInArea[co]
-                            #hitSomething = shipThatFired.attack_torpedo(self, ship, torpedo)
+                            
                             try:
                                 crew_readyness = shipThatFired.crew.crew_readyness# * 0.5 + 0.5
                             except AttributeError:
@@ -486,7 +482,6 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                                 crew_readyness=crew_readyness,
                                 target_crew_readyness=target_crew_readyness
                             )
-                            
                             if hitSomething:
                                 #chance to hit:
                                 #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)

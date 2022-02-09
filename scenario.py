@@ -150,6 +150,11 @@ class Encounter:
         return n, r
     
     def generate_ships(self):
+        """Yeilds dictionaries consisting of a string keys and int values.
+
+        Yields:
+            Dict[str,int]: A dictionary consisting of string keys and int values. The string is the key of the ship class, and the int is the number of ships that will be generated.
+        """
         
         number_of_encounters = randint(self.min_encounters, self.max_encounters)
         
@@ -228,12 +233,9 @@ def create_sceneraio():
         all_enemy_encounters = tuple(
             create_encounters(enemy_ships_pattern, enemy_encounters)
         )
-            
         allied_encounters = get_first_group_in_pattern(
             scenario_txt, allied_encounters_pattern, return_aux_if_no_match=True
         )
-        
-        
         all_allied_encounters = tuple(
             create_encounters(enemy_ships_pattern, allied_encounters)
         ) if allied_encounters else tuple()
@@ -286,7 +288,6 @@ def create_sceneraio():
             scenario_txt, enemy_give_up_threshold_pattern, 
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0, type_to_convert_to=float
         )
-        
         code = get_first_group_in_pattern(scenario_txt, destruct_code_pattern)
         
         #start_date = start_date_pattern.search(scenario_txt)
@@ -296,7 +297,6 @@ def create_sceneraio():
             expected_number_of_groups=6,
             type_to_convert_to=int
         )
-        
         startdate = datetime(
             year=year,
             month=mon,
@@ -305,13 +305,11 @@ def create_sceneraio():
             minute=mini,
             second=sec
         )
-        
         year_, mon_, day_, hour_, mini_, sec_ = get_multiple_groups_in_pattern(
             scenario_txt, end_date_pattern,
             expected_number_of_groups=6,
             type_to_convert_to=int
         )
-        
         enddate = datetime(
             year=year_,
             month=mon_,
@@ -320,7 +318,6 @@ def create_sceneraio():
             minute=mini_,
             second=sec_
         )
-        
         scenario_dict[scenario_code] = Scenerio(
             name=name,
             your_ship=your_ship,

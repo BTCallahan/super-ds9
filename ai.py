@@ -824,9 +824,9 @@ class HardEnemy(BaseAi):
             return
 
         if self.entity.power_generator.energy <= 0:
+            
             self.order =  RepairOrder(self.entity, 1)
         else:
-            #scan = self.target.scanThisShip(self.entity.determinPrecision)
             precision = self.entity.sensors.determin_precision
             
             enemy_ships = self.get_player_allies_in_same_system()
@@ -838,7 +838,6 @@ class HardEnemy(BaseAi):
                     precision=precision, scan_for_crew=False, scan_for_systems=False
                 ) for ship in enemy_ships
             ]
-            
             enemy_is_present = bool(enemy_ships)
             
             has_energy = self.entity.power_generator.energy > 0
@@ -914,9 +913,9 @@ class AllyAI(BaseAi):
             return
 
         if self.entity.power_generator.energy <= 0:
+            
             self.order =  RepairOrder(self.entity, 1)
         else:
-            #scan = self.target.scanThisShip(self.entity.determinPrecision)
             precision = self.entity.sensors.determin_precision
             
             enemy_ships = self.get_player_enemies_in_same_system()
@@ -1042,9 +1041,9 @@ class MissionCriticalAllyAI(BaseAi):
             return
 
         if self.entity.power_generator.energy <= 0:
+            
             self.order =  RepairOrder(self.entity, 1)
         else:
-            #scan = self.target.scanThisShip(self.entity.determinPrecision)
             precision = self.entity.sensors.determin_precision
             
             enemy_ships = self.get_player_enemies_in_same_system()

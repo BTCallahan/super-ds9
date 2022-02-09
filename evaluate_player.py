@@ -6,7 +6,6 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Final, Iterable, List, Tuple
 import colors
 from nation import ALL_NATIONS, Nation
-from order import Order
 from starship import Starship
 
 if TYPE_CHECKING:

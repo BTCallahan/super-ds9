@@ -558,11 +558,14 @@ class Starship(CanDockWith):
         d= {
             "shields" : scan_assistant(self.shield_generator.shields, precision),
             "hull" : hull,
-            "energy" : scan_assistant(self.power_generator.energy, precision),
-            
-            "number_of_torps" : tuple(self.torpedo_launcher.get_number_of_torpedos(precision)),
-            #"torp_tubes" : s
+            "energy" : scan_assistant(self.power_generator.energy, precision)
         }
+        
+        try:
+            d["number_of_torps"] = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
+        except AttributeError:
+            pass
+        
         if scan_for_crew and not self.ship_class.is_automated:
             able_crew = scan_assistant(self.crew.able_crew, precision)
             injured_crew = scan_assistant(self.crew.injured_crew, precision)
@@ -1102,7 +1105,7 @@ class Starship(CanDockWith):
         
         ship_is_player = self is self.game_data.player
 
-        pre = 1 if ship_is_player else self.game_data.player.determin_precision
+        pre = 1 if ship_is_player else self.game_data.player.sensors.determin_precision
         
         old_scan = self.scan_this_ship(
             pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player, use_effective_values=True
@@ -1406,6 +1409,7 @@ class Starship(CanDockWith):
 
         self.hull_damage -= perm_hull_repair
         self.hull += repair_amount
+        
         self.sensors.integrety += system_repair_factor * (0.5 + random() * 0.5)
         
         try:

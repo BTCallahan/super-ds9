@@ -168,13 +168,11 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     x=x+j2, y=y+i2+1,
                     string=f"+{sector_x.barren_planets + sector_x.unfriendly_planets}", fg=colors.planet_barren
                 )
-
             if sector_x.friendly_planets > 0:
                 console.print(
                     x=x+j2, y=y+i2+2,
                     string=f"+{sector_x.friendly_planets}", fg=colors.planet_allied
                 )
-            
             hostile_ships = sector_x.display_hostile_ships
             
             if hostile_ships > 0:
@@ -182,7 +180,6 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     x=x+j2+2, y=y+i2,
                     string=f"E{hostile_ships}", fg=colors.red if hostile_ships > 0 else colors.cyan
                 )
-
             allied_ships = sector_x.display_allied_ships
 
             if allied_ships > 0:
@@ -190,7 +187,6 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     x=x+j2+2, y=y+i2+1,
                     string=f"F{allied_ships}", fg=colors.green if allied_ships > 0 else colors.cyan
                 )
-            
             if sector_x.objectives:
                 
                 console.print(
@@ -252,9 +248,6 @@ def print_ship_info(
         title=self.proper_name,
         fg=frame_fg, bg=colors.black
     )
-
-    y_plus = 2
-
     console.print(
         x=x+2, y=y+2,
         string=f"Position: {self.local_coords.x}, {self.local_coords.y}", fg=colors.white
@@ -307,7 +300,6 @@ def print_ship_info(
         add_to_y+=3
         
         if not self.ship_class.is_automated:
-            
             try:
                 injured_crew_amount = scan['injured_crew'][0]
                 injured_crew_color = scan['injured_crew'][1]
@@ -455,13 +447,11 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 height=height,
                 title="Planet"
             )
-            
             console.print(
                 x=start_x+3,
                 y=start_y+4,
                 string=f"Planet at {ship_planet_or_star.local_coords.x}, {ship_planet_or_star.local_coords.y}"
             )
-
             planet_status = ship_planet_or_star.planet_habbitation.description
 
             console.print_box(
@@ -471,7 +461,6 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 height=6,
                 string=f"Planet status: {planet_status}\n\nPlanet development: {ship_planet_or_star.infastructure:.3}"
             )
-            
         elif isinstance(ship_planet_or_star, Star):
 
             console.draw_frame(
@@ -490,7 +479,6 @@ def render_other_ship_info(console: Console, gamedata:GameData, ship:Optional[St
                 height=4,
                 width=width - (3 + 2)
             )
-
     else:
         console.draw_frame(
         x=start_x, y=start_y, 
@@ -520,7 +508,7 @@ def render_command_box(console: Console, gameData:GameData, title:str):
     )
 
 def render_position(console: Console, gameData:GameData):
-    #console.draw_frame()
+    
     w = CONFIG_OBJECT.position_info_end_x - CONFIG_OBJECT.position_info_x
     h = CONFIG_OBJECT.position_info_end_y - CONFIG_OBJECT.position_info_y
     
@@ -540,7 +528,6 @@ def render_position(console: Console, gameData:GameData):
         width=w-2,
         height=h-2
     )
-    pass
 
 def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDown") -> Union[Planet, Star, Starship, bool]:
     """Attempts to select the ship, planet, or star that the player is clicking on. Otherwise, it returns a boolean value depending on weither the cursor was positioned over a system grid square.
@@ -569,13 +556,11 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
         try:
             planet = subsector.planets_dict[co]
 
-            #game_data.selected_ship_planet_or_star = planet
-
             return planet
         except KeyError:
             try:
                 star = subsector.stars_dict[co]
-                #game_data.selected_ship_planet_or_star = star
+                
                 return star
             except KeyError:
                 
@@ -584,11 +569,6 @@ def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDo
                         ship.local_coords.x == x_ajusted and ship.local_coords.y == y_ajusted and 
                         ship.ship_status.is_visible
                     ):
-                        #if game_data.ship_scan is None or game_data.selected_ship_planet_or_star is not ship:
-                            #game_data.selected_ship_planet_or_star = ship
-                            
-                            #game_data.ship_scan = ship.scan_this_ship(game_data.player.sensors.determin_precision)
-                        #self.engine.game_data.selectedEnemyShip = ship
                         return ship
                 return True
     else:
