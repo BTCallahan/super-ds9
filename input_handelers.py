@@ -749,9 +749,27 @@ class CommandEventHandler(MainGameEventHandler):
 
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
         
+        if event.sym == tcod.event.K_u and event.mod & tcod.event.KMOD_SHIFT != 0:
+                
+            if self.engine.game_data.debug_warning == 0:
+                
+                self.engine.game_data.debug_warning = 1
+                
+                self.engine.message_log.add_message(
+                    "You are about to enter debugging mode. Press Shift-U again to confirm."
+                )
+                return
+            else:
+                return DebugHandler(self.engine)
+        else:
+            if self.engine.game_data.debug_warning == 1:
+                self.engine.game_data.debug_warning = 0
+        
         try:
             is_at_warp = self.engine.player.warp_drive.is_at_warp
+            
         except AttributeError:
+            
             is_at_warp = False
             
         if is_at_warp:
@@ -801,6 +819,7 @@ class CommandEventHandler(MainGameEventHandler):
                 return self.transporters()
                 
             elif event.sym == tcod.event.K_a:
+                
                 return SelfDestructHandler(self.engine)
 
     def cloak(self):
@@ -1424,7 +1443,6 @@ class MoveHandler(HeadingBasedHandler):
                     self.distance_button.add_up() * LOCAL_ENERGY_COST * 
                     self.engine.player.impulse_engine.affect_cost_multiplier
                 )
-                
                 self.cost_button.text = f"{self.energy_cost}"
         
 class MoveHandlerEasy(CoordBasedHandler):
