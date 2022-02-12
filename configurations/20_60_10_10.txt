@@ -39,7 +39,7 @@ other_ship_display_x:90
 other_ship_display_end_x:120
 other_ship_display_y:30
 other_ship_display_end_y:60
-command_display_x:51
+command_display_x:46
 command_display_end_x:85
 command_display_y:28
 command_display_end_y:55
