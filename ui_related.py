@@ -967,14 +967,13 @@ class Selector(InteractiveElement):
         joined_items = "\n".join(
             [f"{i:<{width_2}}" for i in trimmed_]
         )
-        
         super().__init__(
             x=x, y=y, height=height, width=width, title=title, text=joined_items,
             active_fg=active_fg, bg=bg, inactive_fg=inactive_fg, initally_active=initally_active
         )
-        self.trimmed = trimmed
         self.index = index
         self.index_items = index_items
+        self.trimmed = trimmed
         self.max_index = len(self.index_items)
         self.width_2 = width_2
         self.joined_items = joined_items
