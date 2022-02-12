@@ -3,14 +3,16 @@ from collections import OrderedDict
 from decimal import Decimal
 from random import choice
 from textwrap import wrap
-from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR
+from coords import Coords
+from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, WARP_FACTOR
 from engine import CONFIG_OBJECT
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
 from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, \
     torpedo_warnings, collision_warnings, misc_warnings, Order, DockOrder, OrderWarning, \
     EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from global_functions import stardate
-from space_objects import Planet, Star
+from ship_class import ALL_SHIP_CLASSES, ShipClass
+from space_objects import Planet, Star, SubSector
 from starship import Starship
 from torpedo import Torpedo
 from ui_related import BooleanBox, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, \
@@ -665,9 +667,14 @@ class CommandEventHandler(MainGameEventHandler):
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
+        if self.engine.game_data.debug_warning == 1:
+            self.engine.game_data.debug_warning = 0
+                
         try:
             is_at_warp = self.engine.player.warp_drive.is_at_warp
+            
         except AttributeError:
+            
             is_at_warp = False
         
         if is_at_warp:
@@ -2655,3 +2662,581 @@ class ScoreHandler(EventHandler):
 
     def ev_quit(self, event: tcod.event.Quit) -> None:
         self.on_quit()
+
+class DebugHandler(MainGameEventHandler):
+    
+    def __init__(self, engine: Engine) -> None:
+        super().__init__(engine)
+        
+        self.place_ship = SimpleElement(
+            x=CONFIG_OBJECT.command_display_x+3,
+            y=CONFIG_OBJECT.command_display_y+3,
+            height=3,
+            width=12,
+            text="(P)lace Ship"
+        )
+        self.edit_ship = SimpleElement(
+            x=CONFIG_OBJECT.command_display_x+3,
+            y=CONFIG_OBJECT.command_display_y+7,
+            height=3,
+            width=12,
+            text="(E)dit Ship"
+        )
+        self.cancel = SimpleElement(
+            x=CONFIG_OBJECT.command_display_x+3,
+            y=CONFIG_OBJECT.command_display_y+22,
+            height=3,
+            width=12,
+            text="Cancel"
+        )
+    
+    def on_render(self, console: tcod.Console) -> None:
+        super().on_render(console)
+        render_command_box(
+            console=console,
+            gameData=self.engine.game_data,
+            title="Debug mode activated"
+        )
+        self.place_ship.render(console)
+        self.edit_ship.render(console)
+        self.cancel.render(console)
+        
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[T]:
+        
+        if event.sym == tcod.event.K_ESCAPE:
+            
+            return CommandEventHandler(self.engine)
+        
+        if event.sym == tcod.event.K_p:
+            
+            return ShipPlacement(self.engine)
+        
+        if event.sym == tcod.event.K_e:
+            
+            pass
+    
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[T]:
+        
+        if self.cancel.cursor_overlap(event):
+            
+            return CommandEventHandler(self.engine)
+        
+        if self.place_ship.cursor_overlap(event):
+            
+            return ShipPlacement(self.engine)
+        
+        if self.edit_ship.cursor_overlap(event):
+            
+            pass
+    
+class ShipPlacement(MainGameEventHandler):
+    
+    def __init__(self, engine: Engine) -> None:
+        super().__init__(engine)
+        
+        all_ship_names = [n.name for n in ALL_SHIP_CLASSES.values()]
+        
+        self.all_ships = Selector(
+            x=CONFIG_OBJECT.command_display_x+14,
+            y=CONFIG_OBJECT.command_display_y+2,
+            width=CONFIG_OBJECT.command_display_end_x+2-(CONFIG_OBJECT.command_display_x+14),
+            height=CONFIG_OBJECT.command_display_end_y+2-(CONFIG_OBJECT.command_display_y+2),
+            wrap_item=True,
+            index_items=all_ship_names,
+            keys=tuple(ALL_SHIP_CLASSES.keys()),
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=True
+        )
+        selected_ship_is_friendly = self.all_ships.index_key in self.engine.game_data.scenerio.allied_nations
+        self.system_x = NumberHandeler(
+            limit=2, 
+            max_value=CONFIG_OBJECT.sector_width, min_value=0, 
+            wrap_around=True, 
+            starting_value=0,
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=6,
+            height=3,
+            title="X:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT,
+            initally_active=False
+        )
+        self.system_y = NumberHandeler(
+            limit=2, 
+            max_value=CONFIG_OBJECT.sector_height, min_value=0, 
+            wrap_around=True, 
+            starting_value=0,
+            x=2+CONFIG_OBJECT.command_display_x+6,
+            y=2+CONFIG_OBJECT.command_display_y,
+            width=6,
+            height=3,
+            title="X:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT,
+            initally_active=False
+        )
+        self.local_x = NumberHandeler(
+            limit=2, 
+            max_value=CONFIG_OBJECT.sector_width, min_value=0, 
+            wrap_around=True, 
+            starting_value=0,
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=6+CONFIG_OBJECT.command_display_y,
+            width=6,
+            height=3,
+            title="LX:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT,
+            initally_active=False
+        )
+        self.local_y = NumberHandeler(
+            limit=2, 
+            max_value=CONFIG_OBJECT.sector_height, min_value=0, 
+            wrap_around=True, 
+            starting_value=0,
+            x=2+CONFIG_OBJECT.command_display_x+6,
+            y=6+CONFIG_OBJECT.command_display_y,
+            width=6,
+            height=3,
+            title="LY:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            alignment=tcod.constants.RIGHT,
+            initally_active=False
+        )
+        self.friendy_hostile = BooleanBox(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=14,
+            active_fg=colors.green,
+            inactive_fg=colors.red,
+            bg=colors.black,
+            title="New ship:",
+            active_text="Allied",
+            inactive_text="Hostile",
+            initally_active=selected_ship_is_friendly
+        )
+        self.hull_percent = NumberHandeler(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=14+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=9,
+            limit=4,
+            title="Hull %:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            min_value=-49,
+            max_value=100,
+            starting_value=100
+        )
+        self.ship_name = TextHandeler(
+            x=2+CONFIG_OBJECT.command_display_x+10,
+            y=14+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=8,
+            limit=6,
+            title="Name:",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=False,
+        )
+        self.spawn_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=18+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=12,
+            text="Spawn",
+        )
+        self.cancel_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=22+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=12, 
+            text="Cancel"
+        )
+        self.selected_button = self.all_ships
+    
+    def on_render(self, console: tcod.Console) -> None:
+        super().on_render(console)
+        render_command_box(
+            console=console,
+            gameData=self.engine.game_data,
+            title="Spawn ship:"
+        )
+        self.all_ships.render(console)
+        self.system_x.render(console)
+        self.system_y.render(console)
+        self.local_x.render(console)
+        self.local_y.render(console)
+        self.friendy_hostile.render(console)
+        self.hull_percent.render(console)
+        self.ship_name.render(console)
+        self.cancel_button.render(console)
+        self.spawn_button.render(console)
+    
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[T]:
+        
+        if self.cancel_button.cursor_overlap(event):
+            
+            return DebugHandler(self.engine)
+
+        if self.spawn_button.cursor_overlap(event):
+            
+            pass
+        
+        elif self.all_ships.cursor_overlap(event):
+            
+            self.all_ships.handle_click(event)
+            
+            self.all_ships.is_active = True
+            
+            self.system_x.is_active = False
+            
+            self.system_y.is_active = False
+            
+            self.local_x.is_active = False
+            
+            self.local_y.is_active = False
+            
+            self.hull_percent.is_active = False
+            
+            self.ship_name.is_active = False
+            
+            self.selected_button = self.all_ships
+        
+        elif self.system_x.cursor_overlap(event):
+            
+            self.all_ships.is_active = False
+            
+            self.system_x.is_active = True
+            
+            self.system_y.is_active = False
+            
+            self.local_x.is_active = False
+            
+            self.local_y.is_active = False
+            
+            self.hull_percent.is_active = False
+            
+            self.ship_name.is_active = False
+            
+            self.selected_button = self.system_x
+        
+        elif self.system_y.cursor_overlap(event):
+            
+            self.all_ships.is_active = False
+            
+            self.system_x.is_active = False
+            
+            self.system_y.is_active = True
+            
+            self.local_x.is_active = False
+            
+            self.local_y.is_active = False
+            
+            self.hull_percent.is_active = False
+            
+            self.ship_name.is_active = False
+            
+            self.selected_button = self.system_y
+        
+        elif self.local_x.cursor_overlap(event):
+            
+            self.all_ships.is_active = False
+            
+            self.system_x.is_active = False
+            
+            self.system_y.is_active = False
+            
+            self.local_x.is_active = True
+            
+            self.local_y.is_active = False
+            
+            self.hull_percent.is_active = False
+            
+            self.ship_name.is_active = False
+            
+            self.selected_button = self.local_x
+            
+        elif self.local_y.cursor_overlap(event):
+            
+            self.all_ships.is_active = False
+            
+            self.system_x.is_active = False
+            
+            self.system_y.is_active = False
+            
+            self.local_x.is_active = False
+            
+            self.local_y.is_active = True
+            
+            self.hull_percent.is_active = False
+            
+            self.ship_name.is_active = False
+            
+            self.selected_button = self.local_y
+        
+        elif self.hull_percent.cursor_overlap(event):
+            
+            self.all_ships.is_active = False
+            
+            self.system_x.is_active = False
+            
+            self.system_y.is_active = False
+            
+            self.local_x.is_active = False
+            
+            self.local_y.is_active = False
+            
+            self.hull_percent.is_active = True
+            
+            self.ship_name.is_active = False
+            
+            self.selected_button = self.hull_percent
+        
+        elif self.ship_name.cursor_overlap(event):
+            
+            self.all_ships.is_active = False
+            
+            self.system_x.is_active = False
+            
+            self.system_y.is_active = False
+            
+            self.local_x.is_active = False
+            
+            self.local_y.is_active = False
+            
+            self.hull_percent.is_active = False
+            
+            self.ship_name.is_active = True
+            
+            self.selected_button = self.ship_name
+            
+        elif self.cancel_button.cursor_overlap(event):
+            
+            return DebugHandler(self.engine)
+        
+        if self.spawn_button.cursor_overlap(event):
+            
+            self.spawn_ship()
+        else:
+            x, y = select_sector_space(event)
+
+            if x is not False and y is not False:
+                
+                self.system_x.set_text(x)
+                self.system_y.set_text(y)
+            else:
+                x,y = select_sub_sector_space(event)
+                
+                if x is not False and y is not False:
+                    
+                    self.local_x.set_text(x)
+                    self.local_y.set_text(y)
+    
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[T]:
+        
+        if event.sym == tcod.event.K_ESCAPE:
+            
+            return DebugHandler(self.engine)
+        
+        elif event.sym in confirm:
+            
+            self.spawn_ship()
+        else:
+            self.selected_button.handle_key(event)
+        
+    def spawn_ship(self):
+        
+        s_x, s_y = self.system_x.add_up(), self.system_y.add_up()
+        l_x, l_y = self.local_x.add_up(), self.local_y.add_up()
+        
+        game_data = self.engine.game_data
+        
+        ships_in_same_sector = [
+            ship for ship in game_data.total_starships if ship.sector_coords.x == s_x and 
+            ship.sector_coords.y == s_y and ship.ship_status != STATUS_OBLITERATED
+        ]
+        for ship in ships_in_same_sector:
+            
+            if ship.local_coords.x == l_x and ship.local_coords.y == l_y:
+                
+                self.engine.message_log.add_message(
+                    f"The selected ship spawn spot {l_x}, {l_y} in sector {s_x}, {s_y} is blocked by the ship {ship.name}.", colors.red
+                )
+                return
+        
+        sub_sector:SubSector = self.engine.game_data.grid[s_y][s_x]
+        
+        local_xy = Coords(x=l_x, y=l_y)
+        
+        if local_xy in sub_sector.safe_spots:
+            
+            ship_class:ShipClass = ALL_SHIP_CLASSES[self.all_ships.index_key]
+        
+            selected_ship_is_friendly = ship_class.nation in game_data.scenerio.allied_nations
+            
+            ship_is_mission_critical = ship_class in game_data.scenerio.mission_critical_ships
+            
+            ship_ai = game_data.allied_ai if selected_ship_is_friendly else game_data.difficulty
+            
+            name_ = self.ship_name.send()
+            
+            name=name_ if name_ else choice(ship_class.nation.ship_names)
+            
+            new_ship = Starship(
+                ship_class,
+                ship_ai,
+                xCo=l_x,
+                yCo=l_y,
+                secXCo=s_x,
+                secYCo=s_y,
+                name=name
+            )
+            new_ship.game_data = game_data
+            
+            new_ship.hull = round(ship_class.max_hull * self.hull_percent.add_up() * 0.01)
+            
+            if selected_ship_is_friendly:
+                
+                game_data.all_allied_ships.append(new_ship)
+                
+                if ship_is_mission_critical:
+                    
+                    game_data.target_allied_ships.append(new_ship)
+            else:
+                game_data.all_enemy_ships.append(new_ship)
+                
+                if ship_is_mission_critical:
+                    
+                    game_data.target_enemy_ships.append(new_ship)
+                    
+            game_data.all_other_ships.append(new_ship)
+            game_data.total_starships.append(new_ship)
+        
+            self.engine.message_log(
+                f"The new ship {name} has been created."
+            )
+        else:
+            try:
+                p = sub_sector.planets_dict[local_xy]
+                
+                self.engine.message_log(
+                    "Unable to create the new ship as there is a planet in the way"
+                )
+            except KeyError:
+                try:
+                    s = sub_sector.stars_dict
+                    
+                    self.engine.message_log(
+                        "Unable to create the new ship as there is a star in the way"
+                    )
+                except KeyError:
+                    
+                    pass
+
+class ShipEditing(MainGameEventHandler):
+    
+    def __init__(self, engine: Engine, ship:Starship) -> None:
+        super().__init__(engine)
+        
+        self.ship_name = TextHandeler(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=3+CONFIG_OBJECT.command_display_y,
+            limit=14,
+            height=3,
+            width=16,
+            title="Ship Name:",
+            text_char_list=[c for c in ship.name],
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=True,
+        )
+        self.ship_hull = NumberHandeler(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=7+CONFIG_OBJECT.command_display_y,
+            limit=4,
+            height=3,
+            width=7,
+            title="Hull:",
+            starting_value=ship.hull,
+            max_value=ship.ship_class.max_hull - ship.hull_damage,
+            min_value=round(-0.5 * ship.ship_class.max_hull),
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=False
+        )
+        self.ship_energy = NumberHandeler(
+            x=11+CONFIG_OBJECT.command_display_x,
+            y=7+CONFIG_OBJECT.command_display_y,
+            limit=4,
+            height=3,
+            width=9,
+            title="Energy:",
+            starting_value=ship.power_generator.energy,
+            max_value=ship.ship_class.max_energy,
+            min_value=0,
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=False
+        )
+        try:
+            self.ship_able_crew = NumberHandeler(
+                x=2+CONFIG_OBJECT.command_display_x,
+                y=11+CONFIG_OBJECT.command_display_y,
+                limit=4,
+                height=3,
+                width=7,
+                title="A. Crew:",
+                starting_value=ship.crew.able_crew,
+                max_value=ship.ship_class.max_crew - ship.crew.injured_crew,
+                min_value=0,
+                active_fg=colors.white,
+                inactive_fg=colors.grey,
+                bg=colors.black,
+                initally_active=False
+            )
+            self.ship_injured_crew = NumberHandeler(
+                x=11+CONFIG_OBJECT.command_display_x,
+                y=11+CONFIG_OBJECT.command_display_y,
+                limit=4,
+                height=3,
+                width=7,
+                title="I. Crew:",
+                starting_value=ship.crew.injured_crew,
+                max_value=ship.ship_class.max_crew - ship.crew.able_crew,
+                min_value=0,
+                active_fg=colors.white,
+                inactive_fg=colors.grey,
+                bg=colors.black,
+                initally_active=False
+            )
+        except AttributeError:
+            pass    
+        
+    def on_render(self, console: tcod.Console) -> None:
+        
+        super().on_render(console)
+        render_command_box(
+            console=console,
+            gameData=self.engine.game_data,
+            title="Edit ship:"
+        )
+        self.ship_name.render(console)
+        self.ship_hull.render(console)

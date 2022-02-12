@@ -118,6 +118,7 @@ class GameData:
             "torpedos_fired" : 0
             }
         )
+        self.debug_warning = 0
         
     @property
     def is_time_up(self):
