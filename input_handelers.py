@@ -2719,7 +2719,7 @@ class DebugHandler(MainGameEventHandler):
         self.edit_ship.render(console)
         self.cancel.render(console)
         
-    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[T]:
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
         
         if event.sym == tcod.event.K_ESCAPE:
             
@@ -2733,7 +2733,7 @@ class DebugHandler(MainGameEventHandler):
             
             pass
     
-    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[T]:
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
         if self.cancel.cursor_overlap(event):
             
@@ -2906,7 +2906,7 @@ class ShipPlacement(MainGameEventHandler):
         self.cancel_button.render(console)
         self.spawn_button.render(console)
     
-    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[T]:
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
         if self.cancel_button.cursor_overlap(event):
             
@@ -3070,7 +3070,7 @@ class ShipPlacement(MainGameEventHandler):
                     self.local_x.set_text(x)
                     self.local_y.set_text(y)
     
-    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[T]:
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
         
         if event.sym == tcod.event.K_ESCAPE:
             
