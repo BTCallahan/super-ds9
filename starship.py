@@ -1371,10 +1371,12 @@ class Starship(CanDockWith):
         time_bonus = 1.0 + (self.turn_repairing / 25.0)
         energy_regeneration_bonus = 1.0 + (self.turn_repairing / 5.0)
         
+        energy_cost = 0
+        
         try:
-            energy_cost = self.cloak.get_energy_cost_per_turn
+            energy_cost += self.cloak.get_energy_cost_per_turn
         except AttributeError:
-            energy_cost = 0
+            pass
         
         try:
             energy_cost += self.shield_generator.get_energy_cost_per_turn
@@ -1395,7 +1397,8 @@ class Starship(CanDockWith):
         #status = self.ship_status
 
         energy_rengerated_this_turn = (
-            repair_factor.energy_regeration * self.power_generator.get_effective_value * energy_regeneration_bonus
+            repair_factor.energy_regeration * self.power_generator.get_effective_value * 
+            energy_regeneration_bonus * self.ship_class.power_generated_per_turn
         ) - energy_cost
         
         self.power_generator.energy += energy_rengerated_this_turn

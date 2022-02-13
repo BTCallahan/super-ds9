@@ -145,23 +145,23 @@ class RepairStatus:
     
     hull_repair:float
     system_repair:float
-    energy_regeration:int
+    energy_regeration:float
     repair_permanent_hull_damage:float = 0.0
     
 REPAIR_PER_TURN:Final = RepairStatus(
     hull_repair=0.01,
     system_repair=0.005,
-    energy_regeration=100
+    energy_regeration=1.0
 )
 REPAIR_DEDICATED:Final = RepairStatus(
     hull_repair=0.1,
     system_repair=0.05,
-    energy_regeration=250
+    energy_regeration=2.5
 )
 REPAIR_DOCKED:Final = RepairStatus(
     hull_repair=0.25,
     system_repair=0.15,
-    energy_regeration=750,
+    energy_regeration=7.5,
     repair_permanent_hull_damage=0.175
 )
 
