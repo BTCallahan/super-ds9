@@ -89,6 +89,7 @@ class ShipClass:
     max_hull:int
     max_crew:int
     max_energy:int
+    power_generated_per_turn:int
     damage_control:float
     energy_weapon_code:str
     nation_code:str
@@ -174,6 +175,7 @@ to one.'''
         max_hull:int, 
         max_crew:int=0, 
         max_energy:int, 
+        power_generated_per_turn:int,
         damage_control:float, 
         torp_dict:Optional[Dict[Torpedo,int]]=None,
         torp_tubes:int=0,
@@ -221,6 +223,7 @@ to one.'''
             max_hull=max_hull,
             max_crew=max_crew,
             max_energy=max_energy,
+            power_generated_per_turn=power_generated_per_turn,
             damage_control=damage_control,
             torp_dict=fd,
             torp_tubes=torp_tubes,
@@ -376,6 +379,7 @@ name_pattern = re.compile(r"NAME:([\w\-\ \'\(\)]+)\n")
 shields_pattern = re.compile(r"SHIELDS:([\d]+)\n")
 hull_pattern = re.compile(r"HULL:([\d]+)\n")
 energy_pattern = re.compile(r"ENERGY:([\d]+)\n")
+power_generation_pattern = re.compile(r"POWER:([\d]+)\n")
 energy_weapon_pattern = re.compile(r"ENERGY_WEAPON:([A-Z_]+)\n")
 crew_pattern = re.compile(r"CREW:([\d]+)\n")
 torpedos_pattern = re.compile(r"TORPEDOS:([\w,]+)\n")
@@ -408,9 +412,7 @@ def create_ship_classes():
         shipclass_code = shipclass.group(1)
         
         shipclass_txt = shipclass.group(2)
-        
-        #symbol_pattern_match = symbol_pattern.search(shipclass_txt)
-        
+                
         type_ = get_first_group_in_pattern(shipclass_txt, type_pattern)
 
         assert type_ in VALID_SHIP_TYPES
@@ -424,24 +426,19 @@ def create_ship_classes():
         shields = get_first_group_in_pattern(
             shipclass_txt, shields_pattern, type_to_convert_to=int
         )
-                
         hull = get_first_group_in_pattern(
             shipclass_txt, hull_pattern, type_to_convert_to=int
         )
-        
         crew = get_first_group_in_pattern(
             shipclass_txt, crew_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=0, type_to_convert_to=int
         )
-        
         energy = get_first_group_in_pattern(
             shipclass_txt, energy_pattern, type_to_convert_to=int
         )
-        
         torpedos = get_first_group_in_pattern(
             shipclass_txt, torpedos_pattern, return_aux_if_no_match=True
         )
-        
         torp_dict = {}
         
         if torpedos:
@@ -466,9 +463,7 @@ def create_ship_classes():
                 f"In the ship class {shipclass_code} there are {len(torp_dict)} items in the torpedo dictionary, but the ship class has {torpedo_tubes} torpedo tubes."
             )
         
-        #torpedo_types_ = get_first_group_in_pattern(shipclass_txt, torpedos_types_pattern, return_aux_if_no_match=True)
-        
-        #torpedo_types = torpedo_types_.split(",") if torpedo_types_ else None
+        power_generation = get_first_group_in_pattern(shipclass_txt, power_generation_pattern, type_to_convert_to=int)
         
         energy_weapon = get_first_group_in_pattern(shipclass_txt, energy_weapon_pattern)
         
@@ -476,49 +471,40 @@ def create_ship_classes():
             shipclass_txt, cloak_strength_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0,
             type_to_convert_to=float
         )
-        
         cloak_cooldown = get_first_group_in_pattern(
             shipclass_txt, cloak_cooldown_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=2,
             type_to_convert_to=int
         )
-        
         detection_strength = get_first_group_in_pattern(
             shipclass_txt, detection_strength_pattern, type_to_convert_to=float
         )
-        
         damage_control = get_first_group_in_pattern(
             shipclass_txt, damage_control_pattern, 
             type_to_convert_to=float
         )
-        
         size = get_first_group_in_pattern(shipclass_txt, size_pattern, type_to_convert_to=float)
         
         evasion = get_first_group_in_pattern(
             shipclass_txt, evasion_pattern, type_to_convert_to=float, 
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0
         )
-        
         targeting = get_first_group_in_pattern(shipclass_txt, targeting_pattern, type_to_convert_to=float)
         
         max_beam_energy = get_first_group_in_pattern(
             shipclass_txt, max_beam_energy_pattern, type_to_convert_to=int, 
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0
         )
-        
         max_beam_targets = get_first_group_in_pattern(
             shipclass_txt, max_beam_targets_pattern, type_to_convert_to=int,
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=1
         )
-        
         max_cannon_energy = get_first_group_in_pattern(
             shipclass_txt, max_cannon_energy_pattern, type_to_convert_to=int,
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0
         )
-        
         warp_core_breach_damage = get_first_group_in_pattern(
             shipclass_txt, warp_core_breach_damage_pattern, type_to_convert_to=int
         )
-        
         shipclass_dict[shipclass_code] = ShipClass.create_ship_class(
             ship_type=type_,
             symbol=symbol,
@@ -532,6 +518,7 @@ def create_ship_classes():
             max_beam_targets=max_beam_targets,
             max_cannon_energy=max_cannon_energy,
             max_energy=energy,
+            power_generated_per_turn=power_generation,
             max_crew=crew,
             cloak_strength=cloak_strength,
             cloak_cooldown=cloak_cooldown,
