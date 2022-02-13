@@ -959,15 +959,20 @@ class Selector(InteractiveElement):
     ):
         width_2 = width - 2
         
+        trimmed = [
+            s[:width_2] for s in index_items
+        ]
+        trimmed_ = trimmed[:height-2]
+        
         joined_items = "\n".join(
-            [f"{i:<{width_2}}" for i in index_items]
+            [f"{i:<{width_2}}" for i in trimmed_]
         )
         
         super().__init__(
             x=x, y=y, height=height, width=width, title=title, text=joined_items,
             active_fg=active_fg, bg=bg, inactive_fg=inactive_fg, initally_active=initally_active
         )
-        
+        self.trimmed = trimmed
         self.index = index
         self.index_items = index_items
         self.max_index = len(self.index_items)
@@ -975,6 +980,7 @@ class Selector(InteractiveElement):
         self.joined_items = joined_items
         self.keys = keys
         self.wrap_item = wrap_item
+        self.offset = 0
 
     @property
     def index_key(self):
@@ -1001,7 +1007,8 @@ class Selector(InteractiveElement):
             string=self.text
         )
         console.print(
-            x=self.x+1+x,y=self.y+1+self.index+y,
+            x=self.x + 1 + x,
+            y=self.y + 1 + self.index + y - self.offset,
             string=f"{self.index_items[self.index]:<{self.width_2}}",
             bg=fg if fg else self.fg, 
             fg=bg if bg else self.bg
@@ -1019,7 +1026,6 @@ class Selector(InteractiveElement):
     def cursor_overlap(
         self, event: "tcod.event.MouseButtonDown", *, x:int=0, y:int=0
     ):
-        
         return (
             x+self.x+1 <= event.tile.x < x+self.x+self.width - 1 and 
             y+self.y+1 <= event.tile.y < y+self.y+self.height - 1
@@ -1027,19 +1033,58 @@ class Selector(InteractiveElement):
     
     def handle_key(self, event: tcod.event.KeyDown):
         
+        re_render = False
+        
         if event.sym == tcod.event.K_UP:
             
             self.index -= 1
             
-            if self.index < 0:
+            if self.index - self.offset < 0:
                 
-                self.index = (self.max_index - 1) if self.wrap_item else 0
+                self.offset -= 1
+                
+                re_render = True
+            
+            if self.index < 0:
+                # assume that self.height is 18, self.offset is 4, and self.trimmed has 26 entries
+                # len(self.trimmed[4:4 + (18-2)])
+                # len(self.trimmed[4:4 + (16)])
+                # len(self.trimmed[4:20])
+                # 16
+                
+                l = len(self.trimmed[self.offset:self.offset + (self.height-2)])
+                
+                self.index, self.offset = (
+                    self.max_index - 1, self.max_index - (1 + len(self.trimmed[:self.height-2]))
+                ) if self.wrap_item else (0, 0)
+                
+                re_render = True
                 
         elif event.sym == tcod.event.K_DOWN:
             
             self.index += 1
+            
+            l = len(self.trimmed[self.offset:self.offset + (self.height-2)])
+            
+            if self.index - self.offset >= l:
+                
+                self.offset += 1
+                
+                re_render = True
         
             if self.index >= self.max_index:
                 
-                self.index = 0 if self.wrap_item else (self.max_index - 1)
+                self.index, self.offset = (0, 0) if self.wrap_item else (self.max_index - 1, self.offset)
                 
+                re_render = True
+        
+        if re_render:
+            
+            trimmed_ = self.trimmed[self.offset:self.offset + (self.height - 2)]
+        
+            joined_items = "\n".join(
+                [f"{i:<{self.width_2}}" for i in trimmed_]
+            )
+            self.text = joined_items
+        
+        
