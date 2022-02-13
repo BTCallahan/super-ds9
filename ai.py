@@ -3,7 +3,7 @@ from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
 from global_functions import average
-from data_globals import LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, CloakStatus, ShipStatus
+from data_globals import LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
 
 from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, TransportOrder, WarpOrder, WarpTravelOrder
 
@@ -469,8 +469,10 @@ def calc_oppress_hard(self:BaseAi):
 
         planet = most_common[0]
         
-        warp_to = WarpOrder.from_coords(self.entity, planet.x, planet.y)
-        
+        warp_to = WarpOrder.from_coords(
+            self.entity, planet.x, planet.y, speed=WARP_FACTOR[1], 
+            start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
+        )
         energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier
         
         self.order_dict[warp_to] = self.entity.power_generator.energy - round(energy_cost)
