@@ -2687,21 +2687,21 @@ class DebugHandler(MainGameEventHandler):
         super().__init__(engine)
         
         self.place_ship = SimpleElement(
-            x=CONFIG_OBJECT.command_display_x+3,
+            x=CONFIG_OBJECT.command_display_x+2,
             y=CONFIG_OBJECT.command_display_y+3,
             height=3,
             width=12,
             text="(P)lace Ship"
         )
         self.edit_ship = SimpleElement(
-            x=CONFIG_OBJECT.command_display_x+3,
+            x=CONFIG_OBJECT.command_display_x+2,
             y=CONFIG_OBJECT.command_display_y+7,
             height=3,
             width=12,
             text="(E)dit Ship"
         )
         self.cancel = SimpleElement(
-            x=CONFIG_OBJECT.command_display_x+3,
+            x=CONFIG_OBJECT.command_display_x+2,
             y=CONFIG_OBJECT.command_display_y+22,
             height=3,
             width=12,
@@ -2755,10 +2755,10 @@ class ShipPlacement(MainGameEventHandler):
         all_ship_names = [n.name for n in ALL_SHIP_CLASSES.values()]
         
         self.all_ships = Selector(
-            x=CONFIG_OBJECT.command_display_x+14,
+            x=CONFIG_OBJECT.command_display_x+16,
             y=CONFIG_OBJECT.command_display_y+2,
-            width=CONFIG_OBJECT.command_display_end_x+2-(CONFIG_OBJECT.command_display_x+14),
-            height=CONFIG_OBJECT.command_display_end_y+2-(CONFIG_OBJECT.command_display_y+2),
+            width=(CONFIG_OBJECT.command_display_end_x - 2) - (CONFIG_OBJECT.command_display_x + 16),
+            height=CONFIG_OBJECT.command_display_end_y - (CONFIG_OBJECT.command_display_y + 4),
             wrap_item=True,
             index_items=all_ship_names,
             keys=tuple(ALL_SHIP_CLASSES.keys()),
@@ -2806,7 +2806,7 @@ class ShipPlacement(MainGameEventHandler):
             wrap_around=True, 
             starting_value=0,
             x=2+CONFIG_OBJECT.command_display_x,
-            y=6+CONFIG_OBJECT.command_display_y,
+            y=5+CONFIG_OBJECT.command_display_y,
             width=6,
             height=3,
             title="LX:",
@@ -2822,7 +2822,7 @@ class ShipPlacement(MainGameEventHandler):
             wrap_around=True, 
             starting_value=0,
             x=2+CONFIG_OBJECT.command_display_x+6,
-            y=6+CONFIG_OBJECT.command_display_y,
+            y=5+CONFIG_OBJECT.command_display_y,
             width=6,
             height=3,
             title="LY:",
@@ -2834,9 +2834,9 @@ class ShipPlacement(MainGameEventHandler):
         )
         self.friendy_hostile = BooleanBox(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=10+CONFIG_OBJECT.command_display_y,
+            y=8+CONFIG_OBJECT.command_display_y,
             height=3,
-            width=14,
+            width=13,
             active_fg=colors.green,
             inactive_fg=colors.red,
             bg=colors.black,
@@ -2847,7 +2847,7 @@ class ShipPlacement(MainGameEventHandler):
         )
         self.hull_percent = NumberHandeler(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=14+CONFIG_OBJECT.command_display_y,
+            y=11+CONFIG_OBJECT.command_display_y,
             height=3,
             width=9,
             limit=4,
@@ -2857,10 +2857,11 @@ class ShipPlacement(MainGameEventHandler):
             bg=colors.black,
             min_value=-49,
             max_value=100,
-            starting_value=100
+            starting_value=100,
+            initally_active=False
         )
         self.ship_name = TextHandeler(
-            x=2+CONFIG_OBJECT.command_display_x+10,
+            x=2+CONFIG_OBJECT.command_display_x,
             y=14+CONFIG_OBJECT.command_display_y,
             height=3,
             width=8,
@@ -2913,11 +2914,15 @@ class ShipPlacement(MainGameEventHandler):
 
         if self.spawn_button.cursor_overlap(event):
             
-            pass
+            self.spawn_ship()
         
         elif self.all_ships.cursor_overlap(event):
             
             self.all_ships.handle_click(event)
+            
+            ship_class_nation = ALL_SHIP_CLASSES[self.all_ships.index_key].nation
+            
+            self.friendy_hostile.is_active = ship_class_nation in self.engine.game_data.scenerio.get_set_of_allied_nations
             
             self.all_ships.is_active = True
             
@@ -3076,6 +3081,12 @@ class ShipPlacement(MainGameEventHandler):
             self.spawn_ship()
         else:
             self.selected_button.handle_key(event)
+            
+            if self.selected_button is self.all_ships:
+                
+                ship_class_nation = ALL_SHIP_CLASSES[self.all_ships.index_key].nation
+                
+                self.friendy_hostile.is_active = ship_class_nation in self.engine.game_data.scenerio.get_set_of_allied_nations
         
     def spawn_ship(self):
         
@@ -3113,7 +3124,9 @@ class ShipPlacement(MainGameEventHandler):
             
             name_ = self.ship_name.send()
             
-            name=name_ if name_ else choice(ship_class.nation.ship_names)
+            name = ship_class.nation.generate_ship_name(
+                ship_class.nation.ship_names is None or ship_class.is_automated
+            )
             
             new_ship = Starship(
                 ship_class,
@@ -3146,7 +3159,7 @@ class ShipPlacement(MainGameEventHandler):
             game_data.total_starships.append(new_ship)
         
             self.engine.message_log(
-                f"The new ship {name} has been created."
+                f"The new ship {name} has been created in system {s_x}, {s_y}, at position {l_x}, {l_y}."
             )
         else:
             try:
