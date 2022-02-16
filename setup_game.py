@@ -106,6 +106,7 @@ def set_up_game(
     game_data.engine = engine
 
     game_data.set_up_game(ship_name, captain_name)
+    game_data.shields_description = game_data.describe_shields()
     return engine
 
 class StartupScreen(input_handelers.BaseEventHandler):

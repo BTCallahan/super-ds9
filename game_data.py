@@ -120,6 +120,9 @@ class GameData:
         )
         self.debug_warning = 0
         
+        self.warp_factor = self.describe_warp_factor()
+        self.shields_description = self.describe_shields()
+        
     @property
     def is_time_up(self):
         return self.stardate >= self.ending_stardate

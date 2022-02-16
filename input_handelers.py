@@ -113,6 +113,8 @@ class EventHandler(BaseEventHandler):
         except AttributeError:
             pass
         
+        game_data.warp_factor = game_data.describe_warp_factor()
+        game_data.shields_description = game_data.describe_shields()
         return True
 
     def handle_events(self, event: tcod.event.Event) -> BaseEventHandler:
