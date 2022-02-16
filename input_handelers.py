@@ -1,10 +1,11 @@
 from __future__ import annotations
 from collections import OrderedDict
 from decimal import Decimal
+from inspect import Attribute
 from random import choice
 from textwrap import wrap
 from coords import Coords
-from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, WARP_FACTOR
+from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, WARP_FACTOR, CloakStatus
 from engine import CONFIG_OBJECT
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
 from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, \
@@ -15,7 +16,7 @@ from ship_class import ALL_SHIP_CLASSES, ShipClass
 from space_objects import Planet, Star, SubSector
 from starship import Starship
 from torpedo import Torpedo
-from ui_related import BooleanBox, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, \
+from ui_related import BooleanBox, InputHanderer, NumberHandeler, ScrollingTextBox, Selector, SimpleElement, \
     TextHandeler, confirm
 import tcod
 import tcod.event
@@ -2693,12 +2694,24 @@ class DebugHandler(MainGameEventHandler):
             width=12,
             text="(P)lace Ship"
         )
-        self.edit_ship = SimpleElement(
+        self.edit_ship = BooleanBox(
             x=CONFIG_OBJECT.command_display_x+2,
             y=CONFIG_OBJECT.command_display_y+7,
             height=3,
             width=12,
-            text="(E)dit Ship"
+            active_text="(E)dit Ship",
+            inactive_text="(E)dit Ship",
+            active_fg=colors.white,
+            inactive_fg=colors.grey,
+            bg=colors.black,
+            initally_active=isinstance(self.engine.game_data.selected_ship_planet_or_star, Starship)
+        )
+        self.decloak_all = SimpleElement(
+            x=CONFIG_OBJECT.command_display_x+2,
+            y=CONFIG_OBJECT.command_display_y+11,
+            height=3,
+            text="(D)ecloak All",
+            width=14,
         )
         self.cancel = SimpleElement(
             x=CONFIG_OBJECT.command_display_x+2,
@@ -2717,6 +2730,7 @@ class DebugHandler(MainGameEventHandler):
         )
         self.place_ship.render(console)
         self.edit_ship.render(console)
+        self.decloak_all.render(console)
         self.cancel.render(console)
         
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
@@ -2729,9 +2743,19 @@ class DebugHandler(MainGameEventHandler):
             
             return ShipPlacement(self.engine)
         
-        if event.sym == tcod.event.K_e:
+        if event.sym == tcod.event.K_e and isinstance(self.engine.game_data.selected_ship_planet_or_star, Starship):
             
-            pass
+            return ShipEditing(self.engine, self.engine.game_data.selected_ship_planet_or_star)
+        
+        if event.sym == tcod.event.K_d:
+            
+            ships = self.engine.game_data.ships_in_same_sub_sector_as_player
+            
+            for ship in ships:
+                
+                if ship.ship_status == STATUS_CLOAKED:
+                    
+                    ship.cloak.cloak_status = CloakStatus.COMPRIMISED
     
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
         
@@ -2743,10 +2767,31 @@ class DebugHandler(MainGameEventHandler):
             
             return ShipPlacement(self.engine)
         
-        if self.edit_ship.cursor_overlap(event):
+        if self.edit_ship.cursor_overlap(event) and isinstance(
+            self.engine.game_data.selected_ship_planet_or_star, Starship
+        ):
+            return ShipEditing(self.engine, self.engine.game_data.selected_ship_planet_or_star)
+        
+        elif self.decloak_all.cursor_overlap(event):
             
-            pass
-    
+            ships = self.engine.game_data.ships_in_same_sub_sector_as_player
+            
+            for ship in ships:
+                
+                if ship.ship_status == STATUS_CLOAKED:
+                    
+                    ship.cloak.cloak_status = CloakStatus.COMPRIMISED
+        else:
+            ship = select_ship_planet_star(self.engine.game_data, event)
+            
+            if isinstance(ship, Starship):
+                
+                self.engine.game_data.ship_scan = ship.scan_for_print(1)
+                
+                self.engine.game_data.selected_ship_planet_or_star = ship
+            
+            self.edit_ship.is_active = isinstance(ship, Starship)
+                
 class ShipPlacement(MainGameEventHandler):
     
     def __init__(self, engine: Engine) -> None:
@@ -3124,10 +3169,9 @@ class ShipPlacement(MainGameEventHandler):
             
             name_ = self.ship_name.send()
             
-            name = ship_class.nation.generate_ship_name(
+            name = name_ if name_ else ship_class.nation.generate_ship_name(
                 ship_class.nation.ship_names is None or ship_class.is_automated
             )
-            
             new_ship = Starship(
                 ship_class,
                 ship_ai,
@@ -3157,22 +3201,34 @@ class ShipPlacement(MainGameEventHandler):
                     
             game_data.all_other_ships.append(new_ship)
             game_data.total_starships.append(new_ship)
-        
-            self.engine.message_log(
-                f"The new ship {name} has been created in system {s_x}, {s_y}, at position {l_x}, {l_y}."
+            
+            game_data.update_mega_sector_display()
+            
+            if s_x == game_data.player.sector_coords.x and s_y == game_data.player.sector_coords.y:
+                
+                game_data.ships_in_same_sub_sector_as_player = game_data.grab_ships_in_same_sub_sector(
+                    game_data.player, accptable_ship_statuses={
+                        STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK
+                    }
+                )
+                game_data.visible_ships_in_same_sub_sector_as_player = [
+                    ship for ship in game_data.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
+                ]
+            self.engine.message_log.add_message(
+                f"The new ship {name} has been created in system {s_x}, {s_y}, at position {l_x}, {l_y}.", colors.green
             )
         else:
             try:
                 p = sub_sector.planets_dict[local_xy]
                 
-                self.engine.message_log(
+                self.engine.message_log.add_message(
                     "Unable to create the new ship as there is a planet in the way"
                 )
             except KeyError:
                 try:
                     s = sub_sector.stars_dict
                     
-                    self.engine.message_log(
+                    self.engine.message_log.add_message(
                         "Unable to create the new ship as there is a star in the way"
                     )
                 except KeyError:
@@ -3183,6 +3239,8 @@ class ShipEditing(MainGameEventHandler):
     
     def __init__(self, engine: Engine, ship:Starship) -> None:
         super().__init__(engine)
+        
+        self.ship = ship
         
         self.ship_name = TextHandeler(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -3227,6 +3285,7 @@ class ShipEditing(MainGameEventHandler):
             bg=colors.black,
             initally_active=False
         )
+        all_activatable_elements:List[InputHanderer] = [self.ship_name, self.ship_energy, self.ship_hull]
         try:
             self.ship_able_crew = NumberHandeler(
                 x=2+CONFIG_OBJECT.command_display_x,
@@ -3258,8 +3317,66 @@ class ShipEditing(MainGameEventHandler):
                 bg=colors.black,
                 initally_active=False
             )
+            all_activatable_elements.append(self.ship_able_crew)
+            all_activatable_elements.append(self.ship_injured_crew)
         except AttributeError:
-            pass    
+            pass
+        try:
+            self.ship_shields = NumberHandeler(
+                x=2+CONFIG_OBJECT.command_display_x,
+                y=15+CONFIG_OBJECT.command_display_y,
+                limit=4,
+                height=3,
+                title="Shields:",
+                width=10,
+                starting_value=ship.shield_generator.shields,
+                max_value=self.ship.shield_generator.get_max_shields,
+                min_value=0,
+                active_fg=colors.white,
+                inactive_fg=colors.grey,
+                bg=colors.black,
+                initally_active=False
+            )
+            all_activatable_elements.append(self.ship_shields)
+        except AttributeError:
+            pass
+        try:
+            self.cloak_cooldown = NumberHandeler(
+                x=2+CONFIG_OBJECT.command_display_x,
+                y=19+CONFIG_OBJECT.command_display_y,
+                limit=2,
+                height=3,
+                title="C.C:",
+                width=6,
+                starting_value=self.ship.cloak.cloak_cooldown,
+                max_value=self.ship.ship_class.cloak_cooldown,
+                min_value=0,
+                active_fg=colors.white,
+                inactive_fg=colors.grey,
+                bg=colors.black,
+                initally_active=False
+            )
+            all_activatable_elements.append(self.cloak_cooldown)
+        except AttributeError:
+            pass
+        self.active_element = self.ship_name
+        
+        self.all_activatable_elements = tuple(all_activatable_elements)
+        
+        self.confirm_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=18+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=12,
+            text="Confirm",
+        )
+        self.cancel_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=22+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=12, 
+            text="Cancel"
+        )
         
     def on_render(self, console: tcod.Console) -> None:
         
@@ -3271,3 +3388,123 @@ class ShipEditing(MainGameEventHandler):
         )
         self.ship_name.render(console)
         self.ship_hull.render(console)
+        self.ship_energy.render(console)
+        try:
+            self.ship_able_crew.render(console)
+            self.ship_injured_crew.render(console)
+        except AttributeError:
+            pass
+        try:
+            self.ship_shields.render(console)
+        except AttributeError:
+            pass
+        self.cancel_button.render(console)
+        self.confirm_button.render(console)
+    
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
+        
+        if self.cancel_button.cursor_overlap(event):
+            
+            return DebugHandler(self.engine)
+        try:
+            if self.ship_able_crew.cursor_overlap(event):
+                
+                self.active_element = self.ship_able_crew
+                
+                for e in self.all_activatable_elements:
+                    
+                    e.is_active = e is self.ship_able_crew
+                return
+            elif self.ship_injured_crew.cursor_overlap(event):
+                
+                self.active_element = self.ship_injured_crew
+                
+                for e in self.all_activatable_elements:
+                    
+                    e.is_active = e is self.ship_injured_crew
+                return
+        except AttributeError:
+            pass
+        try:
+            if self.ship_shields.cursor_overlap(event):
+                
+                self.active_element = self.ship_shields
+                
+                for e in self.all_activatable_elements:
+                    
+                    e.is_active = e is self.ship_shields
+                return
+        except AttributeError:
+            pass
+        try:
+            if self.cloak_cooldown.cursor_overlap(event):
+                
+                self.active_element = self.cloak_cooldown
+                
+                for e in self.all_activatable_elements:
+                    
+                    e.is_active = e is self.cloak_cooldown
+                return
+        except AttributeError:
+            pass
+        
+        if self.ship_name.cursor_overlap(event):
+            
+            self.active_element = self.ship_name
+            
+            for e in self.all_activatable_elements:
+                    
+                e.is_active = e is self.ship_name
+                
+        elif self.ship_hull.cursor_overlap(event):
+            
+            self.active_element = self.ship_hull
+            
+            for e in self.all_activatable_elements:
+                    
+                e.is_active = e is self.ship_hull
+                
+        elif self.ship_energy.cursor_overlap(event):
+            
+            self.active_element = self.ship_energy
+            
+            for e in self.all_activatable_elements:
+                    
+                e.is_active = e is self.ship_energy
+        
+        elif self.confirm_button.cursor_overlap(event):
+            
+            self.assign_values()
+            
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
+        
+        if event.sym == tcod.event.K_ESCAPE:
+            
+            return DebugHandler(self.engine)
+        
+        if event.sym in confirm:
+            
+            self.assign_values()
+        else:
+            self.active_element.handle_key(event)
+        
+    def assign_values(self):
+        
+        self.ship.hull = self.ship_hull.add_up()
+        self.ship.power_generator.energy = self.ship_energy.add_up()
+        self.ship.name = self.ship_name.send()
+        try:
+            self.ship.crew.able_crew = self.ship_able_crew.add_up()
+            self.ship.crew.injured_crew = self.ship_injured_crew.add_up()
+        except AttributeError:
+            pass
+        try:
+            self.ship.shield_generator.shields = self.ship_shields.add_up()
+        except AttributeError:
+            pass
+        try:
+            self.ship.cloak.cloak_cooldown = self.cloak_cooldown.add_up()
+        except AttributeError:
+            pass
+        self.engine.game_data.ship_scan = self.ship.scan_for_print(1)
+        
