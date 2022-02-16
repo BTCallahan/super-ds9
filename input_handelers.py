@@ -1137,7 +1137,6 @@ class WarpHandler(HeadingBasedHandler):
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
                 warning = warp_order.raise_warning()
-
                 try:
                     self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
                 except KeyError:
@@ -1182,7 +1181,6 @@ class WarpHandler(HeadingBasedHandler):
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
                 warning = warp_order.raise_warning()
-
                 try:
                     self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
                 except KeyError:
@@ -1281,7 +1279,6 @@ class WarpHandlerEasy(CoordBasedHandler):
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
                 warning = warp_order.raise_warning()
-                
                 try:
                     self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
                 except KeyError:
@@ -1323,7 +1320,6 @@ class WarpHandlerEasy(CoordBasedHandler):
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
                 warning = warp_order.raise_warning()
-
                 try:
                     self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
                 except KeyError:
@@ -1423,7 +1419,6 @@ class MoveHandler(HeadingBasedHandler):
 
             if warning == OrderWarning.SAFE:
                 return move_order
-
             try:
                 self.engine.message_log.add_message(blocks_action[warning], colors.red)
             except KeyError:
@@ -1618,7 +1613,6 @@ class ShieldsHandler(MinMaxInitator):
 
             if warning == OrderWarning.SAFE:
                 return recharge_order
-            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], colors.red)
                 self.warned_once = False
@@ -1648,7 +1642,6 @@ class ShieldsHandler(MinMaxInitator):
 
             if warning == OrderWarning.SAFE:
                 return recharge_order
-            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], colors.red)
                 self.warned_once = False
@@ -1756,7 +1749,6 @@ class TransporterHandler(MinMaxInitator):
                 order = TransportOrder(self.engine.player, selected, self.amount_button.add_up())
                 
                 warning = order.raise_warning()
-                
                 try:
                     self.engine.message_log.add_message(blocks_action[warning], colors.red)
                 except KeyError:
@@ -1832,7 +1824,6 @@ class BeamArrayHandler(MinMaxInitator):
             if (not isinstance(sel, Starship) or not sel.ship_status.is_active) and local_ships:
                 
                 okay_ships = [s for s in local_ships if s.ship_status.is_active]
-                
                 try:
                     ship = choice(okay_ships)
                     
@@ -1868,7 +1859,6 @@ class BeamArrayHandler(MinMaxInitator):
                     self.engine.game_data.selected_ship_planet_or_star
                 )
             warning = fire_order.raise_warning()
-
             try:
                 self.engine.message_log.add_message(
                     blocks_action[warning], colors.red
@@ -1941,7 +1931,6 @@ class BeamArrayHandler(MinMaxInitator):
                     self.engine.game_data.selected_ship_planet_or_star
                 )
             warning = fire_order.raise_warning()
-
             try:
                 self.engine.message_log.add_message(
                     blocks_action[warning], colors.red
@@ -2010,7 +1999,6 @@ class CannonHandler(MinMaxInitator):
             if (not isinstance(sel, Starship) or not sel.ship_status.is_active) and local_ships:
                 
                 okay_ships = [s for s in local_ships if s.ship_status.is_active]
-                
                 try:
                     ship = choice(okay_ships)
                     
@@ -2032,13 +2020,11 @@ class CannonHandler(MinMaxInitator):
                 self.engine.game_data.selected_ship_planet_or_star
             )
             warning = fire_order.raise_warning()
-            
             try:
                 self.engine.message_log.add_message(
                     blocks_action[warning], colors.red
                 )
             except:
-                
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
                         self.engine.player.get_max_effective_cannon_firepower, self.engine.player.power_generator.energy
@@ -2091,13 +2077,11 @@ class CannonHandler(MinMaxInitator):
                 target=self.engine.game_data.selected_ship_planet_or_star
             )
             warning = fire_order.raise_warning()
-
             try:
                 self.engine.message_log.add_message(
                     blocks_action[warning], colors.red
                 )
             except:
-                
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
                         self.engine.player.get_max_effective_cannon_firepower, self.engine.player.power_generator.energy
@@ -3232,7 +3216,6 @@ class ShipPlacement(MainGameEventHandler):
                         "Unable to create the new ship as there is a star in the way"
                     )
                 except KeyError:
-                    
                     pass
 
 class ShipEditing(MainGameEventHandler):
