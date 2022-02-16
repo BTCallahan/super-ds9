@@ -46,5 +46,5 @@ command_display_end_y:55
 position_info_x:45
 position_info_end_x:80
 position_info_y:20
-position_info_end_y:26
+position_info_end_y:28
 graphics:dejavu12x12_gs_tc.png

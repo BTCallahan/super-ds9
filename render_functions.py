@@ -520,14 +520,15 @@ def render_position(console: Console, gameData:GameData):
         title=gameData.condition.text,
         fg=gameData.condition.fg,
         bg=gameData.condition.bg
-    )
+    )   
     console.print_box(
         x=CONFIG_OBJECT.position_info_x+1,
         y=CONFIG_OBJECT.position_info_y+1,
-        string=f"Local pos: {gameData.player.local_coords}\nSystem pos: {gameData.player.sector_coords}\nStardate: {gameData.stardate}\nEnding stardate: {gameData.ending_stardate}",
+        string=f"Local pos: {gameData.player.local_coords}\nSystem pos: {gameData.player.sector_coords}\nStardate: {gameData.stardate}\nEnding stardate: {gameData.ending_stardate}\n{gameData.warp_factor}\n{gameData.shields_description}",
         width=w-2,
         height=h-2
     )
+    
 
 def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDown") -> Union[Planet, Star, Starship, bool]:
     """Attempts to select the ship, planet, or star that the player is clicking on. Otherwise, it returns a boolean value depending on weither the cursor was positioned over a system grid square.
