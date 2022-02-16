@@ -331,6 +331,21 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
             f"Welcome aboard, {self.player.ship_class.nation.captain_rank_name} {self.captain_name}."
         )
 
+    def describe_warp_factor(self):
+        try:
+            wf = self.player.warp_drive.current_warp_factor
+            return f"Warp factor: {wf}" if wf else "Impulse"
+        except AttributeError:
+            return "Impulse"
+
+    def describe_shields(self):
+        try:
+            return (
+                "Shields up" if self.player.shield_generator.is_opperational else "Shields offline"
+            ) if self.player.shield_generator.shields_up else "Shields down"
+        except AttributeError:
+            return "Shields unavialble"
+            
     @classmethod
     def newGame(cls):
         return cls(8, 8, 8, 8,
