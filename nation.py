@@ -52,31 +52,26 @@ def create_nations() -> Dict[str,Nation]:
     nations = nation_pattern.finditer(contents)
     
     nation_dict = {}
-        
+    
     for nation in nations:
         
         nation_code = nation.group(1)
         
         nation_txt = nation.group(2)
-        
-        #color = color_pattern.search(nation_txt)
-                
+                        
         color_r, color_g, color_b = get_multiple_groups_in_pattern(
             nation_txt, color_pattern, expected_number_of_groups=3, type_to_convert_to=int
         )
-        
         name_long = get_first_group_in_pattern(nation_txt, name_long_pattern)
         
         name_short = get_first_group_in_pattern(
             nation_txt, name_short_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=name_long
         )
-        
         name_possesive = get_first_group_in_pattern(
             nation_txt, name_possesive_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=name_short
         )
-        
         command_name = get_first_group_in_pattern(nation_txt, command_name_pattern)
         
         intelligence_agency = get_first_group_in_pattern(nation_txt, intelligence_agency_pattern)
@@ -92,7 +87,6 @@ def create_nations() -> Dict[str,Nation]:
         navy_name = get_first_group_in_pattern(nation_txt, navy_name_pattern)
         
         ship_names_pattern_match = ship_names_pattern.search(nation_txt)
-        
         try:
             ship_names_ = ship_names_pattern_match.group(1)
             
@@ -118,7 +112,6 @@ def create_nations() -> Dict[str,Nation]:
             intelligence_agency=intelligence_agency,
             navy_name=navy_name
         )
-        
         nation_dict[nation_code] = return_this
         
     return nation_dict

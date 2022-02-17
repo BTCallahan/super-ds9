@@ -74,11 +74,9 @@ class Sensors(StarshipSystem):
         ships_in_same_system = self.starship.game_data.grab_ships_in_same_sub_sector(
             self.starship, accptable_ship_statuses={STATUS_CLOAKED}
         )
-        
         cloaked_enemy_ships = [
             ship for ship in ships_in_same_system if ship.nation in nations
         ]
-        
         player = self.starship.game_data.player
         
         for ship in cloaked_enemy_ships:
@@ -148,7 +146,6 @@ f'{f"{cr}, we have" if self is player else f"The {self.name} has"} detected {"us
     def scan_for_print(self, precision: int=1):
         
         ship = self.starship
-        shipclass = ship.ship_class
         
         if isinstance(precision, float):
             raise TypeError("The value 'precision' MUST be an intiger between 1 amd 100")
@@ -196,7 +193,6 @@ f'{f"{cr}, we have" if self is player else f"The {self.name} has"} detected {"us
             "hull" : (hull, print_color(hull, ship_class.max_hull)),
             "energy" : (energy, print_color(energy, ship_class.max_energy))
         }
-        
         if hull_damage:
             d["hull_damage"] = hull_damage, print_color(hull_damage, ship_class.max_hull)
         

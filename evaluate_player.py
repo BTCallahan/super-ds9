@@ -236,7 +236,6 @@ class DestroyEvaluation(ScenerioEvaluation):
         
         friendy_total_ships, number_of_alive_friendly_ships, number_of_captured_friendly_ships, number_of_derlict_friendy_ships, number_of_destroyed_friendy_ships, highest_possible_friendy_score, total_alive_friendy_ships_scores, total_captured_friendy_ships_scores, total_derlict_friendy_ships_scores, total_destroyed_friendy_ships_scores = evaluate_ships(game_data.all_allied_ships)
         
-        
         evaluation_list:List[Tuple[str,str,Tuple[int,int,int]]] = [
             ("Total Target Enemy Ships:",  f"{total_ships:.2%}", colors.white),
             ("Percent of Target ships Survived:", f"{number_of_alive_ships / total_ships:.2%}", colors.red ),
@@ -251,7 +250,6 @@ class DestroyEvaluation(ScenerioEvaluation):
             ("Disabled Ship Score:", f"{total_derlict_ships_scores:.2f}", score_color),
             ("Points Remaining:", f"{total_alive_ships_scores:.2f}", colors.red)
         ]
-        
         if bonus_total_ships > 0:
             
             evaluation_list.extend(
@@ -339,8 +337,6 @@ class DestroyEvaluation(ScenerioEvaluation):
         max_time = ending_stardate - starting_stardate
         
         time_left_percent = used_time / max_time
-        
-        
                 
         evaluation_list.extend(
             [

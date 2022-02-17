@@ -63,8 +63,6 @@ class StarshipSystem:
         except DivisionByZero:
             return inf
 
-    #def __add__(self, value):
-
     def get_info(self, precision:int, effective_value:bool, below_15_is_0:bool=True):
         
         i = min(1.0, self._integrety * 1.25) if effective_value else self._integrety

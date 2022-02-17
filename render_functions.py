@@ -529,7 +529,6 @@ def render_position(console: Console, gameData:GameData):
         height=h-2
     )
     
-
 def select_ship_planet_star(game_data:GameData, event: "tcod.event.MouseButtonDown") -> Union[Planet, Star, Starship, bool]:
     """Attempts to select the ship, planet, or star that the player is clicking on. Otherwise, it returns a boolean value depending on weither the cursor was positioned over a system grid square.
 

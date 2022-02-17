@@ -99,12 +99,8 @@ def get_multiple_groups_in_pattern(
 ):
     match = pattern.search(text_to_search)
     
-    #if number_of_groups < 1:
-    #    match.
-    
     if return_aux_if_no_match:
         try:
-            
             ma = tuple(
                 ty(match.group(grp + 1)) for grp, ty in enumerate(multiple_types_to_convert_to)
                 

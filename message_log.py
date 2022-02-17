@@ -1,8 +1,6 @@
 from typing import Iterable, List, Reversible, Tuple
 import textwrap
-
 import tcod
-
 import colors
 
 class Message:

@@ -79,14 +79,6 @@ CONDITION_YELLOW:Final = Condition("CONDITION YELLOW", colors.alert_yellow)
 CONDITION_BLUE:Final = Condition("CONDITION BLUE", colors.alert_blue)
 CONDITION_RED:Final = Condition("CONDITION RED", colors.alert_red)
 
-"""
-__damType = namedtuple(
-    "damType", 
-    ("damage_vs_shields_multiplier", "damage_vs_hull_multiplier", "damage_vs_no_shield_multiplier", "damage_vs_systems_multiplier", "damage_chance_vs_systems_multiplier", "damage_variation", "chance_to_damage_system", "accuracy_loss_per_distance_unit", "flat_accuracy_loss"), 
-    defaults=(1.0, 1.0, 1.0, 0.12, 1.5, 1.0, 1.75, 0.0, 0.0)                   
-                       )
-"""
-
 @dataclass(eq=True, frozen=True)
 class DamageType:
     
@@ -100,10 +92,6 @@ class DamageType:
     accuracy_loss_per_distance_unit:float = 0.0
     flat_accuracy_loss:float = 0.0
     autohit_if_target_cant_move:bool = False
-    
-    ''''
-    __slots__ = ("damage_vs_shields_multiplier", "damage_vs_hull_multiplier", "damage_vs_no_shield_multiplier", "damage_vs_systems_multiplier", "damage_chance_vs_systems_multiplier", "damage_variation", "chance_to_damage_system", "accuracy_loss_per_distance_unit", "flat_accuracy_loss")
-    '''
     
 DAMAGE_BEAM:Final = DamageType(
     damage_variation=0.025, 
@@ -140,9 +128,7 @@ DAMAGE_RAMMING:Final = DamageType(
 
 @dataclass(eq=True, frozen=True)
 class RepairStatus:
-    
-    #__slots__ = ("hull_repair", "system_repair", "energy_regeration", "repair_permanent_hull_damage")
-    
+        
     hull_repair:float
     system_repair:float
     energy_regeration:float
@@ -237,6 +223,11 @@ class CloakStatus(Enum):
     COMPRIMISED = auto()
 
 def create_warp_factor():
+    """This is used to generate the warp factor tuple. Each item contains an intiger and a float. W
+
+    Yields:
+        Tuple[int, float]: The intiger represent the speed, and the float represnt
+    """
     
     ad = 0.125
     

@@ -64,7 +64,6 @@ class EnergyWeapon:
             color=color
         )
 
-
 energy_weapon_pattern = re.compile(r"ENERGY_WEAPON:([\w\d_]+)\n([^#]+)END_ENERGY_WEAPON")
 color_pattern = re.compile(r"COLOR:([\d]+),([\d]+),([\d]+)\n")
 name_pattern = re.compile(r"NAME:([\w\d\ ]+)\n" )
@@ -97,7 +96,6 @@ def create_energy_weapons() -> Dict[str,EnergyWeapon]:
         short_name = get_first_group_in_pattern(
             energy_weapon_txt, name_short_pattern,return_aux_if_no_match=True, aux_valute_to_return_if_no_match=name
         )
-        
         energy_weapon_dict[energy_weapon_code] = EnergyWeapon.create_weapon(name, short_name, color_tuple)
     
     return energy_weapon_dict

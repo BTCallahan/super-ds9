@@ -67,11 +67,6 @@ def set_up_game(
         ship_name:str, captain_name:str, scenario:Scenerio, difficulty:type[BaseAi], allied_ai:type[BaseAi]
 
     ):
-    #print('beginning setup')
-    #global GRID, PLAYER, TOTAL_STARSHIPS
-    
-    ships = OrderedDict()
-
     game_data = GameData(
         subsecs_x = CONFIG_OBJECT.sector_width,
         subsecs_y = CONFIG_OBJECT.sector_height,
@@ -90,7 +85,6 @@ def set_up_game(
         difficulty=difficulty,
         alliled_ai=allied_ai
     )
-
     engine = Engine(
         filename = "",
         player = game_data.player,
@@ -100,7 +94,6 @@ def set_up_game(
         torpedo_warning = torpedo_warning,
         crash_warning = crash_warning
     )
-
     engine.game_data = game_data
 
     game_data.engine = engine
@@ -118,7 +111,6 @@ class StartupScreen(input_handelers.BaseEventHandler):
         console.print(x=console.width // 2 - 5, y=console.height // 2, string="SUPER DS9")
         console.print(x=console.width // 2 - 9, y=console.height // 2 + 2, string="Press any key to begin")
 
-        
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[input_handelers.BaseEventHandler]:
         #print("Main menu")
         return MainMenu()
@@ -145,7 +137,6 @@ class Debug(input_handelers.BaseEventHandler):
             inactive_fg=colors.grey,
             bg=colors.black,
         )
-        
         t=wrap(
 "This is a test of the wrap function. I am testing this is see why there are lines in the text. Turning \
 off drop_whitespace has no effect, nor does turning off replace_whitespace, so at the moment I'm a bit \
@@ -173,7 +164,6 @@ stuck on what to do about the situation.", replace_whitespace=False
             bg_blend=constants.BKGND_ADD,
             title="testDF", 
         )
-
         console.draw_frame(
             x=0,
             y=hw*2,
@@ -182,7 +172,6 @@ stuck on what to do about the situation.", replace_whitespace=False
             bg_blend=constants.BKGND_ADD,
             title="testDF", 
         )
-
         console.draw_rect(
             x=hw,
             y=hw,
@@ -204,7 +193,6 @@ stuck on what to do about the situation.", replace_whitespace=False
             bg_blend=constants.BKGND_ADD, 
             alignment=constants.RIGHT
         )
-
         console.print_box(
             x=2*hw,
             y=2*hw,
@@ -215,7 +203,6 @@ stuck on what to do about the situation.", replace_whitespace=False
             bg_blend=constants.BKGND_ADD, 
             alignment=constants.RIGHT
         )
-
         console.print_frame(
             x=3*hw,
             y=hw,
@@ -233,7 +220,6 @@ stuck on what to do about the situation.", replace_whitespace=False
             bg_blend=constants.BKGND_ADD,
             alignment=constants.RIGHT,
         )
-
         a = Decimal(12.3 + 45 / 7193)
 
         s_str = f"{a}\n{a:.4}\n{a:.4g}\n{a:8.4}\n{a:=.4}\n{a:>.4}\n{a:<.4}\n{a:0.4}\n{a:2.4}\n{a:1.4}"
@@ -243,18 +229,15 @@ stuck on what to do about the situation.", replace_whitespace=False
             y=2*hw+14,
             string=s_str
         )
-        
         self.number_handeler.render(
             console,
         )
-        
         le = 5
         ma= "AAAaaa"
         console.print(
             x=60,y=45,
             string=f"{ma:>{le}}"
         )
-        
         self.text_wrap_handler.render(console)
         
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[input_handelers.BaseEventHandler]:
@@ -286,7 +269,6 @@ class MainMenu(input_handelers.BaseEventHandler):
             width=instructions_width+2,
             alignment=tcod.CENTER
         )
-        
         self.instructions = SimpleElement(
             y=start_y+3,
             x=start_x,
@@ -297,7 +279,6 @@ class MainMenu(input_handelers.BaseEventHandler):
             width=instructions_width+2,
             alignment=tcod.CENTER
         )
-        
         self.quit = SimpleElement(
             y=start_y+6,
             x=start_x,
@@ -425,7 +406,6 @@ class SelectScenerio(input_handelers.BaseEventHandler):
             inactive_fg=colors.grey,
             bg=colors.black
         )
-        
         self.index_key = self.title_box.index_key
         
         self.cancel_button = SimpleElement(
@@ -437,7 +417,6 @@ class SelectScenerio(input_handelers.BaseEventHandler):
             active_fg=colors.white,
             bg=colors.black
         )
-        
         self.confirm_button = SimpleElement(
             x=50,
             y=6,
@@ -447,7 +426,6 @@ class SelectScenerio(input_handelers.BaseEventHandler):
             active_fg=colors.white,
             bg=colors.black
         )
-        
         scen = ALL_SCENERIOS[self.index_key]
         
         self.describe = SimpleElement(
@@ -533,7 +511,6 @@ class NewGame(input_handelers.BaseEventHandler):
             bg=colors.black,
             initally_active=False,
         )
-        
         self.captain_name = TextHandeler(
             limit=16, text_char_list=list(self.scenario.default_captain_name),
             x=32,
@@ -545,7 +522,6 @@ class NewGame(input_handelers.BaseEventHandler):
             inactive_fg=colors.grey,
             bg=colors.black,
         )
-        
         self.warning_text = self.__all_okay
         
         self.new_game_button = SimpleElement(
@@ -555,7 +531,6 @@ class NewGame(input_handelers.BaseEventHandler):
             width=12,
             text="Okay"
         )
-
         self.cancel_button = SimpleElement(
             x=70,
             y=8,
@@ -563,7 +538,6 @@ class NewGame(input_handelers.BaseEventHandler):
             width=12,
             text="Cancel"
         )
-
         self.options_button = ButtonBox(
             x=6,
             y=15,
@@ -576,7 +550,6 @@ class NewGame(input_handelers.BaseEventHandler):
             text="",
             initally_active=False
         )
-
         self.aim_button = BooleanBox(
             x=10,
             y=17,
@@ -590,7 +563,6 @@ class NewGame(input_handelers.BaseEventHandler):
             bg=colors.black,
             initally_active=False
         )
-        
         self.random_ship_name_button = SimpleElement(
             x=45,
             y=17,
@@ -601,7 +573,6 @@ class NewGame(input_handelers.BaseEventHandler):
             active_fg=colors.white,
             bg=colors.black
         )
-        
         self.difficulty = Selector(
             x=45, 
             y=22,
@@ -616,7 +587,6 @@ class NewGame(input_handelers.BaseEventHandler):
             wrap_item=False,
             keys=(EasyEnemy, MediumEnemy, HardEnemy)
         )
-
         self.warp_button = BooleanBox(
             x=10,
             y=22,
@@ -629,7 +599,6 @@ class NewGame(input_handelers.BaseEventHandler):
             inactive_fg=colors.red,
             bg=colors.black
         )
-
         self.move_button = BooleanBox(
             x=10,
             y=27,
@@ -642,7 +611,6 @@ class NewGame(input_handelers.BaseEventHandler):
             inactive_fg=colors.red,
             bg=colors.black
         )
-
         self.three_d_movement_button = BooleanBox(
             x=10,
             y=32,
@@ -655,7 +623,6 @@ class NewGame(input_handelers.BaseEventHandler):
             inactive_fg=colors.red,
             bg=colors.black
         )
-
         self.warn_torpedo_button = BooleanBox(
             x=10,
             y=40,
@@ -668,7 +635,6 @@ class NewGame(input_handelers.BaseEventHandler):
             inactive_fg=colors.red,
             bg=colors.black
         )
-
         self.warn_crash_button = BooleanBox(
             x=10,
             y=46,
@@ -681,14 +647,11 @@ class NewGame(input_handelers.BaseEventHandler):
             inactive_fg=colors.red,
             bg=colors.black
         )
-        
         self.text_handeler = self.captain_name
 
     def on_render(self, console: tcod.Console) -> None:
 
-        self.captain_name.render(
-            console,            
-        )
+        self.captain_name.render(console)
         
         console.print_box(
             x=56,
@@ -697,46 +660,29 @@ class NewGame(input_handelers.BaseEventHandler):
             width=20,
             height=4,
         )
-        
-        self.ship_name.render(
-            console,
-        )
+        self.ship_name.render(console)
         
         self.new_game_button.render(console)
 
         self.cancel_button.render(console)
 
-        self.options_button.render(
-            console,
-        )
+        self.options_button.render(console)
         
         self.random_ship_name_button.render(console)
 
-        self.aim_button.render(
-            console=console,
-        )
+        self.aim_button.render(console)
 
-        self.move_button.render(
-            console=console,
-        )
+        self.move_button.render(console)
         
-        self.warp_button.render(
-            console=console,
-        )
+        self.warp_button.render(console)
 
-        self.three_d_movement_button.render(
-            console=console,
-        )
+        self.three_d_movement_button.render(console)
 
-        self.warn_torpedo_button.render(
-            console=console,
-        )
+        self.warn_torpedo_button.render(console)
 
-        self.warn_crash_button.render(
-            console=console,
-        )
+        self.warn_crash_button.render(console)
         
-        self.difficulty.render(console=console)
+        self.difficulty.render(console)
 
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[input_handelers.BaseEventHandler]:
 
@@ -756,7 +702,6 @@ class NewGame(input_handelers.BaseEventHandler):
                 
                 self.warning_text = self.__please_enter_ship_name
             else:
-                
                 difficulty = self.difficulty.index_key
                 
                 return input_handelers.CommandEventHandler(

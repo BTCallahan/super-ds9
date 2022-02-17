@@ -78,7 +78,6 @@ blocks_action = {
     OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW : "Error: If we sent over that amount of crew, it would criticly impare our ability to opperate our own ship."
 }
 
-
 torpedo_warnings = {
     OrderWarning.TORPEDO_WILL_HIT_PLANET : "Warning: If we fire, the torpedo will hit a planet.",
     OrderWarning.TORPEDO_COULD_HIT_PLANET : "Warning: If the torpedo misses, it could hit a planet.",
@@ -103,7 +102,6 @@ class Order:
         self.entity = entity
         
     def perform(self) -> None:
-
         raise NotImplementedError()
     
     def __hash__(self) -> int:
@@ -204,7 +202,6 @@ class WarpOrder(Order):
             self.game_data.engine.message_log.add_message(
                 f"The {self.entity.name} has gone to warp.", colors.cyan
             )
-        
         self.entity.turn_repairing = 0
         
         wto = WarpTravelOrder(self.entity)
@@ -347,14 +344,11 @@ class MoveOrder(Order):
         if self.game_data.three_d_movment:
             
             co = Coords(x=self.x, y=self.y)
-            
             try:
                 planet = sub_sector.planets_dict[co]
-                
             except KeyError:
                 try:
                     star = sub_sector.stars_dict[co]
-                    
                 except KeyError:
                     try:
                         ship = self.ships[co]
@@ -521,7 +515,6 @@ class EnergyWeaponOrder(Order):
         max_targets = min(
             entity.ship_class.max_beam_targets, len(targets)
         )
-        
         return cls(
             entity, amount, 
             targets=tuple(targets[:max_targets]), 
@@ -535,12 +528,10 @@ class EnergyWeaponOrder(Order):
     def perform(self) -> None:
 
         actual_amount = floor(self.entity.beam_array.get_effective_value * self.amount)
-        
         try:
             cloak_status = self.entity.cloak.force_fire_decloak()
             
             player = self.game_data.player
-            
             if (
                 cloak_status and 
                 self.entity is not player and self.entity.sector_coords == player.sector_coords
@@ -607,7 +598,6 @@ class TransportOrder(Order):
         
         if self.board and not self.entity.local_coords.is_adjacent(self.target.local_coords):
             return OrderWarning.OUT_OF_RANGE
-        
         try:
             if self.entity.cloak.cloak_is_turned_on:
                 return OrderWarning.DECLOAK_FIRST
@@ -707,12 +697,10 @@ class TorpedoOrder(Order):
         return cls(entity, amount, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
 
     def perform(self) -> None:
-        
         try:
             cloak_status = self.entity.cloak.force_fire_decloak()
             
             player = self.game_data.player
-            
             if (
                 cloak_status and 
                 self.entity is not player and self.entity.sector_coords == player.sector_coords
@@ -749,7 +737,6 @@ class TorpedoOrder(Order):
         hit_enemy_ship = False
         hit_friendly_ship = False
         for co in self.coord_list:
-
             try:
                 planet = sub_sector.planets_dict[co]
                 if not hit_enemy_ship:
@@ -764,18 +751,15 @@ class TorpedoOrder(Order):
                     )
                     
             except KeyError:
-
                 try:
                     star = sub_sector.stars_dict[co]
                     
                     return OrderWarning.SAFE if hit_enemy_ship else OrderWarning.TORPEDO_WILL_MISS
 
                 except KeyError:
-
                     try:
                         ship = self.ships[co]
                         if ship:
-                            
                             if ship.ship_class.nation_code == self.entity.ship_class.nation_code:
                                 hit_friendly_ship = True
                             else:
@@ -966,44 +950,36 @@ class RepairOrder(Order):
         
         if self.number:
             return OrderWarning.ENEMY_SHIPS_NEARBY_WARN
-        
         try:
             beam_i = self.entity.beam_array.integrety
         except AttributeError:
             beam_i = 1.0
-        
         try:
             cannon_i = self.entity.cannons.integrety
         except AttributeError:
             cannon_i = 1.0
-            
         try:
             impulse_i = self.entity.impulse_engine.integrety
         except AttributeError:
             impulse_i = 1.0
-            
         try:
             shield_i = self.entity.shield_generator.integrety
             shield_e = self.entity.shield_generator.shields_percentage
         except AttributeError:
             shield_i = 1.0
             shield_e = 1.0
-        
         try:
             torpedo_i = self.entity.torpedo_launcher.integrety
         except AttributeError:
             torpedo_i = 1.0
-        
         try:
             warp_i = self.entity.warp_drive.integrety
         except AttributeError:
             warp_i = 1.0
-        
         try:
             transport_i = self.entity.transporter.integrety
         except AttributeError:
             transport_i = 1.0
-        
         try:
             cloak_i = self.entity.cloak.integrety
         except AttributeError:

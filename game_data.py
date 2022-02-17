@@ -16,8 +16,6 @@ from ship_class import ALL_SHIP_CLASSES
 from space_objects import Star, SubSector, Planet
 import colors
 
-from torpedo import Torpedo
-
 if TYPE_CHECKING:
     from engine import Engine
 
@@ -61,7 +59,6 @@ class GameData:
         self.crash_warning = crash_warning
 
         self.grid:List[List[SubSector]] = []
-        #self.sector_grid = np.empty(shape=(config_object.subsector_width, config_object.subsector_height), order="C", dtype=SubSector)
         
         self.secInfo = []
         self.scenerio = scenerio
@@ -70,7 +67,6 @@ class GameData:
         self.starting_stardate = starting_stardate
         self.stardate = stardate(current_datetime)
         self.ending_stardate = ending_stardate
-        #self.stardate_text = f"{self.stardate:5.2}"
 
         self.selected_ship_planet_or_star:Optional[Union[Starship, Star, Planet]] = None
 
@@ -136,9 +132,9 @@ class GameData:
         player = self.player
         
         all_other_ships = [
-            ship for ship in self.all_other_ships if ship.ship_status.is_active and ship.nation in self.scenerio.get_set_of_enemy_nations
+            ship for ship in self.all_other_ships if ship.ship_status.is_active and 
+            ship.nation in self.scenerio.get_set_of_enemy_nations
         ]
-        
         if not all_other_ships:
             self.condition = CONDITION_GREEN
         else:
@@ -149,7 +145,6 @@ class GameData:
 
                 self.condition = CONDITION_RED if len(other_ships) > 0 else CONDITION_YELLOW
         
-        #self.player_scan = player.scan_this_ship(1, use_effective_values=False)
         self.player_scan = player.scan_for_print(1)
         
         if (
@@ -172,7 +167,6 @@ class GameData:
         for x in self.subsec_size_range_x:
             for y in self.subsec_size_range_y:
                 self.grid[y][x].random_setup(self.star_number_weights, self.star_number_weights_len)
-                #self.sector_grid[x,y].random_setup()
 
         # create a tuple that contains self.subsecs_range_x * self.subsecs_range_y Coords
         system_coords = tuple(
@@ -372,7 +366,6 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                     s is not ship
                 ]
             )
-
         return (
             [s for s in self.total_starships if s.sector_coords == ship.sector_coords] 
             if include_self_in_ships_to_grab else 
@@ -463,11 +456,9 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                 #x_, y_ = co.x, co.y
                 
                 if not (0<= co.x < CONFIG_OBJECT.subsector_width) or not (0<= co.y < CONFIG_OBJECT.subsector_height):
-                    #self.engine.message_log.add_message("The torpedo vears off into space!" if missed_the_target else "The torpedo misses!")
                     break
 
                 x,y = co.x, co.y
-                
                 try:
                     star = g.stars_dict[co]
                     self.engine.message_log.add_message(f"The torpedo impacts against a star at {co.x}, {co.y}.")
@@ -481,7 +472,6 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                     except KeyError:
                         try:
                             ship = shipsInArea[co]
-                            
                             try:
                                 crew_readyness = shipThatFired.crew.crew_readyness# * 0.5 + 0.5
                             except AttributeError:
@@ -504,11 +494,19 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                             if hitSomething:
                                 #chance to hit:
                                 #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
-                                self.engine.message_log.add_message(f'{ship.name} was hit by a {torpedo.name} torpedo from {shipThatFired.name}. ')
+                                self.engine.message_log.add_message(
+                                    f'{ship.name} was hit by a {torpedo.name} torpedo from {shipThatFired.name}. '
+                                )
 
-                                ship.take_damage(torpedo.damage, f'Destroyed by a {torpedo.name} torpedo hit from the {shipThatFired.name}', damage_type=DAMAGE_TORPEDO)
+                                ship.take_damage(
+                                    torpedo.damage, 
+                                    f'Destroyed by a {torpedo.name} torpedo hit from the {shipThatFired.name}', 
+                                    damage_type=DAMAGE_TORPEDO
+                                )
                             else:
-                                self.engine.message_log.add_message(f'A {torpedo.name} torpedo from {shipThatFired.name} missed {ship.name}. ')
+                                self.engine.message_log.add_message(
+                                    f'A {torpedo.name} torpedo from {shipThatFired.name} missed {ship.name}. '
+                                )
                                 missed_the_target = True
                                 
                         except KeyError:
@@ -521,5 +519,4 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                     "The torpedo misses the target!" if missed_the_target else 
                     f"The torpedo vears off into space at {x}, {y}!", colors.orange
                 )
-        
         shipThatFired.torpedo_launcher.torps[torpedo] -= torpsFired

@@ -7,7 +7,6 @@ from global_functions import get_first_group_in_pattern
 @dataclass(eq=True, frozen=True)
 class Torpedo:
     
-    #__slots__ = ("cap_name", "name", "damage", "infrastructure", "infrastructure_damage")
     code:str
     name:str
     cap_name:str
@@ -49,7 +48,6 @@ def create_torpedos() -> Dict[str,Torpedo]:
             valid=False
         )
     }
-        
     for torpedo in torpedos:
         
         torpedo_code = torpedo.group(1)
@@ -65,13 +63,7 @@ def create_torpedos() -> Dict[str,Torpedo]:
         req_infrastructure = get_first_group_in_pattern(
             torpedo_txt, req_infrastructure_pattern, type_to_convert_to=float
         )
-                
         planet_damage = get_first_group_in_pattern(torpedo_txt, planet_damage_pattern, type_to_convert_to=float)
-        
-        #try:
-        #    planet_damage = float(planet_damage_)
-        #except TypeError:
-        #    planet_damage = float(planet_damage_[0])
         
         torp = Torpedo(
             code=torpedo_code,
@@ -81,7 +73,6 @@ def create_torpedos() -> Dict[str,Torpedo]:
             infrastructure=req_infrastructure,
             infrastructure_damage=planet_damage
         )
-        
         torpedo_dict[torpedo_code] = torp
         
     return torpedo_dict

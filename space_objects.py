@@ -413,7 +413,6 @@ class Planet(InterstellerObject, CanDockWith):
                 "tens of thousands",
                 "thousands"
             )
-
             for i, deathtoll in enumerate(des):
                 if infrustructure_damage // pow(10, -i) > 0:
                     how_many_killed = deathtoll

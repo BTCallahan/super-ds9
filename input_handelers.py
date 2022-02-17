@@ -1,7 +1,4 @@
 from __future__ import annotations
-from collections import OrderedDict
-from decimal import Decimal
-from inspect import Attribute
 from random import choice
 from textwrap import wrap
 from coords import Coords
@@ -99,15 +96,12 @@ class EventHandler(BaseEventHandler):
         )
         game_data.date_time = game_data.date_time + CONFIG_OBJECT.time_per_turn
         game_data.stardate = stardate(game_data.date_time)
-        #game_data.stardate_text = f"{game_data.stardate:5.2}"
 
         self.engine.handle_enemy_turns()
-        
         try:
             game_data.player.cloak.handle_cooldown_and_status_recovery()
         except AttributeError:
             pass
-        
         try:
             game_data.player.sensors.detect_all_enemy_cloaked_ships_in_system()
         except AttributeError:
