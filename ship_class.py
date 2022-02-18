@@ -104,6 +104,7 @@ class ShipClass:
     max_beam_targets:int=1
     max_cannon_energy:int=0
     max_armor:int=0
+    max_warp:int=0
     torp_tubes:int=0
     warp_breach_damage:int=2
     cloak_strength:float=0.0
@@ -175,6 +176,7 @@ to one.'''
         max_hull:int, 
         max_crew:int=0, 
         max_energy:int, 
+        max_warp:int,
         power_generated_per_turn:int,
         damage_control:float, 
         torp_dict:Optional[Dict[Torpedo,int]]=None,
@@ -196,8 +198,6 @@ to one.'''
             max_torpedos = sum([t for t in torp_dict.values()])
         except AttributeError:
             max_torpedos = 0
-
-        #torp_types_:Tuple[str] = tuple(["NONE"] if not torp_types else torp_types)
         
         short_beam_name_cap = ALL_ENERGY_WEAPONS[energy_weapon_code].short_beam_name_cap if max_beam_energy else ""
         
@@ -211,7 +211,6 @@ to one.'''
             cannon_weapon_name=f"{short_can_name_cap}",
             mobile=evasion > 0.0
         )
-        
         fd = frozendict(torp_dict)
         
         return cla(
@@ -227,6 +226,7 @@ to one.'''
             damage_control=damage_control,
             torp_dict=fd,
             torp_tubes=torp_tubes,
+            max_warp=max_warp,
             max_beam_energy=max_beam_energy,
             max_beam_targets=max_beam_targets,
             max_cannon_energy=max_cannon_energy,
@@ -388,7 +388,8 @@ cloak_cooldown_pattern = re.compile(r"CLOAK_COOLDOWN:([\d]+)\n")
 size_pattern = re.compile(r"SIZE:([\d.]+)\n")
 targeting_pattern = re.compile(r"TARGETING:([\d.]+)\n")
 evasion_pattern = re.compile(r"EVASION:([\d.]+)\n")
-detection_strength_pattern = re.compile(r"DETECTION_STRENGTH:([\d.]+)")
+detection_strength_pattern = re.compile(r"DETECTION_STRENGTH:([\d.]+)\n")
+max_warp_pattern = re.compile(r"MAX_WARP:([\d]+)\n")
 damage_control_pattern = re.compile(r"DAMAGE_CONTROL:([\d.]+)\n")
 torpedos_tubes_pattern = re.compile(r"TORPEDO_TUBES:([\d]+)\n")
 max_beam_energy_pattern = re.compile(r"MAX_BEAM_ENERGY:([\d]+)\n")
@@ -488,6 +489,10 @@ def create_ship_classes():
             shipclass_txt, evasion_pattern, type_to_convert_to=float, 
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0
         )
+        max_warp = get_first_group_in_pattern(
+            shipclass_txt, max_warp_pattern, type_to_convert_to=int, return_aux_if_no_match=True,
+            aux_valute_to_return_if_no_match=0
+        )
         targeting = get_first_group_in_pattern(shipclass_txt, targeting_pattern, type_to_convert_to=float)
         
         max_beam_energy = get_first_group_in_pattern(
@@ -526,6 +531,7 @@ def create_ship_classes():
             size=size,
             targeting=targeting,
             evasion=evasion,
+            max_warp=max_warp,
             warp_breach_damage=warp_core_breach_damage,
             nation_code=nation,
             energy_weapon_code=energy_weapon
