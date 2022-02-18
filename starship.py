@@ -501,8 +501,9 @@ class Starship(CanDockWith):
                 self.cloak.cloak_cooldown, print_color(self.cloak.cloak_cooldown, ship_class.cloak_cooldown, True)
             )
         if self.is_mobile:
-            d["sys_warp_drive"] = self.warp_drive.print_info(precision), self.warp_drive.get_color(), self.warp_drive.name
             d["sys_impulse"] = self.impulse_engine.print_info(precision), self.impulse_engine.get_color(), self.impulse_engine.name
+        if ship_class.max_warp > 0:
+            d["sys_warp_drive"] = self.warp_drive.print_info(precision), self.warp_drive.get_color(), self.warp_drive.name
         if self.ship_type_can_fire_beam_arrays:
             d["sys_beam_array"] = self.beam_array.print_info(precision), self.beam_array.get_color(), self.beam_array.name
         if self.ship_type_can_fire_cannons:
@@ -1786,7 +1787,7 @@ class Starship(CanDockWith):
         
         damage_type = DAMAGE_CANNON if cannon else DAMAGE_BEAM
 
-        amount = min(self.energy, self.get_max_effective_beam_firepower, energy)
+        amount = min(self.power_generator.energy, self.get_max_effective_beam_firepower, energy)
         
         try:
             crew_readyness = self.crew.crew_readyness
@@ -1815,7 +1816,7 @@ class Starship(CanDockWith):
                 crew_readyness=crew_readyness,
                 target_crew_readyness=target_crew_readyness
             ):
-                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage =self.calculate_damage(
+                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage,warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage =self.calculate_damage(
                     amount, precision=precision, calculate_crew=scan_target_crew, 
                     calculate_systems=simulate_systems, 
                     use_effective_values=use_effective_values,
@@ -1833,7 +1834,10 @@ class Starship(CanDockWith):
                     able_crew = target_scan["able_crew"] - (wounded + killed_outright)
                     injured_crew = target_scan["injured_crew"] - killed_in_sickbay
                     
-                    averaged_crew_readyness += target.caluclate_crew_readyness(able_crew, injured_crew)
+                    try:
+                        averaged_crew_readyness += target.crew.caluclate_crew_readyness(able_crew, injured_crew)
+                    except AttributeError:
+                        averaged_crew_readyness += 1
                     
                     if able_crew + injured_crew == 0:
                         
@@ -1864,7 +1868,7 @@ class Starship(CanDockWith):
         use_effective_values:bool=False,
         target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus]]]
     ):
-        precision = self.determin_precision
+        precision = self.sensors.determin_precision
 
         target_scan = target_scan if target_scan else target.scan_this_ship(
             precision, scan_for_systems=simulate_systems, scan_for_crew=simulate_crew, 

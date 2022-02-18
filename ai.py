@@ -366,9 +366,11 @@ def calc_shields_medium(self:BaseAi, hostile_ships_in_same_system:Iterable[Stars
     
     raise_shields = len(hostile_ships_in_same_system)
     
-    recharge_amount = self.entity.get_max_effective_shields - self.entity.shield_generator.shields
+    recharge_amount = min(
+        self.entity.get_max_effective_shields - self.entity.shield_generator.shields, self.entity.power_generator.energy
+    )
             
-    recharge= RechargeOrder(self.entity, recharge_amount, True)
+    recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
                     
     self.order_dict[recharge] = recharge_amount * 10
     
@@ -591,7 +593,7 @@ def calc_ram_hard(
             self.entity.local_coords.distance(
                 x=ship.local_coords.x, y=ship.local_coords.y
             ) * LOCAL_ENERGY_COST * 
-            self.entity.sys_impulse.affect_cost_multiplier
+            self.entity.impulse_engine.affect_cost_multiplier
         )
         if energy_cost > self.entity.power_generator.energy:
             
@@ -778,7 +780,7 @@ class MediumEnemy(BaseAi):
                             }
                         ),
                         nearbye_allied_ships=[], 
-                        nearbye_enemy_ships=enemy_is_present,
+                        nearbye_enemy_ships=enemy_ships,
                     )
             has_energy = self.entity.power_generator.energy > 0
             
@@ -802,7 +804,7 @@ class MediumEnemy(BaseAi):
                 
             if self.entity.get_max_effective_shields > 0:
                 
-                calc_shields_medium(self)
+                calc_shields_medium(self, enemy_ships)
                 
         self.determin_order()
         self.order.perform()
@@ -890,7 +892,7 @@ class HardEnemy(BaseAi):
             
             if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
                 
-                calc_shields_hard(self)
+                calc_shields_hard(self, enemy_ships)
             
         self.determin_order()
             
@@ -979,7 +981,7 @@ class AllyAI(BaseAi):
             
             if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
                 
-                calc_shields_hard(self)
+                calc_shields_hard(self, enemy_ships)
             
         self.order.perform()
         
