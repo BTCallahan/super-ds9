@@ -33,7 +33,7 @@ class InterstellerObject:
         self.sector_coords = sector_coords
         self.system = system
     
-    def hit_by_torpedo(self, is_player:bool, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
+    def hit_by_torpedo(self, is_player:bool, game_data:GameData, torpedo:Torpedo):
         raise NotImplementedError
 
 STAR_TYPES = (
@@ -307,7 +307,7 @@ class Star(InterstellerObject):
     def getPlanetName(self, planetOrder):
         return self.name + self.planetSuffexes[planetOrder]
     
-    def hit_by_torpedo(self, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
+    def hit_by_torpedo(self, is_player:bool, game_data:GameData, torpedo:Torpedo):
 
         if not self.can_go_nova:
             return
