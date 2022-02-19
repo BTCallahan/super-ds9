@@ -468,7 +468,6 @@ wolf_rayet_star = StarTemplate(
     radius_min=0.89,
     star_class_override=("WR", "WO", "WN")
 )
-
 brown_dwarf = StarTemplate(
     name="Brown Dwarf",
     temp_max=2800,
@@ -478,13 +477,11 @@ brown_dwarf = StarTemplate(
     radius_max=0.12,
     radius_min=0.08
 )
-
 methane_dwarf = StarTemplate(
     name="Methane Dwarf",
     temp_max=1300,
     temp_min=550,
 )
-
 b_type_subdwarf = StarTemplate(
     name="B-type subdwarf",
     temp_max=40000,
