@@ -9,6 +9,7 @@ from coords import Coords
 from data_globals import PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_TYPES, STATUS_ACTIVE, PlanetHabitation
 import colors
 from torpedo import Torpedo
+from string import ascii_lowercase, ascii_uppercase
 
 if TYPE_CHECKING:
     from game_data import GameData
@@ -900,21 +901,88 @@ class Planet(InterstellerObject, CanDockWith):
                     message_log.add_message('You will probably be charged with a war crime.', colors.red)
                     self.system.count_planets()
 
-def set_star_names(stars: Iterable[Star]):
+CONSTELLATIONS = (
+    "Eridani",
+    "Cygni",
+    "Pegasi",
+    "Cancri",
+    "Onias",
+    "Majoris",
+    "Leonis",
+    "Doradus",
+    
+    "Lalande",
+    "Luyten",
+    "Kelsin",
+    "Lalande",
+    "Questar",
+    "Ross",
+    "Tambor",
+    
+    "Lupi",
+    "Moab",
+    "Cassius",
+    "Geminorum",
+    "Hutzel",
+    "Lyrae",
+    "Niobe",
+    "Penthe",
+    "Portolan",
+    "Praxillus",
+    "Stromgren",
+    "Dikon",
+    "Hydrae",
+    "Indi",
+    "Legato",
+    "Arigulon",
+    "Orionis",
+)
+
+ORDER_SUFFEXES = (
+    "Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Tau", "Phi", "Omicron", "Theta", "Zeta", "Omega"
+)
+
+def generate_system_name():
+    
+    star_method = randrange(6)
+    
+    if star_method == 0:
+        
+        return f"{choice(CONSTELLATIONS)} {randint(1200)}-{choice(ORDER_SUFFEXES)}"
+        
+    if star_method == 1:
+        
+        return f"{choice(CONSTELLATIONS)} {randint(1200)}-{randint(15)}"
+        
+    if star_method == 2:
+        
+        return f"{randint(100)} {choice(CONSTELLATIONS)}"
+        
+    if star_method == 3:
+        
+        return f"{choice(CONSTELLATIONS)} {randint(100)}"
+
+    if star_method == 4:
+        
+        return f"{choice(ORDER_SUFFEXES)} {choice(CONSTELLATIONS)}"
+    
+    return f"{choice(ORDER_SUFFEXES)} {randint(10)}{choice(ascii_uppercase)}"
+
+def set_star_names(stars: Iterable[Star], system_name: str):
 
     if len(stars) > 1:
-
-        order_suffexes = ('Alpha', 'Beta', 'Gamma', 'Delta')
-
+        
         for i, star in enumerate(stars):
 
-            star.name = f"{order_suffexes[i]} {star.name}"
+            star.name = f"{system_name} {ascii_lowercase[i]}"
+    else:
+        stars[0].name = system_name
 
-def set_planet_names(planets: Iterable[Planet]):
+def set_planet_names(planets: Iterable[Planet], system_name: str):
 
     if len(planets) > 1:
 
-        planet_suffexes = ('I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII')
+        planet_suffexes = ('I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X')
 
         for i, planet in enumerate(planets):
 
