@@ -2671,14 +2671,14 @@ class DebugHandler(MainGameEventHandler):
             x=CONFIG_OBJECT.command_display_x+2,
             y=CONFIG_OBJECT.command_display_y+3,
             height=3,
-            width=12,
+            width=14,
             text="(P)lace Ship"
         )
         self.edit_ship = BooleanBox(
             x=CONFIG_OBJECT.command_display_x+2,
             y=CONFIG_OBJECT.command_display_y+7,
             height=3,
-            width=12,
+            width=14,
             active_text="(E)dit Ship",
             inactive_text="(E)dit Ship",
             active_fg=colors.white,
@@ -2686,12 +2686,19 @@ class DebugHandler(MainGameEventHandler):
             bg=colors.black,
             initally_active=isinstance(self.engine.game_data.selected_ship_planet_or_star, Starship)
         )
-        self.decloak_all = SimpleElement(
+        self.edit_self = SimpleElement(
             x=CONFIG_OBJECT.command_display_x+2,
             y=CONFIG_OBJECT.command_display_y+11,
             height=3,
-            text="(D)ecloak All",
             width=14,
+            text="Edit Self",
+        )
+        self.decloak_all = SimpleElement(
+            x=CONFIG_OBJECT.command_display_x+2,
+            y=CONFIG_OBJECT.command_display_y+15,
+            height=3,
+            text="(D)ecloak All",
+            width=16,
         )
         self.cancel = SimpleElement(
             x=CONFIG_OBJECT.command_display_x+2,
@@ -2746,6 +2753,10 @@ class DebugHandler(MainGameEventHandler):
         if self.place_ship.cursor_overlap(event):
             
             return ShipPlacement(self.engine)
+        
+        if self.edit_self.cursor_overlap(event):
+            
+            return ShipEditing(self.engine, self.engine.player)
         
         if self.edit_ship.cursor_overlap(event) and isinstance(
             self.engine.game_data.selected_ship_planet_or_star, Starship
@@ -3485,5 +3496,9 @@ class ShipEditing(MainGameEventHandler):
             self.ship.cloak.cloak_cooldown = self.cloak_cooldown.add_up()
         except AttributeError:
             pass
-        self.engine.game_data.ship_scan = self.ship.scan_for_print(1)
+        if self.ship is self.engine.player:
+            
+            self.engine.game_data.player_scan = self.ship.scan_for_print(1)
+        else:
+            self.engine.game_data.ship_scan = self.ship.scan_for_print(1)
         

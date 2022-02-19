@@ -775,11 +775,10 @@ class Starship(CanDockWith):
         
         for i in range(number_of_simulations):
         
-            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage = self.calculate_damage(
+            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage,             torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage = self.calculate_damage(
                 amount, scan_dict=scan, precision=precision, calculate_crew=simulate_crew, 
                 calculate_systems=simulate_systems, damage_type=DAMAGE_EXPLOSION
             )
-            
             averaged_shield += new_shields
             averaged_hull += new_hull
             averaged_shield_damage += shields_dam

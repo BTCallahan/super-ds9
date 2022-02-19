@@ -585,7 +585,8 @@ class NewGame(input_handelers.BaseEventHandler):
             title="Difficulty",
             index_items=("Easy", "Medium", "Hard"),
             wrap_item=False,
-            keys=(EasyEnemy, MediumEnemy, HardEnemy)
+            keys=(EasyEnemy, MediumEnemy, HardEnemy),
+            index=1
         )
         self.warp_button = BooleanBox(
             x=10,
