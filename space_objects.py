@@ -349,6 +349,8 @@ class StarTemplate:
         luminosity_min:float, luminosity_max:float,
         nova_threshold:float, nova_range:int,
         star_class_override:Optional[Tuple[str]]=None,
+        planet_generation_chances:Iterable[float],
+        planet_type_chances:Dict[PlanetType,float]
 
     ) -> None:
         self.name = name
@@ -363,6 +365,13 @@ class StarTemplate:
         self.nova_threshold = nova_threshold
         self.nova_range = nova_range
         self.star_class_override = star_class_override
+        self.planet_generation_chances = accumulate(planet_generation_chances)
+        self.planet_type_chances = {
+            k : v for k,v in zip(
+                planet_type_chances.keys(),
+                accumulate(planet_type_chances.values())
+            )
+        }
 
     def create_star(self, *, 
         order:int=0, 
