@@ -1091,7 +1091,7 @@ class Starship(CanDockWith):
         )
 
     def take_damage(self, amount, text, *, damage_type:DamageType):
-        #is_controllable = self.isControllable
+        
         game_data = self.game_data
         message_log = game_data.engine.message_log
         
@@ -1118,32 +1118,23 @@ class Starship(CanDockWith):
         self.hull_damage += perm_hull_damage
         
         if not self.ship_class.is_automated:
-            #self.able_crew -= wounded
-            #self.injured_crew += wounded
-            #self.able_crew -= killed_outright
-            #self.injured_crew -= killed_in_sickbay
             self.crew.injuries_and_deaths(wounded, killed_outright, killed_in_sickbay)
-        
         try:
             self.shield_generator.integrety -= shield_sys_damage
         except AttributeError:
             pass
-            
         try:
             self.beam_array.integrety -= energy_weapons_sys_damage
         except AttributeError:
             pass
-    
         try:
             self.cannons.integrety -= cannon_sys_damage
         except AttributeError:
             pass
-        
         try:
             self.impulse_engine.integrety -= impulse_sys_damage
         except AttributeError:
             pass
-        
         try:
             self.shield_generator.integrety -= shield_sys_damage
         except AttributeError:
@@ -1155,12 +1146,10 @@ class Starship(CanDockWith):
             self.warp_drive.integrety -= warp_drive_sys_damage
         except AttributeError:
             pass
-        
         try:
             self.torpedo_launcher.integrety -= torpedo_sys_damage
         except AttributeError:
             pass
-        
         try:
             self.transporter.integrety -= transporter_sys_damage
         except AttributeError:
@@ -1377,12 +1366,10 @@ class Starship(CanDockWith):
             energy_cost += self.cloak.get_energy_cost_per_turn
         except AttributeError:
             pass
-        
         try:
             energy_cost += self.shield_generator.get_energy_cost_per_turn
         except AttributeError:
             pass
-        
         try:
             crew_readyness = self.crew.crew_readyness
         except AttributeError:
@@ -1414,42 +1401,34 @@ class Starship(CanDockWith):
         self.hull += repair_amount
         
         self.sensors.integrety += system_repair_factor * (0.5 + random() * 0.5)
-        
         try:
             self.warp_drive.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
             pass
-        
         try:
             self.impulse_engine.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
             pass
-            
         try:
             self.beam_array.integrety += (0.5 + random() * 0.5)
         except AttributeError:
             pass
-        
         try:
             self.cannons.integrety += (0.5 + random() * 0.5)
         except AttributeError:
             pass
-        
         try:
             self.shield_generator.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
             pass
-        
         try:
             self.power_generator.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
             pass
-        
         try:
             self.transporter.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
             pass
-        
         try:            
             self.torpedo_launcher.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:

@@ -623,12 +623,10 @@ def reactivate_derelict_hard(self:BaseAi):
     
     if self.game_data.player.sector_coords == self.entity.sector_coords or self.entity.ship_class.is_automated:
         return
-    
     try:
         able_crew = self.entity.crew.able_crew
     except AttributeError:
         return
-    
     try:
         transport_power = self.entity.transporter.get_effective_value
     except AttributeError:
