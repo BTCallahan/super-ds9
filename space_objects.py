@@ -328,6 +328,16 @@ class Star(InterstellerObject):
 
 JUPITER_MASS = 1/1000
 
+def variance_roll(min_:float, max_:float, variance:float, rolled_percentage:float):
+    
+    amount:float = (max_ - min_) * rolled_percentage
+    
+    variance_amount = amount * variance
+    
+    v = min_ + amount + uniform(variance_amount, -variance_amount)
+    
+    return min(max(min_, v), max_)
+
 class StarTemplate:
 
     def __init__(self, *, 
@@ -358,15 +368,18 @@ class StarTemplate:
         local_coords:Coords, sector_coords:Coords,
         name:str
     ):
+        varation_percentage = random()
+        variance = 0.025
+        
         return Star(
             localCoords=local_coords,
             sectorCoords=sector_coords,
             starOrder=order,
             star_name=name,
-            star_temp=randrange(self.temp_min, self.temp_max),
-            star_mass=uniform(self.mass_min, self.mass_max),
-            star_radius=uniform(self.radius_min, self.radius_max),
-            star_luminosity=uniform(self.luminosity_min, self.luminosity_max),
+            star_temp=variance_roll(self.temp_min, self.temp_max, variance, varation_percentage),
+            star_mass=variance_roll(self.mass_min, self.mass_max, variance, varation_percentage),
+            star_radius=variance_roll(self.radius_min, self.radius_max, variance, varation_percentage),
+            star_luminosity=variance_roll(self.luminosity_min, self.luminosity_max, variance, varation_percentage),
             star_type=self.name,
             star_class=self.star_class_override
         )
