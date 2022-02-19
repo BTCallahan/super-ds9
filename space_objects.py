@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import defaultdict
 from enum import Enum, auto
 from typing import Dict, Iterable, List, Optional,  Tuple, TYPE_CHECKING
 from random import choice, choices, randint, randrange, uniform, random
@@ -337,7 +338,6 @@ class StarTemplate:
         luminosity_min:float, luminosity_max:float,
         nova_threshold:float, nova_range:int,
         star_class_override:Optional[Tuple[str]]=None,
-        chance:int,
 
     ) -> None:
         self.name = name
@@ -352,7 +352,6 @@ class StarTemplate:
         self.nova_threshold = nova_threshold
         self.nova_range = nova_range
         self.star_class_override = star_class_override
-        self.chance = chance
 
     def create_star(self, *, 
         order:int=0, 
@@ -382,9 +381,7 @@ o_type_main_sequence_star = StarTemplate(
     mass_min=15,
     radius_max=10,
     radius_min=8,
-    chance=1
 )
-
 b_type_main_sequence_star = StarTemplate(
     name="B-type main-sequence star",
     temp_max=30000,
@@ -392,47 +389,61 @@ b_type_main_sequence_star = StarTemplate(
     mass_max=16,
     mass_min=2
 )
-
 a_type_main_sequence_star = StarTemplate(
     name="A-type main-sequence star",
     temp_max=10000,
     temp_min=7600,
+    luminosity_max=38,
+    luminosity_min=8,
     mass_max=2.1,
-    mass_min=1.4
+    mass_min=1.4,
+    radius_max=2.2,
+    radius_min=1.74
 )
-
 f_type_main_sequence_star = StarTemplate(
     name="F-type main-sequence star",
     temp_max=7600,
     temp_min=6000,
+    luminosity_max=8,
+    luminosity_min=1.5,
     mass_max=1.4,
     mass_min=1,
+    radius_max=1.73,
+    radius_min=1.1
 )
-
 g_type_main_sequence_star = StarTemplate(
     name="G-type main-sequence star (Yellow Dwarf)",
     temp_max=6000,
     temp_min=5300,
+    luminosity_max=1.5,
+    luminosity_min=0.55,
     mass_max=1.1,
-    mass_min=0.9
+    mass_min=0.9,
+    radius_max=1.1,
+    radius_min=0.85
 )
-
 k_type_main_sequence_star = StarTemplate(
     name="K-type main-sequence star (Orange Dwarf)",
     temp_max=5200,
     temp_min=3900,
+    luminosity_max=0.46,
+    luminosity_min=0.075,
     mass_max=0.8,
-    mass_min=0.5
+    mass_min=0.5,
+    radius_max=0.81,
+    radius_min=0.6
 )
-
 m_type_main_sequence_star = StarTemplate(
     name="M-type main-sequence star (Red Dwarf)",
     temp_max=3900,
     temp_min=2000,
+    luminosity_max=0.075,
+    luminosity_min=0.00003,
     mass_max=0.6,
-    mass_min=0.075
+    mass_min=0.075,
+    radius_max=0.6,
+    radius_min=0.09
 )
-
 wolf_rayet_star = StarTemplate(
     name="Wolf–Rayet star",
     temp_max=210000,
@@ -469,15 +480,13 @@ b_type_subdwarf = StarTemplate(
     radius_max=0.25,
     radius_min=0.15,
 )
-
 o_type_subdwarf = StarTemplate(
-    name="O-type subdwarf",
+    name="O-type Subdwarf",
     temp_max=100000,
     temp_min=40000,
     mass_max=0.51,
     mass_min=0.49,
 )
-
 blue_giant = StarTemplate(
     name="Blue Giant",
     temp_max=30000,#placeholder
@@ -485,7 +494,11 @@ blue_giant = StarTemplate(
     mass_max=50,#placeholder
     mass_min=2
 )
-
+yellow_giant = StarTemplate(
+    name="Yellow Giant",
+    temp_max=7000,
+    temp_min=4000
+)
 red_giant = StarTemplate(
     name="Red Giant",
     temp_max=5000,
@@ -493,9 +506,8 @@ red_giant = StarTemplate(
     mass_max=8,
     mass_min=0.3,   
 )
-
 blue_supergiant = StarTemplate(
-    name="Blue supergiant",
+    name="Blue Supergiant",
     temp_max=50000,
     temp_min=10000,
     mass_max=300,
@@ -503,9 +515,8 @@ blue_supergiant = StarTemplate(
     luminosity_max=1000000,
     luminosity_min=10000
 )
-
 yellow_supergiant = StarTemplate(
-    name="Yellow supergiant",
+    name="Yellow Supergiant",
     temp_max=7000,
     temp_min=4000,
     mass_max=12,
@@ -515,7 +526,7 @@ yellow_supergiant = StarTemplate(
 )
 
 red_supergiant = StarTemplate(
-    
+    name="Red Supergiant",
     mass_max=40,
     mass_min=10
 )
