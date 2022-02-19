@@ -537,11 +537,43 @@ yellow_supergiant = StarTemplate(
     luminosity_max=100000,
     luminosity_min=1000
 )
-
 red_supergiant = StarTemplate(
     name="Red Supergiant",
     mass_max=40,
     mass_min=10
+)
+yellow_hypergiant = StarTemplate(
+    name="Yellow Hypergiant"
+)
+
+def create_star_chances():
+    
+    for star, chance in zip(
+        (
+            o_type_main_sequence_star, 
+            b_type_main_sequence_star,
+            a_type_main_sequence_star,
+            f_type_main_sequence_star,
+            g_type_main_sequence_star,
+            k_type_main_sequence_star,
+            m_type_main_sequence_star
+        ),
+        accumulate(
+            (
+                1/10000000,
+                0.1/100,
+                0.7/100,
+                2/100,
+                3.5/100,
+                8/100,
+                80/100
+            )
+        )
+    ):
+        yield star, chance
+
+STAR_CHANCES = tuple(
+    create_star_chances()
 )
 
 class SubSector:
