@@ -118,7 +118,6 @@ class Starship(CanDockWith):
 
         self.turn_repairing = 0
         
-        
         self.ai: Optional[BaseAi] = ai_cls(entity=self)
     
     @property
@@ -279,25 +278,21 @@ class Starship(CanDockWith):
             divisor += 1
         except AttributeError:
             pass
-        
         try:
             total += self.beam_array.get_max_effective_beam_firepower
             divisor += 1
         except AttributeError:
             pass
-        
         try:
             total += self.cannons.get_max_effective_cannon_firepower
             divisor += 1
         except AttributeError:
             pass
-        
         try:
             total += self.shield_generator.get_max_effective_shields
             divisor += 1
         except AttributeError:
             pass
-        
         try:
             total += self.torpedo_launcher.get_effective_value
             divisor += 1
@@ -319,27 +314,22 @@ class Starship(CanDockWith):
             shields_value = 0
             
         energy_value = energy * self.power_generator.get_effective_value
-        
         try:
             crew_value = self.crew.crew_readyness
         except AttributeError:
             crew_value = 1
-
         try:
             beam_energy_value = beam_energy * self.beam_array.get_effective_value
         except AttributeError:
             beam_energy_value = 0
-        
         try:
             cannon_energy_value = cannon_energy * self.cannons.get_effective_value
         except AttributeError:
             cannon_energy_value = 0
-            
         try:
             torpedo_value_value = torpedo_value * self.torpedo_launcher.get_effective_value
         except AttributeError:
             torpedo_value_value = 0
-
         return (
             hull_value + shields_value + energy_value + crew_value + 
                 beam_energy_value + cannon_energy_value + torpedo_value_value
@@ -397,7 +387,6 @@ class Starship(CanDockWith):
             (hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, 1), 
             start= 0.0
         )
-        
         ship_status = self.ship_status
         
         value_used_in_calculation = (
@@ -405,7 +394,6 @@ class Starship(CanDockWith):
                 value_multiplier_for_derlict if ship_status.is_recrewable else value_multiplier_for_active
             )
         )
-        
         value_to_be_returned = calculate_value(
             hull=hull, shields=shields, energy=energy, crew=crew, beam_energy=beam_energy, 
             cannon_energy=cannon_energy, torpedo_value=torpedo_value, 
@@ -666,45 +654,37 @@ class Starship(CanDockWith):
 
         if self.is_controllable:
             self.game_data.cause_of_damage = cause
-        
         try:
             self.crew.able_crew = 0
             self.crew.injured_crew = 0
         except AttributeError:
             pass
-        
         try:
             for k,v in self.torpedo_launcher.torps.keys():
                 self.torpedo_launcher.torps[k] = 0
             self.torpedo_launcher.integrety = 0.0
         except AttributeError:
             pass
-
         try:
             self.shield_generator.shields = 0
             self.shield_generator.shields_up = False
             self.shield_generator.integrety = 0.0
         except AttributeError:
             pass
-
         self.power_generator.energy = 0
         self.power_generator.integrety = 0
-
         try:
             self.warp_drive.integrety = 0.0
         except AttributeError:
             pass
-
         try:
             self.beam_array.integrety = 0.0
         except AttributeError:
             pass
-        
         try:
             self.cannons.integrety = 0.0
         except AttributeError:
             pass
-        
         try:
             self.impulse_engine.integrety = 0.0
         except AttributeError:
@@ -717,7 +697,6 @@ class Starship(CanDockWith):
             self.cloak.integrety = 0.0
         except AttributeError:
             pass
-
         try:
             self.transporter.integrety = 0.0
         except AttributeError:
@@ -737,8 +716,6 @@ class Starship(CanDockWith):
     def warp_core_breach(self, self_destruct=False):
 
         shipList = self.game_data.grab_ships_in_same_sub_sector(self)
-
-        #damage = self.ship_class.max_hull * ((2 if self_destruct else 1) / 3)
 
         for s in shipList:
             
@@ -846,24 +823,20 @@ class Starship(CanDockWith):
                 return STATUS_AT_WARP
         except AttributeError:
             pass
-        
         if self.hull < self.ship_class.max_hull * -0.5:
             return STATUS_OBLITERATED
         if self.hull <= 0:
             return STATUS_HULK
-        
         try:            
             if self.crew.get_total_crew < 1:
                 return STATUS_DERLICT
         except AttributeError:
             pass
-        
         try:
             if self.cloak.cloak_is_turned_on:
                 return STATUS_CLOAKED if self.cloak.cloak_status == CloakStatus.ACTIVE else STATUS_CLOAK_COMPRIMISED
         except AttributeError:
             pass
-            
         return STATUS_ACTIVE
             
     def ram(self, other_ship:Starship, intentional_ram_attempt:bool):
@@ -1546,7 +1519,6 @@ class Starship(CanDockWith):
             crew_readyness=self.crew.crew_readyness
         except AttributeError:
             crew_readyness=1
-            
         try:
             target_crew_readyness=enemy.crew.crew_readyness
         except AttributeError:
@@ -1590,7 +1562,6 @@ class Starship(CanDockWith):
             crew_readyness = self.crew.crew_readyness
         except AttributeError:
             crew_readyness = 1
-        
         try:
             target_crew_readyness = enemy.crew.crew_readyness
         except AttributeError:
@@ -1606,8 +1577,6 @@ class Starship(CanDockWith):
             crew_readyness = crew_readyness,
             target_crew_readyness = target_crew_readyness
         ):
-            #chance to hit:
-            #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
             gd.engine.message_log.add_message(f'{enemy.name} was hit by a {torp.name} torpedo from {self.name}.')
 
             enemy.take_damage(
@@ -1641,16 +1610,8 @@ class Starship(CanDockWith):
             scan_for_systems=simulate_systems, 
             use_effective_values=use_effective_values
         )
-        targ_shield = target_scan["shields"]
-        targ_hull = target_scan["hull"]
-        
-        torp = torpdeo
-        
-        #torpedos = self.torps[torp]
-        
+                        
         damage = torpdeo.damage
-
-        #times_to_fire = min(self.get_no_of_avalible_torp_tubes(), torpedos)
 
         total_shield_dam = 0
         total_hull_dam = 0
@@ -1662,14 +1623,12 @@ class Starship(CanDockWith):
         number_of_ship_kills = 0
         
         number_of_crew_kills = 0
-        
         try:
             crew_readyness = self.crew.crew_readyness
         except AttributeError:
             crew_readyness = 1
         
         scan_target_crew = not target.ship_class.is_automated and simulate_crew
-        
         try:        
             target_crew_readyness = target.crew.scan_crew_readyness(precision) if scan_target_crew else 1.0
         except AttributeError:
@@ -1799,21 +1758,17 @@ class Starship(CanDockWith):
         damage_type = DAMAGE_CANNON if cannon else DAMAGE_BEAM
 
         amount = min(self.power_generator.energy, self.get_max_effective_beam_firepower, energy)
-        
         try:
             crew_readyness = self.crew.crew_readyness
         except AttributeError:
             crew_readyness = 1
         
         scan_target_crew = not target.ship_class.is_automated and simulate_crew
-
         try:
             target_crew_readyness = target.crew.scan_crew_readyness(precision) if scan_target_crew else 1.0
         except AttributeError:
             target_crew_readyness = 1
-        
-        #target_crew_readyness = self.scan_crew_readyness(precision) if simulate_crew else 1.0
-        
+                
         for i in range(number_of_simulations):
             
             if self.roll_to_hit(
@@ -1844,7 +1799,6 @@ class Starship(CanDockWith):
                 if scan_target_crew:
                     able_crew = target_scan["able_crew"] - (wounded + killed_outright)
                     injured_crew = target_scan["injured_crew"] - killed_in_sickbay
-                    
                     try:
                         averaged_crew_readyness += target.crew.caluclate_crew_readyness(able_crew, injured_crew)
                     except AttributeError:
@@ -1905,18 +1859,13 @@ class Starship(CanDockWith):
         self_hp = (self.shield_generator.shields if self_status.do_shields_work else 0) + self.hull
         
         self_damage = self_hp + self.ship_class.max_hull * 0.5
-        
         try:
             crew_readyness = self.crew.crew_readyness
         except AttributeError:
             crew_readyness = 1
-        
-        #other_status = target_scan["ship_status"]
-        
+                
         scan_target_crew = not target.ship_class.is_automated and simulate_crew
                 
-        #target_crew_readyness = target.scan_crew_readyness(precision) if scan_target_crew else 1.0
-        
         for i in range(number_of_simulations):
             
             to_hit = self.roll_to_hit(
@@ -1991,13 +1940,11 @@ class Starship(CanDockWith):
         torp_positions = game_data.engine.get_lookup_table(
             direction_x=dirX, direction_y=dirY, normalise_direction=False
         )
-
         # Create dictionary of positions and ships for ships in the same system that are are not obliterated
         ship_positions = {
             ship.local_coords.create_coords() : ship for ship in 
             game_data.grab_ships_in_same_sub_sector(self, accptable_ship_statuses={STATUS_ACTIVE, STATUS_DERLICT, STATUS_HULK})
         }
-        
         score = []
 
         for pos in torp_positions:
@@ -2011,13 +1958,11 @@ class Starship(CanDockWith):
 
             if ajusted_pos in g.stars_dict or ajusted_pos in g.planets_dict:
                 break
-
             try:
                 hit_ship = ship_positions[ajusted_pos]
                 score.append(
                     0 if hit_ship.is_controllable == self.is_controllable else 1
                 )
-                
             except KeyError:
                 pass
         
