@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from math import ceil
+from math import ceil, sqrt
 
 from components.starship_system import StarshipSystem
 
@@ -17,24 +17,28 @@ class PolarizedHull(StarshipSystem):
         super().__init__("Polarized Hull:")
         
         self.is_polarized = True
-        self.polarization_amount = shipclass.polarized_hull
+        self._polarization_amount = shipclass.polarized_hull
     
     @property
-    def get_polarized_hull(self):
-        return self.starship.ship_class.polarized_hull
+    def polarization_amount(self):
+        return self._polarization_amount
 
-    @property
-    def get_max_effective_polarized_hull(self):
-        return ceil(self.starship.ship_class.polarized_hull * self.get_effective_value)
+    @polarization_amount.setter
+    def polarization_amount(self, value):
+        self._polarization_amount = round(value)
+        if self._polarization_amount < 0:
+            self._polarization_amount = 0
+        elif self._polarization_amount > self.starship.ship_class.polarized_hull:
+            self._polarization_amount = self.starship.ship_class.polarized_hull
     
-    def determin_max_effective_polarized_hull(self, precision:int, effective_value=True):
-        return ceil(
-            self.starship.ship_class.polarized_hull * self.get_info(precision, effective_value=effective_value) 
-        )
-    
     @property
-    def get_actual_value(self):
-        return min(self.polarization_amount, self.get_max_effective_polarized_hull)
+    def calculate_damage_reduction(self):
+        
+        return sqrt(self._polarization_amount * 10) * 0.5 * self.get_effective_value
+    
+    def determin_damage_reduction(self, precision:int, effective_value:bool=True):
+        
+        return sqrt(self._polarization_amount * 10) * 0.5 * self.get_info(precision, effective_value=effective_value)
     
     @property
     def get_energy_cost_per_turn(self):
@@ -43,4 +47,4 @@ class PolarizedHull(StarshipSystem):
         except AttributeError:
             is_cloaked = False
             
-        return self.get_actual_value * 0.01 if self.is_polarized and self.is_opperational and is_cloaked else 0
+        return self._polarization_amount * 0.05 if self.is_polarized and self.is_opperational and not is_cloaked else 0
