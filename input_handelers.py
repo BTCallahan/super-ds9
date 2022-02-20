@@ -609,11 +609,21 @@ class CommandEventHandler(MainGameEventHandler):
             alignment=tcod.CENTER,
             initally_active= not self.engine.player.docked
         )
+        self.polarize_button = SimpleElement(
+            x=2+CONFIG_OBJECT.command_display_x,
+            y=13+CONFIG_OBJECT.command_display_y,
+            width=24,
+            height=3,
+            text="Polarize (H)ull",
+            active_fg=colors.white,
+            bg=colors.black,
+            alignment=tcod.CENTER
+        )
         beam_name_cap = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
 
         self.beam_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=11+CONFIG_OBJECT.command_display_y,
+            y=14+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
             text=f"(F)ire {beam_name_cap}s",
@@ -625,7 +635,7 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.cannons_buttons = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=14+CONFIG_OBJECT.command_display_y,
+            y=17+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
             text=f"F(i)re {cannon_name_cap}s",
@@ -635,7 +645,7 @@ class CommandEventHandler(MainGameEventHandler):
         )
         self.torpedos_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=17+CONFIG_OBJECT.command_display_y,
+            y=20+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
             text="Fire T(o)rpedos",
@@ -645,7 +655,7 @@ class CommandEventHandler(MainGameEventHandler):
         )
         self.transporter_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=20+CONFIG_OBJECT.command_display_y,
+            y=23+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
             text="(T)ransporter",
@@ -655,7 +665,7 @@ class CommandEventHandler(MainGameEventHandler):
         )
         self.auto_destruct_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=23+CONFIG_OBJECT.command_display_y,
+            y=26+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
             text="(A)uto-Destruct",
@@ -694,6 +704,10 @@ class CommandEventHandler(MainGameEventHandler):
             elif self.shields_button.cursor_overlap(event):
                 
                 return self.shields(captain)
+            
+            elif self.polarize_button.cursor_overlap(event):
+                
+                return self.polarize_hull(captain)
                 
             elif self.beam_button.cursor_overlap(event) and self.ship_type_can_fire_beam_arrays:
                 
@@ -784,8 +798,12 @@ class CommandEventHandler(MainGameEventHandler):
             elif event.sym == tcod.event.K_m and self.is_mobile:
                 
                 return self.move(captain)
+            
+            elif event.sym == tcod.event.K_h and self.ship_type_can_polarize_hull:
                 
-            elif event.sym == tcod.event.K_s:
+                return self.polarize_hull(captain)
+                
+            elif event.sym == tcod.event.K_s and self.ship_type_can_use_shields:
                 
                 return self.shields(captain)
                 
