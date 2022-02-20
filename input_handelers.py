@@ -988,6 +988,16 @@ class CommandEventHandler(MainGameEventHandler):
         else:
             return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
             
+    def polarize_hull(self, captain:str):
+        
+        player = self.engine.player
+        
+        if not self.engine.player.polarized_hull.is_opperational:
+            
+            self.engine.message_log.add_message(f"Error: Hull polarization is inoperative, {captain}.", fg=colors.red)
+        else:
+            return PolarizationHandler(self.engine)
+            
     def shields(self, captain:str):
         
         self.warned_once = False
