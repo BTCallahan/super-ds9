@@ -2,7 +2,8 @@
 # TYPE: - The role of the ship. Valid roles are ESCORT, CRUISER, WARSHIP, and RESUPPLY.
 # SYM: - A single character that will represent this ship on the map screen. Can be a lower or uppercase letter.
 # NAME: - The name of the ship class. This can contain letters, spaces, brackets, and apostriphes.
-# SHIELDS: - The maximum shield strength of the ship. Must be in intiger.
+# SHIELDS: - The maximum shield strength of the ship. Must be in intiger. Optional, defaults to 0 is missing.
+# POLARIZED_HULL: - The maximum amount that the hull can be polarized. Must be in intiger. Optional, defaults to 0 is missing.
 # HULL: - The maximum hull strength of the ship. Must be in intiger.
 # TORPEDOS: - This contains alternated torpedo type codes and torpedo type numbers, seperated by commas. The codes determin what types of torpedos the ship can carry. These codes can contain uppercase letters, numbers, and underscores. Valid codes can be found in the file library/torpdeos.txt. The numbers determin the number of torpedos of that type that ships of the class will start with. The numbers must be in intiger. Optional, can be omitted. If missing, then the ship will be treated as having no torpedos.
 # TORPEDO_TUBES: - This set the maximum number of torpedos that can be fired at once. Must be in intiger. Optional, defaults to 0 if missing.
@@ -37,6 +38,29 @@ CREW:250
 MAX_BEAM_ENERGY:600
 MAX_CANNON_ENERGY:500
 MAX_BEAM_TARGETS:4
+DETECTION_STRENGTH:0.7
+SIZE:1.2
+TARGETING:0.7
+EVASION:1.15
+MAX_WARP:3
+WARP_CORE_BREACH_DAMAGE:700
+NATION:GOODNESS
+END_SHIPCLASS
+#
+SHIPCLASS:OLDIE_BUT_GOODIE
+TYPE:CRUISER
+SYM:o
+NAME:Oldie but Goodie
+POLARIZED_HULL:2500
+HULL:1400
+ENERGY:5000
+POWER:150
+ENERGY_WEAPON:DISTRUPTOR
+DAMAGE_CONTROL:0.3
+CREW:250
+MAX_BEAM_ENERGY:500
+MAX_CANNON_ENERGY:450
+MAX_BEAM_TARGETS:3
 DETECTION_STRENGTH:0.7
 SIZE:1.2
 TARGETING:0.7
