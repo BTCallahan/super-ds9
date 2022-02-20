@@ -104,6 +104,7 @@ class ShipClass:
     max_beam_targets:int=1
     max_cannon_energy:int=0
     max_armor:int=0
+    polarized_hull:int=0
     max_warp:int=0
     torp_tubes:int=0
     warp_breach_damage:int=2
@@ -171,7 +172,8 @@ to one.'''
         ship_type:str, 
         name:str,
         symbol:str, 
-        max_shields:int, 
+        max_shields:int=0,
+        polarized_hull:int=0, 
         max_armor:int=0, 
         max_hull:int, 
         max_crew:int=0, 
@@ -222,6 +224,7 @@ to one.'''
             max_hull=max_hull,
             max_crew=max_crew,
             max_energy=max_energy,
+            polarized_hull=polarized_hull,
             power_generated_per_turn=power_generated_per_turn,
             damage_control=damage_control,
             torp_dict=fd,
