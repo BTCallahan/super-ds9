@@ -38,25 +38,14 @@ class Starship(CanDockWith):
     game_data: GameData
 
     def __init__(self, 
-    ship_class:ShipClass, 
-    ai_cls: Type[BaseAi],
-    xCo, yCo, 
-    secXCo, secYCo,
-    *,
-    name:Optional[str]=None,
-    override_nation_code:Optional[str]=None
+        ship_class:ShipClass, 
+        ai_cls: Type[BaseAi],
+        xCo, yCo, 
+        secXCo, secYCo,
+        *,
+        name:Optional[str]=None,
+        override_nation_code:Optional[str]=None
     ):
-        def set_torps(torpedo_types_:Iterable[str], max_torps:int):
-            tDict: Dict[str, int] = {}
-            if not torpedo_types_:
-                return tDict
-
-            for t in torpedo_types_:
-                
-                tDict[t] = max_torps if t == torpedo_types_[0] else 0
-                
-            return tDict
-
         self.local_coords:MutableCoords = MutableCoords(xCo, yCo)
         self.sector_coords:MutableCoords = MutableCoords(secXCo, secYCo)
         
@@ -89,36 +78,37 @@ class Starship(CanDockWith):
 
         #self.torps = set_torps(ship_class.torp_types, ship_class.max_torpedos)
 
-        if not ship_class.is_automated:#if has crew
+        if ship_class.max_crew:#if has crew
             
             self.crew = Crew(ship_class)
             self.crew.starship = self
+            
+            self.transporter = Transporter()
+            self.transporter.starship = self
         
-        if ship_class.cloak_strength > 0.0:#if can cloak
+        if ship_class.cloak_strength:#if can cloak
             
             self.cloak = Cloak()
             self.cloak.starship = self
 
-        if ship_class.max_beam_energy > 0:
+        if ship_class.max_beam_energy:
             
             self.beam_array = BeamArray(ship_class)
             self.beam_array.starship = self
         
-        if ship_class.max_cannon_energy > 0:
+        if ship_class.max_cannon_energy:
             
             self.cannons = Cannon(ship_class)
             self.cannons.starship = self
         
-        if ship_class.evasion > 0.0:
-            
-            self.warp_drive = WarpDrive()
-            self.warp_drive.starship = self
+        if ship_class.evasion:
             
             self.impulse_engine = ImpulseEngine()
             self.impulse_engine.starship = self
-
-        self.transporter = Transporter()
-        self.transporter.starship = self
+        
+        if ship_class.max_warp:
+            self.warp_drive = WarpDrive()
+            self.warp_drive.starship = self
 
         self.override_nation_code = override_nation_code
         
@@ -1103,10 +1093,10 @@ class Starship(CanDockWith):
                 if self.ship_type_can_fire_cannons and chance_of_system_damage():
                     cannon_sys_damage = random_system_damage()
                     
-                if chance_of_system_damage():
+                if self.ship_class.evasion and chance_of_system_damage():
                     impulse_sys_damage = random_system_damage()
                     
-                if chance_of_system_damage():
+                if self.ship_class.max_warp and chance_of_system_damage():
                     warp_drive_sys_damage = random_system_damage()
                     
                 if chance_of_system_damage():
@@ -1121,7 +1111,7 @@ class Starship(CanDockWith):
                 if self.ship_type_can_cloak and chance_of_system_damage():
                     cloak_sys_damage = random_system_damage()
                 
-                if chance_of_system_damage():
+                if self.ship_class.max_crew and chance_of_system_damage():
                     transporter_sys_damage = random_system_damage()
                         
         return (
@@ -1453,11 +1443,11 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
-            self.beam_array.integrety += (0.5 + random() * 0.5)
+            self.beam_array.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
             pass
         try:
-            self.cannons.integrety += (0.5 + random() * 0.5)
+            self.cannons.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
             pass
         try:
