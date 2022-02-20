@@ -85,7 +85,6 @@ class ShipClass:
     ship_type:str
     name:str
     symbol:str
-    max_shields:int
     max_hull:int
     max_crew:int
     max_energy:int
@@ -99,6 +98,7 @@ class ShipClass:
     targeting:float
     size:float
     torp_dict:frozendict[Torpedo, int]
+    max_shields:int=0
     evasion:float=0.0
     max_beam_energy:int=0
     max_beam_targets:int=1
@@ -107,7 +107,7 @@ class ShipClass:
     polarized_hull:int=0
     max_warp:int=0
     torp_tubes:int=0
-    warp_breach_damage:int=2
+    warp_breach_damage:int=0
     cloak_strength:float=0.0
     cloak_cooldown:int=2
 
@@ -380,6 +380,7 @@ symbol_pattern = re.compile(r"SYM:([a-zA-Z])\n")
 type_pattern = re.compile(r"TYPE:([A-Z_]+)\n")
 name_pattern = re.compile(r"NAME:([\w\-\ \'\(\)]+)\n")
 shields_pattern = re.compile(r"SHIELDS:([\d]+)\n")
+polarized_hull_pattern = re.compile(r"POLARIZED_HULL:([\d]+)\n")
 hull_pattern = re.compile(r"HULL:([\d]+)\n")
 energy_pattern = re.compile(r"ENERGY:([\d]+)\n")
 power_generation_pattern = re.compile(r"POWER:([\d]+)\n")
@@ -428,7 +429,12 @@ def create_ship_classes():
         name = get_first_group_in_pattern(shipclass_txt, name_pattern)
                 
         shields = get_first_group_in_pattern(
-            shipclass_txt, shields_pattern, type_to_convert_to=int
+            shipclass_txt, shields_pattern, return_aux_if_no_match=True,
+            aux_valute_to_return_if_no_match=0, type_to_convert_to=int
+        )
+        polarized_hull = get_first_group_in_pattern(
+            shipclass_txt, polarized_hull_pattern, return_aux_if_no_match=True,
+            aux_valute_to_return_if_no_match=0, type_to_convert_to=int
         )
         hull = get_first_group_in_pattern(
             shipclass_txt, hull_pattern, type_to_convert_to=int
@@ -518,6 +524,7 @@ def create_ship_classes():
             symbol=symbol,
             name=name,
             max_shields=shields,
+            polarized_hull=polarized_hull,
             max_hull=hull,
             torp_dict=torp_dict,
             torp_tubes=torpedo_tubes,
