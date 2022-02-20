@@ -7,6 +7,7 @@ from components.cannon import Cannon
 from components.cloak import Cloak
 from components.crew import Crew
 from components.impulse_ingine import ImpulseEngine
+from components.polarized_hull import PolarizedHull
 from components.power_generator import PowerGenerator
 from components.sensors import Sensors
 from components.shields import Shields
@@ -67,7 +68,13 @@ class Starship(CanDockWith):
         self.sensors = Sensors()
         self.sensors.starship = self
         
+        if ship_class.polarized_hull:
+            
+            self.polarized_hull = PolarizedHull(ship_class)
+            self.polarized_hull.starship = self
+        
         if ship_class.max_shields:#if has shields
+            
             self.shield_generator = Shields(ship_class)
             self.shield_generator.starship = self
         
@@ -454,6 +461,12 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         
+        try:
+            hull_polarization = scan_assistant(self.polarized_hull.polarization_amount, precision)
+            d["polarization"] = (hull_polarization, colors.white)
+        except AttributeError:
+            pass
+        
         if hull_damage:
             d["hull_damage"] = hull_damage, print_color(hull_damage, ship_class.max_hull)
         try:
@@ -671,6 +684,14 @@ class Starship(CanDockWith):
             self.shield_generator.integrety = 0.0
         except AttributeError:
             pass
+
+        try:
+            self.polarized_hull.polarization_amount = 0
+            self.polarized_hull.is_polarized = False
+            self.polarized_hull.integrety = 0.0
+        except AttributeError:
+            pass
+
         self.power_generator.energy = 0
         self.power_generator.integrety = 0
         try:
@@ -1367,7 +1388,10 @@ class Starship(CanDockWith):
         energy_regeneration_bonus = 1.0 + (self.turn_repairing / 5.0)
         
         energy_cost = 0
-        
+        try:
+            energy_cost += self.polarized_hull.get_energy_cost_per_turn
+        except AttributeError:
+            pass
         try:
             energy_cost += self.cloak.get_energy_cost_per_turn
         except AttributeError:
@@ -1426,6 +1450,10 @@ class Starship(CanDockWith):
         try:
             self.shield_generator.integrety += system_repair_factor * (0.5 + random() * 0.5)
         except AttributeError:
+            pass
+        try:
+            self.polarized_hull.integrety += system_repair_factor * (0.5 + random() * 0.5)
+        except:
             pass
         try:
             self.power_generator.integrety += system_repair_factor * (0.5 + random() * 0.5)
