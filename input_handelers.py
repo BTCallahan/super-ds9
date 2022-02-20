@@ -523,6 +523,8 @@ class CommandEventHandler(MainGameEventHandler):
         
         self.ship_type_can_fire_beam_arrays = self.engine.player.ship_type_can_fire_beam_arrays
         self.ship_type_can_fire_cannons = self.engine.player.ship_type_can_fire_cannons
+        self.ship_type_can_polarize_hull = bool(self.engine.player.ship_class.polarized_hull)
+        self.ship_type_can_use_shields = bool(self.engine.player.ship_class.max_shields)
         self.ship_type_can_cloak = self.engine.player.ship_type_can_cloak
         self.ship_type_can_fire_torps = self.engine.player.ship_type_can_fire_torps
         self.is_mobile = self.engine.player.is_mobile
@@ -1545,6 +1547,112 @@ class MoveHandlerEasy(CoordBasedHandler):
             
             self.warned_once = False
             
+class PolarizationHandler(MinMaxInitator):
+
+    def __init__(self, engine: Engine) -> None:
+        
+        player = engine.player
+        
+        super().__init__(
+            engine, can_render_confirm_button=player.polarized_hull.is_opperational,
+            starting_value=player.polarized_hull.polarization_amount,
+            max_value=player.ship_class.polarized_hull
+        )
+        self.polarize_status = BooleanBox(
+            x=18+CONFIG_OBJECT.command_display_x,
+            y=10+CONFIG_OBJECT.command_display_y,
+            height=3,
+            width=12,
+            title="Hull",
+            active_text="Polarized", inactive_text="Unpolarized",
+            active_fg=colors.green, inactive_fg=colors.red,
+            bg=colors.black,
+            initally_active=True
+        )
+        
+    def on_render(self, console: tcod.Console) -> None:
+        
+        render_command_box(
+            console=console,
+            gameData=self.engine.game_data,
+            title="Input hull polarization"
+        )
+        
+        super().on_render(console)
+
+        self.amount_button.render(console)
+        
+        self.max_button.render(console)
+        self.min_button.render(console)
+        self.polarize_status.render(console)
+        
+    def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
+
+        if self.max_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(self.amount_button.max_value)
+            
+        elif self.min_button.cursor_overlap(event):
+            
+            self.amount_button.set_text(0)
+            
+        elif self.polarize_status.cursor_overlap(event):
+            
+            self.polarize_status.is_active = not self.polarize_status.is_active
+            self.warned_once = False
+
+        elif self.confirm_button.cursor_overlap(event):
+            
+            recharge_order = RechargeOrder(
+                self.engine.player, self.amount_button.add_up(), self.polarize_status.is_active
+            )
+
+            warning = recharge_order.raise_warning()
+
+            if warning == OrderWarning.SAFE:
+                return recharge_order
+            try:
+                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.warned_once = False
+                
+            except KeyError:
+                
+                if self.warned_once:
+                    return recharge_order
+                
+                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.warned_once = True
+            
+        elif self.cancel_button.cursor_overlap(event):
+
+            return CommandEventHandler(self.engine)
+
+    def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
+
+        if event.sym == tcod.event.K_ESCAPE:
+            return CommandEventHandler(self.engine)
+        if event.sym in confirm:
+            recharge_order = RechargeOrder(
+                self.engine.player, self.amount_button.add_up(), self.polarize_status.is_active
+            )
+
+            warning = recharge_order.raise_warning()
+
+            if warning == OrderWarning.SAFE:
+                return recharge_order
+            try:
+                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.warned_once = False
+            except KeyError:
+                
+                if self.warned_once:
+                    return recharge_order
+                
+                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.warned_once = True
+        else:
+            self.amount_button.handle_key(event)
+            self.warned_once = False
 class ShieldsHandler(MinMaxInitator):
 
     def __init__(self, engine: Engine) -> None:
