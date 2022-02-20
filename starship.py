@@ -1014,6 +1014,12 @@ class Starship(CanDockWith):
             amount += to_add
             hull_dam = amount * armorHullDamMulti
         
+        try:
+            if self.polarized_hull.is_polarized and self.polarized_hull.is_opperational:
+                hull_dam -= self.polarized_hull.calculate_damage_reduction
+        except AttributeError:
+            pass
+        
         new_shields = scan_assistant(current_shields - shields_dam, precision) if shields_dam > 0 else current_shields
         new_hull = scan_assistant(current_hull - hull_dam, precision) if hull_dam > 0 else current_hull
         
