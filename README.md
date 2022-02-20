@@ -289,13 +289,18 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         The maximum value is affected by damage to the shield system.
 
-    C. Move:
+    C. Polarize Hull:
+
+        Back in the days before shield generators, ships had to made do by polarizing their hull. The controls are pretty much the same as the shields 
+        even if the mechinism is diffrent. 
+
+    D. Move:
 
         Allows the player to move from one part of the system to another. Travel by impulse engine costs 100 units of energy per distance unit.
 
         Aside from that, this is mostly the same as the Warp command.
 
-    D. Repair:
+    E. Repair:
 
         This will let the player commence repairs on their ship. During this, the crew on the player's ship will focusing repairing the hull and any 
         damaged systems, as well as regenerating energy at an increased rate.
@@ -305,7 +310,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         For every consecutive turn spent repairing, the amount of of damage that is repaired is increased, as is the amount of energy restored. Taking 
         damage will reset this counter.
 
-    E. Cloaking:
+    F. Cloaking:
 
         Some ships have a cloaking devince installed on them. This will allow them to cloak, hiding themselves from detection and making it much more 
         difficult for hostile ships to target them. This does not, however, render the cloaked ship immune from harm, especially since shields are 
@@ -320,7 +325,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         cloak and give the enemy a free turn to shoot. However, the decloak-fire sequence will overstress the device, and require to wait until a 
         cooldown expires before the ship can cloak again.
 
-    E. Dock:
+    G. Dock:
 
         If the player is adajacent to a planet that is able and willing to resupply them, then the player is able to dock with the planet. The player may 
         not dock while there are nearbye enemy ships, nor while they are cloaked.
@@ -330,7 +335,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         This may also replenish the player's torpedo reserves, depending if the planet has an infrustructure level equal to or higher to the torpedoes 
         that the player can load.
 
-    F. Fire Beam Arrays:
+    H. Fire Beam Arrays:
 
         This will probably be the primary means of dealing damage to the hostile ships.
 
@@ -340,14 +345,14 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         As with the Shields command, the buttons Max and Min are present, with the same functionality.
 
-    G. Fire Cannons:
+    I. Fire Cannons:
 
         Some ships possess cannons in addition to or instead of beam arrays. Cannons are significantly more powerful then beam arrays, but are less 
         accuract, especially at a distance. Cannons can only target a singel enemy ship.
         
         As with beam arrays, the amound of power to use can be ajusted by inputting it directly, or by clicking on the Min and Max buttons.
 
-    H. Fire Torpedoes:
+    J. Fire Torpedoes:
 
         If the player has checked the option "Easy Aim", then they will only need to enter the coordinates of the target, otherwise they will need to 
         enter the heading. 
@@ -355,7 +360,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         By default, one torpedo will be fired. Should the player's ship have more then one torpedo tube, then they can select the number of torpedoes 
         they want to fire.
 
-    I. Transport:
+    K. Transport:
 
         The player may choose to beam a number of uninjured crew members over to another starship. The starship must be a derelict, or it must be a 
         friendly craft. If it is a derelict, then the crew members who beamed aboard will take controll of it, allowing it to aperate as a friendly 
@@ -363,7 +368,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         The player cannot transport crew onto an automated spacecraft. Nor can they transport more crew then the spacecraft's maximum crew.
 
-    J. Auto Destruct:
+    L. Auto Destruct:
 
         In times of desperation, the player may want to self destruct their space craft. Because of the severity of this situation, the player is 
         required to input a password to confirm. The password is displayed below the text entry element.
@@ -395,6 +400,10 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         Normaly, a ship's shield will absorb any damage, however once it is below 50% the ship will begin to experince 'bleed through' damage. The 
         amount to damage that bleeds through increases as the shield percentage decreases, so if a ship's shield is at 25%, then the shield will absorb 
         half of the damage, and the other half will be applied to the hull.
+
+        If the hull is polarized, then damage is reduced by the following formula:
+
+            square root(ship polarization amount * 10) * 0.5 * polarization system effectiveness
 
         About 20% of the damage inflicted on a ship will be permanent. What this means is that is to say that it cannot be fixed by normally and must be repaired at a planet.
 
@@ -429,6 +438,10 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         vi. Sensors:
 
             Decreases accuray beam attacks and torpedoes, as well as information on enemy ships displayed.
+
+        vii. Hull Polarization:
+
+            Reduces the effectiveness of the polarization at reduceing damage to the hull
 
         vii. Shields:
 
