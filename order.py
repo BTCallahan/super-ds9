@@ -828,6 +828,57 @@ class DockOrder(Order):
             OrderWarning.SAFE
         )
 
+class PolarizeOrder(Order):
+    
+    def __init__(self, entity: Starship, amount:int, active:bool) -> None:
+        super().__init__(entity)
+        self.active = active
+        self.amount = amount
+    
+    def __hash__(self) -> int:
+        return hash((self.entity, self.active, self.amount))
+    
+    def perform(self) -> None:
+        
+        amount = self.amount
+        
+        old = self.entity.polarized_hull.is_polarized
+
+        is_player = self.entity.is_controllable
+        
+        is_in_same_system = self.entity.sector_coords == self.game_data.player.sector_coords
+        
+        shields = self.entity.shield_generator.shields
+        
+        if old != self.active:
+            
+            if is_player:
+            
+                self.game_data.engine.message_log.add_message(
+                    "Hull polarized." if self.active <= 0 else "Hull depolarized."
+                )
+            elif is_in_same_system:
+                
+                self.game_data.engine.message_log.add_message(
+                    f"The {self.entity.name} has {'polarized' if self.active else 'depolarized'} it's hull."
+                )
+        
+        if amount != shields:
+            
+            if is_player:
+                
+                self.game_data.engine.message_log.add_message(
+                    "Increasing hull polarization." if amount > shields else "Decreasing hull polarization."
+                )
+            elif is_in_same_system:
+                self.game_data.engine.message_log.add_message(
+                    f"The {self.entity.name} has {'increased to' if amount > shields else 'decreased'} its hull polarization."
+                )
+        
+        self.entity.polarized_hull.is_polarized = self.active
+        
+        self.entity.polarized_hull.polarization_amount = self.amount
+
 class RechargeOrder(Order):
 
     def __init__(self, entity:Starship, amount:int, active:bool) -> None:
