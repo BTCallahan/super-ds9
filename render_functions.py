@@ -264,22 +264,19 @@ def print_ship_info(
         add_to_y = 4
         
         for i, n, d, c, m in zip(
-            range(3), 
+            range(2), 
             (
-                "Shields:", "Hull:", "Energy:"
+                "Hull:", "Energy:"
             ),
             (
-                scan['shields'][0],
                 scan['hull'][0],
                 scan['energy'][0]
             ),
             (
-                scan['shields'][1],
                 scan['hull'][1],
                 scan['energy'][1]
             ),
             (
-                self.ship_class.max_shields,
                 self.ship_class.max_hull,
                 self.ship_class.max_energy, 
             )
@@ -287,27 +284,38 @@ def print_ship_info(
             console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
             console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
             console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}", fg=colors.white)
+        add_to_y += 1
+        try:
+            n = "Shields:"
+            d = scan['shields'][0]
+            c = scan['shields'][1]
+            m = self.ship_class.max_shields
+            add_to_y += 1
+            console.print(x=x+3, y=y+add_to_y, string=f"{n:>16}", fg=colors.white)
+            console.print(x=x+3+16, y=y+add_to_y, string=f"{d: =4}", fg=c)
+            console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}", fg=colors.white)
+        except KeyError:
+            pass
         try:
             hd, hc = scan["hull_damage"]
             n = "Perm. Hull Dam.:"
             add_to_y+=1
             console.print(x=x+3, y=y+i+add_to_y, string=f"{n:>16}", fg=colors.white)
             console.print(x=x+3+16, y=y+i+add_to_y, string=f"{hd: =4}", fg=hc)
-            
         except KeyError:
             pass
         
-        add_to_y+=3
+        add_to_y+=1
         
         if not self.ship_class.is_automated:
             try:
                 injured_crew_amount = scan['injured_crew'][0]
                 injured_crew_color = scan['injured_crew'][1]
-                r=2
+                r = 2 if injured_crew_amount else 1
             except KeyError:
                 injured_crew_amount=0
                 injured_crew_color=colors.white
-                r=1
+                r = 1
                 
             for i, n, d, c, m in zip(
                 range(r), 
@@ -331,8 +339,7 @@ def print_ship_info(
                 console.print(x=x+3+16, y=y+i+add_to_y, string=f"{d: =4}", fg=c)
                 console.print(x=x+3+16+4, y=y+i+add_to_y, string=f"/{m: =4}", fg=colors.white)
             add_to_y += r
-            
-        if self.ship_type_can_cloak:
+        try:
             d_n = scan["cloak_cooldown"][0]
             d_c = scan["cloak_cooldown"][1]
             m = self.ship_class.cloak_cooldown
@@ -340,6 +347,8 @@ def print_ship_info(
             console.print(x=x+3+16, y=y+add_to_y, string=f"{d_n: =4}", fg=d_c)
             console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}", fg=colors.white)
             add_to_y+=1
+        except KeyError:
+            pass
         
         add_to_y+=1
         
@@ -372,7 +381,7 @@ def print_ship_info(
         
         names, keys = self.ship_class.system_names, self.ship_class.system_keys
 
-        add_to_y+=1
+        #add_to_y+=1
         
         sys_x_position = (width - 2) // 2
 
