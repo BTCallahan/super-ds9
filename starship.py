@@ -802,7 +802,7 @@ class Starship(CanDockWith):
         
         for i in range(number_of_simulations):
         
-            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage,             torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage = self.calculate_damage(
+            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage,             torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = self.calculate_damage(
                 amount, scan_dict=scan, precision=precision, calculate_crew=simulate_crew, 
                 calculate_systems=simulate_systems, damage_type=DAMAGE_EXPLOSION
             )
@@ -1059,6 +1059,7 @@ class Starship(CanDockWith):
         warp_core_sys_damage = 0
         cloak_sys_damage = 0
         transporter_sys_damage = 0
+        polarized_hull_damage = 0
         
         if calculate_systems and not is_hulk:
             chance_to_damage_system = damage_type.chance_to_damage_system
@@ -1107,14 +1108,17 @@ class Starship(CanDockWith):
                 
                 if self.ship_class.max_crew and chance_of_system_damage():
                     transporter_sys_damage = random_system_damage()
-                        
+                
+                if self.ship_class.polarized_hull and chance_of_system_damage():
+                    polarized_hull_damage = random_system_damage()
+                
         return (
             new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, 
             new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, 
             impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, 
             warp_core_sys_damage, 
             energy_weapons_sys_damage, cannon_sys_damage, 
-            torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage
+            torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage
         )
 
     def take_damage(self, amount, text, *, damage_type:DamageType):
@@ -1126,7 +1130,7 @@ class Starship(CanDockWith):
         
         ship_originaly_destroyed = old_ship_status in {STATUS_HULK, STATUS_OBLITERATED}
         
-        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage = self.calculate_damage(amount, damage_type=damage_type)
+        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = self.calculate_damage(amount, damage_type=damage_type)
         
         ship_destroyed = new_hull < 0
         
@@ -1148,6 +1152,10 @@ class Starship(CanDockWith):
             self.crew.injuries_and_deaths(wounded, killed_outright, killed_in_sickbay)
         try:
             self.shield_generator.integrety -= shield_sys_damage
+        except AttributeError:
+            pass
+        try:
+            self.polarized_hull.integrety -= polarized_hull_damage
         except AttributeError:
             pass
         try:
@@ -1682,7 +1690,7 @@ class Starship(CanDockWith):
                     crew_readyness=crew_readyness,
                     target_crew_readyness=target_crew_readyness
                 ):
-                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage =self.calculate_damage(
+                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage =self.calculate_damage(
                         damage, precision=precision, calculate_crew=simulate_crew, 
                         calculate_systems=simulate_systems, scan_dict=target_scan, damage_type=DAMAGE_TORPEDO
                     )
@@ -1810,7 +1818,7 @@ class Starship(CanDockWith):
                 crew_readyness=crew_readyness,
                 target_crew_readyness=target_crew_readyness
             ):
-                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage,warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage =self.calculate_damage(
+                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage,warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage =self.calculate_damage(
                     amount, precision=precision, calculate_crew=scan_target_crew, 
                     calculate_systems=simulate_systems, 
                     use_effective_values=use_effective_values,
@@ -1906,7 +1914,7 @@ class Starship(CanDockWith):
             )
             if to_hit:
                 
-                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage = target.calculate_damage(
+                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = target.calculate_damage(
                     self_damage, 
                     scan_dict=target_scan, 
                     damage_type=DAMAGE_RAMMING
