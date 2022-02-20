@@ -459,72 +459,88 @@ class Starship(CanDockWith):
                 return colors.orange
             return colors.alert_red
 
-        shields = scan_assistant(self.shield_generator.shields, precision)
         hull = scan_assistant(self.hull, precision)
         energy = scan_assistant(self.power_generator.energy, precision)
         
         ship_class = self.ship_class
-        
-        ship_type_can_fire_torps = self.ship_type_can_fire_torps
-        
+                
         hull_damage = scan_assistant(self.hull_damage, precision)
         
         d= {
-            "shields" : (shields, print_color(shields, ship_class.max_shields)),
             "hull" : (hull, print_color(hull, ship_class.max_hull)),
             "energy" : (energy, print_color(energy, ship_class.max_energy))
         }
+        try:
+            shields = scan_assistant(self.shield_generator.shields, precision)
+            d["shields"] = (shields, print_color(shields, ship_class.max_shields))
+        except AttributeError:
+            pass
+        
         if hull_damage:
             d["hull_damage"] = hull_damage, print_color(hull_damage, ship_class.max_hull)
-        
-        if ship_type_can_fire_torps:
+        try:
             total_torps = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
             
             all_torps = sum([v for k,v in total_torps])
             
             d["number_of_torps"] = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
             d["torpedo_color"] = colors.white if all_torps == self.ship_class.max_torpedos else colors.planet_hostile
-        
-        has_crew = not self.ship_class.is_automated
-        
-        if has_crew:
+        except AttributeError:
+            pass
+        try:
             able_crew = scan_assistant(self.crew.able_crew, precision)
             injured_crew = scan_assistant(self.crew.injured_crew, precision)
             d["able_crew"] = (able_crew, print_color(able_crew, ship_class.max_crew))
             if injured_crew:
                 d["injured_crew"] = (injured_crew, print_color(injured_crew, ship_class.max_crew, True))
-        
-        ship_type_can_cloak = self.ship_type_can_cloak
-
-        if ship_type_can_cloak:
+        except AttributeError:
+            pass
+        try:
             d["cloak_cooldown"] = (
                 self.cloak.cloak_cooldown, print_color(self.cloak.cloak_cooldown, ship_class.cloak_cooldown, True)
             )
-        if self.is_mobile:
+        except AttributeError:
+            pass
+        try:
             d["sys_impulse"] = self.impulse_engine.print_info(precision), self.impulse_engine.get_color(), self.impulse_engine.name
-        if ship_class.max_warp > 0:
+        except AttributeError:
+            pass
+        try:
             d["sys_warp_drive"] = self.warp_drive.print_info(precision), self.warp_drive.get_color(), self.warp_drive.name
-        if self.ship_type_can_fire_beam_arrays:
+        except AttributeError:
+            pass
+        try:
             d["sys_beam_array"] = self.beam_array.print_info(precision), self.beam_array.get_color(), self.beam_array.name
-        if self.ship_type_can_fire_cannons:
+        except AttributeError:
+            pass
+        try:
             d["sys_cannon_weapon"] = self.cannons.print_info(precision), self.cannons.get_color(), self.cannons.name
-        if self.ship_class.max_shields > 0:
+        except AttributeError:
+            pass
+        try:
             d["sys_shield"] = self.shield_generator.print_info(precision), self.shield_generator.get_color(), self.shield_generator.name
+        except AttributeError:
+            pass
         d["sys_sensors"] = self.sensors.print_info(precision), self.sensors.get_color(), self.sensors.name
-        if ship_type_can_fire_torps:
+        try:
             d["sys_torpedos"] = self.torpedo_launcher.print_info(precision), self.torpedo_launcher.get_color(), self.torpedo_launcher.name
-        if ship_type_can_cloak:
+        except AttributeError:
+            pass
+        try:
             d["sys_cloak"] = self.cloak.print_info(precision), self.cloak.get_color(), self.cloak.name
-        if not self.is_automated:
+        except AttributeError:
+            pass
+        try:
             d["sys_transporter"] = self.transporter.print_info(precision), self.transporter.get_color(), self.transporter.name
+        except AttributeError:
+            pass
         d["sys_warp_core"] = self.power_generator.print_info(precision), self.power_generator.get_color(), self.power_generator.name
-            
-        if ship_type_can_fire_torps:
-
+        try:
             torps = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
             for k, v in torps:
                 d[k] = v
-
+        except AttributeError:
+            pass
         return d
     
     def scan_this_ship(
@@ -557,59 +573,82 @@ class Starship(CanDockWith):
             STATUS_OBLITERATED if hull < self.ship_class.max_hull * -0.5 else STATUS_HULK
         )
         d= {
-            "shields" : scan_assistant(self.shield_generator.shields, precision),
             "hull" : hull,
             "energy" : scan_assistant(self.power_generator.energy, precision)
         }
-        
+        try:
+            d["shield"] = scan_assistant(self.shield_generator.shields, precision)
+        except AttributeError:
+            pass
         try:
             d["number_of_torps"] = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
         except AttributeError:
             pass
-        
-        if scan_for_crew and not self.ship_class.is_automated:
-            able_crew = scan_assistant(self.crew.able_crew, precision)
-            injured_crew = scan_assistant(self.crew.injured_crew, precision)
-            d["able_crew"] = able_crew
-            d["injured_crew"] = injured_crew
-            
-            if status is STATUS_ACTIVE and not self.ship_class.is_automated and able_crew + injured_crew <= 0:
-                status = STATUS_DERLICT
+        if scan_for_crew:
+            try:
+                able_crew = scan_assistant(self.crew.able_crew, precision)
+                injured_crew = scan_assistant(self.crew.injured_crew, precision)
+                d["able_crew"] = able_crew
+                d["injured_crew"] = injured_crew
+                
+                if status is STATUS_ACTIVE and not self.ship_class.is_automated and able_crew + injured_crew <= 0:
+                    status = STATUS_DERLICT
+            except AttributeError:
+                pass
 
         ship_type_can_cloak = self.ship_type_can_cloak
 
-        if ship_type_can_cloak:
+        try:
             d["cloak_cooldown"] = self.cloak.cloak_cooldown
+        except AttributeError:
+            pass
 
         ship_type_can_fire_torps = self.ship_type_can_fire_torps
 
         if scan_for_systems:
             
-            if self.is_mobile:
+            try:
                 d["sys_warp_drive"] = self.warp_drive.get_info(precision, use_effective_values)# * 0.01,
+            except AttributeError:
+                pass
+            try:
                 d["sys_impulse"] = self.impulse_engine.get_info(precision, use_effective_values)# * 0.01,
-            if self.ship_type_can_fire_beam_arrays:
+            except AttributeError:
+                pass
+            try:
                 d["sys_beam_array"] = self.beam_array.get_info(precision, use_effective_values)# * 0.01,
-            if self.ship_type_can_fire_cannons:
+            except AttributeError:
+                pass
+            try:
                 d["sys_cannon_weapon"] = self.cannons.get_info(precision, use_effective_values)
-            d["sys_shield"] = self.shield_generator.get_info(precision, use_effective_values)# * 0.01,
+            except AttributeError:
+                pass
+            try:
+                d["sys_shield"] = self.shield_generator.get_info(precision, use_effective_values)# * 0.01,
+            except AttributeError:
+                pass
             d["sys_sensors"] = self.sensors.get_info(precision, use_effective_values)# * 0.01,
-            if ship_type_can_fire_torps:
+            try:
                 d["sys_torpedos"] = self.torpedo_launcher.get_info(precision, use_effective_values)# * 0.01
-            if ship_type_can_cloak:
+            except AttributeError:
+                pass
+            try:
                 d["sys_cloak"] = self.cloak.get_info(precision, use_effective_values)
-            if not self.is_automated:
+            except AttributeError:
+                pass
+            try:
                 d["sys_transporter"] = self.transporter.get_info(precision, use_effective_values)
+            except AttributeError:
+                pass
             d["sys_warp_core"] = self.power_generator.get_info(precision, use_effective_values)
             
         d["status"] = status
-
-        if ship_type_can_fire_torps:
-
+        try:
             torps = tuple(self.torpedo_launcher.get_number_of_torpedos(precision))
             for k, v in torps:
                 d[k] = v
-
+        except AttributeError:
+            pass
         return d
 
     def get_random_ajacent_empty_coord(self):
@@ -849,17 +888,21 @@ class Starship(CanDockWith):
         self_status = self.ship_status
         other_status = other_ship.ship_status
         
-        self_hp = (self.shield_generator.shields if self_status.do_shields_work else 0) + self.hull
-        other_hp = (other_ship.shields if other_status.do_shields_work else 0) + other_ship.hull
+        try:
+            self_hp = (self.shield_generator.shields if self_status.do_shields_work else 0) + self.hull
+        except AttributeError:
+            self_hp = self.hull
+        try:
+            other_hp = (other_ship.shield_generator if other_status.do_shields_work else 0) + other_ship.hull
+        except AttributeError:
+            other_hp = other_ship.hull
         
         self_damage = self_hp + self.ship_class.max_hull * 0.5
         #other_damage = other_hp + other_ship.ship_class.max_hull * 0.5
-
         try:
             crew_readyness = self.crew.crew_readyness
         except AttributeError:
             crew_readyness = 1
-        
         try:
             target_crew_readyness = other_ship.crew.crew_readyness
         except AttributeError:

@@ -45,7 +45,7 @@ class Shields(StarshipSystem):
         except AttributeError:
             is_cloaked = False
             
-        return self.shields * 0.01 if self.shields_up and self.is_opperational and is_cloaked else 0
+        return self.shields * 0.01 if self.shields_up and self.is_opperational and not is_cloaked else 0
     
     @property
     def shields_percentage(self):
