@@ -30,6 +30,9 @@ def get_system_names(
     has_torpedo_launchers:bool=False,
     has_cloaking_device:bool=False,
     has_transporters:bool=True,
+    has_warp:bool=True,
+    has_shields:bool,
+    has_polerized_hull:bool,
     mobile:bool=True,
     beam_weapon_name:str="",
     cannon_weapon_name:str=""
@@ -37,26 +40,37 @@ def get_system_names(
     names = [
         "Warp Core:",
         "Sensors:",
-        "Shield Gen.:",
     ]
     keys = [
         "sys_warp_core",
         "sys_sensors",
-        "sys_shield",
     ]
+    """
+    if has_shields:
+        names.append("Shields:")
+        keys.append("shield")
+        
+    if has_polerized_hull:
+        names.append("Polarization:")
+        keys.append("polarization")
+    """
+        
+    if has_shields:
+        names.append("Shield Gen.:")
+        keys.append("sys_shield")
+    
+    if has_polerized_hull:
+        names.append("P. Hull:")
+        keys.append("sys_polarize")
+    
+    if has_warp:
+        names.append("Warp Drive:")
+        keys.append("sys_warp_drive")
+    
     if mobile:
-        names.extend(
-            [
-                "Impulse Eng.:", 
-                "Warp Drive:",    
-            ]
-        )
-        keys.extend(
-            [
-                "sys_impulse",
-                "sys_warp_drive",
-            ]
-        )
+        names.append("Impulse Eng.:")
+        keys.append("sys_impulse")
+        
     if beam_weapon_name:
         names.append(f"{beam_weapon_name}:")
         keys.append("sys_beam_array")
@@ -211,7 +225,10 @@ to one.'''
             has_transporters=max_crew > 0,
             beam_weapon_name=f"{short_beam_name_cap}s",
             cannon_weapon_name=f"{short_can_name_cap}",
-            mobile=evasion > 0.0
+            mobile=evasion > 0.0,
+            has_warp=max_warp > 0,
+            has_shields=max_shields > 0, 
+            has_polerized_hull=polarized_hull > 0
         )
         fd = frozendict(torp_dict)
         
