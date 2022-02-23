@@ -528,6 +528,7 @@ class CommandEventHandler(MainGameEventHandler):
         self.ship_type_can_cloak = self.engine.player.ship_type_can_cloak
         self.ship_type_can_fire_torps = self.engine.player.ship_type_can_fire_torps
         self.is_mobile = self.engine.player.is_mobile
+        self.ship_type_can_go_to_warp = bool(self.engine.player.ship_class.max_warp)
         self.ship_is_not_automated = not self.engine.player.is_automated
         
         self.warp_travel = SimpleElement(
@@ -611,7 +612,7 @@ class CommandEventHandler(MainGameEventHandler):
         )
         self.polarize_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
-            y=13+CONFIG_OBJECT.command_display_y,
+            y=11+CONFIG_OBJECT.command_display_y,
             width=24,
             height=3,
             text="Polarize (H)ull",
@@ -693,7 +694,7 @@ class CommandEventHandler(MainGameEventHandler):
         else:
             captain = self.engine.player.ship_class.nation.captain_rank_name
             
-            if self.warp_button.cursor_overlap(event) and self.is_mobile:
+            if self.warp_button.cursor_overlap(event) and self.ship_type_can_go_to_warp:
                 
                 return self.warp(captain)
             
@@ -791,7 +792,7 @@ class CommandEventHandler(MainGameEventHandler):
         else:
             captain = self.engine.player.ship_class.nation.captain_rank_name
             
-            if event.sym == tcod.event.K_w and self.is_mobile:
+            if event.sym == tcod.event.K_w and self.ship_type_can_go_to_warp:
                 
                 return self.warp(captain)
                 
@@ -1077,12 +1078,18 @@ class CommandEventHandler(MainGameEventHandler):
             
             self.warp_travel.render(console)
         else:
-            if self.engine.player.is_mobile:
+            if self.ship_type_can_go_to_warp:
                 self.warp_button.render(console)
+            
+            if self.is_mobile:
                 self.move_button.render(console)
                 self.dock_button.render(console)
-                
-            self.shields_button.render(console)
+            
+            if self.ship_type_can_polarize_hull:
+                self.polarize_button.render(console)
+            
+            if self.ship_type_can_use_shields:
+                self.shields_button.render(console)
             
             if self.ship_type_can_fire_beam_arrays:
                 self.beam_button.render(console)
