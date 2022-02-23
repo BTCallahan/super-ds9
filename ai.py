@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from starship import Starship
     from space_objects import SubSector
     from game_data import GameData
+    from ship_class import ShipClass
 
 class BaseAi(Order):
     
@@ -56,22 +57,22 @@ class BaseAi(Order):
                 
                 pass
     
-    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
+    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
         raise NotImplementedError
 
-    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
+    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
         raise NotImplementedError
 
-    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
+    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
         raise NotADirectoryError
     
     def calc_shields(self):
         raise NotImplementedError
     
-    def calc_ram(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
+    def calc_ram(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
         raise NotImplementedError
     
-    def calc_cloak(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
+    def calc_cloak(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
         raise NotImplementedError
     
     def calc_auto_destruct(
@@ -109,8 +110,10 @@ def find_unopressed_planets(game_data:GameData, ship:Starship):
                     if planet.planet_habbitation is PLANET_FRIENDLY:
                         yield planet.sector_coords
 
-def calc_torpedos_easy(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_torpedos_easy(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
         chance_of_hit = self.entity.check_torpedo_los(ship)
@@ -127,8 +130,10 @@ def calc_torpedos_easy(self:BaseAi, enemies_in_same_system:Iterable[Starship], e
             self.order_dict[torpedo] = 1000
             self.order_dict_size+=1
 
-def calc_torpedos_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_torpedos_medium(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:
@@ -166,10 +171,14 @@ def calc_torpedos_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship],
                 
                 self.order_dict_size+=1
 
-def calc_torpedos_hard(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
-    torpedos_to_fire = min(self.entity.torps[self.entity.get_most_powerful_torp_avaliable], self.entity.ship_class.torp_tubes)
-    
+def calc_torpedos_hard(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
+    torpedos_to_fire = min(
+        self.entity.torpedo_launcher.torps[self.entity.torpedo_launcher. get_most_powerful_torp_avaliable], 
+        self.entity.ship_class.torp_tubes
+    )
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
     
         chance_of_hit = self.entity.check_torpedo_los(ship)
@@ -198,8 +207,10 @@ def calc_torpedos_hard(self:BaseAi, enemies_in_same_system:Iterable[Starship], e
                 
                 self.order_dict_size+=1
                 
-def calc_beam_weapon_easy(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_beam_weapon_easy(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
     
         energy_weapon=EnergyWeaponOrder.single_target_beam(
@@ -210,8 +221,10 @@ def calc_beam_weapon_easy(self:BaseAi, enemies_in_same_system:Iterable[Starship]
         self.order_dict[energy_weapon] = 1000
         self.order_dict_size+=1
 
-def calc_beam_weapon_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_beam_weapon_medium(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
     energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
     
     try:
@@ -235,8 +248,10 @@ def calc_beam_weapon_medium(self:BaseAi, enemies_in_same_system:Iterable[Starshi
             
             self.order_dict_size+=1
 
-def calc_beam_weapon_hard(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_beam_weapon_hard(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
     user = self.entity
             
     max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
@@ -299,8 +314,10 @@ def calc_beam_weapon_hard(self:BaseAi, enemies_in_same_system:Iterable[Starship]
                 )
                 self.order_dict_size+=1
 
-def calc_cannon_weapon_easy(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_cannon_weapon_easy(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
         cannon_weapon = EnergyWeaponOrder.cannon(
@@ -311,8 +328,10 @@ def calc_cannon_weapon_easy(self:BaseAi, enemies_in_same_system:Iterable[Starshi
         self.order_dict[cannon_weapon] = 1000
         self.order_dict_size+=1
     
-def calc_cannon_weapon_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_cannon_weapon_medium(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):
     energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
     
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
@@ -331,8 +350,10 @@ def calc_cannon_weapon_medium(self:BaseAi, enemies_in_same_system:Iterable[Stars
             
             self.order_dict_size+=1
     
-def calc_cannon_weapon_hard(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_cannon_weapon_hard(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):
     user = self.entity
     
     max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
@@ -362,8 +383,24 @@ def calc_cannon_weapon_hard(self:BaseAi, enemies_in_same_system:Iterable[Starshi
                 )
                 self.order_dict_size+=1
 
-def calc_shields_medium(self:BaseAi, hostile_ships_in_same_system:Iterable[Starship]):
+def calc_polarize_easy(
+    self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
+    polarize_hull = len(hostile_ships_in_same_system)
     
+    polarize_amount = self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull
+            
+    recharge= RechargeOrder(self.entity, polarize_amount, bool(polarize_hull))
+                    
+    self.order_dict[recharge] = polarize_amount * 10 * (1 + polarize_hull)
+    
+    self.order_dict_size += 1
+
+def calc_shields_easy(
+    self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
     raise_shields = len(hostile_ships_in_same_system)
     
     recharge_amount = min(
@@ -372,24 +409,62 @@ def calc_shields_medium(self:BaseAi, hostile_ships_in_same_system:Iterable[Stars
             
     recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
                     
-    self.order_dict[recharge] = recharge_amount * 10
+    self.order_dict[recharge] = recharge_amount * 10 * (1 + raise_shields)
     
     self.order_dict_size+=1
 
-def calc_shields_hard(self:BaseAi, hostile_ships_in_same_system:Iterable[Starship]):
-    
+def calc_shields_medium(
+    self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
     raise_shields = len(hostile_ships_in_same_system)
+    
+    recharge_amount = min(
+        self.entity.get_max_effective_shields - self.entity.shield_generator.shields, self.entity.power_generator.energy
+    )
+            
+    recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
+                    
+    self.order_dict[recharge] = recharge_amount * 10 * (1 + raise_shields)
+    
+    self.order_dict_size+=1
+
+def calc_shields_hard(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):
+    raise_shields = len(enemies_in_same_system)
+    
+    def evaluate_scan(scan: Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]):
+        try:
+            max_beam_energy = min(scan["class"].max_beam_energy, scan["energy"]) * scan["sys_beam_array"]
+        except KeyError:
+            max_beam_energy = 0
+        try:
+            max_cannon_energy = min(scan["class"].max_cannon_energy, scan["energy"]) * scan["sys_cannon"]
+        except KeyError:
+            max_cannon_energy = 0
+        
+        max_torpedo_damage = scan["class"].get_most_powerful_torpedo_type.damage
+        
+        return max(max_beam_energy, max_cannon_energy, max_torpedo_damage)
+    
+    attacks = [
+        evaluate_scan(a) for a in enemy_scans
+    ]
     
     recharge_amount = self.entity.get_max_effective_shields - self.entity.shield_generator.shields
             
     recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
                     
-    self.order_dict[recharge] = recharge_amount * 10
+    self.order_dict[recharge] = recharge_amount * 10 * max(attacks)
     
     self.order_dict_size+=1
     
-def calc_cloak_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-    
+def calc_cloak_medium(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):
     detect_strs = [
         scan["sys_sensors"] * ship.ship_class.detection_strength for ship, scan in zip(
             enemies_in_same_system, enemy_scans
@@ -409,8 +484,10 @@ def calc_cloak_medium(self:BaseAi, enemies_in_same_system:Iterable[Starship], en
     )
     self.order_dict_size+=1
 
-def calc_cloak_hard(self:BaseAi, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict]):
-            
+def calc_cloak_hard(
+    self:BaseAi, enemies_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):      
     cloaking_ability = self.entity.get_cloak_power
     
     cloak_strengths = [
