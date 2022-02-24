@@ -81,14 +81,13 @@ ALL_TORPEDO_TYPES:Final = create_torpedos()
 
 #def find_most_powerful_torpedo_str(iter_torpedo_type:Iterable[Tor])
 
-def find_most_powerful_torpedo_str(iter_torpedo_type:Iterable[str]):
+def find_most_powerful_torpedo(iter_torpedo_type:Iterable[Torpedo]):
 
-    torp_type = "NONE"
+    torp_type = None
     damage = 0
 
-    for t in iter_torpedo_type:
-        torp = ALL_TORPEDO_TYPES[t]
+    for torp in iter_torpedo_type:
         if torp.damage > damage:
-            torp_type = t
+            torp_type = torp
             damage = torp.damage
     return torp_type
