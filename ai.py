@@ -27,6 +27,21 @@ class BaseAi(Order):
         
         self.precision = self.entity.sensors.determin_precision
     
+    def check_for_at_warp(self):
+        """Returns True if the entity is at warp, False if not
+
+        Returns:
+            bool: True if the entity is at warp, False if not
+        """
+        try:
+            if self.entity.warp_drive.is_at_warp:
+                wto = WarpTravelOrder(self.entity)
+                wto.perform()
+                return True
+            return False
+        except AttributeError:
+            return False
+    
     def determin_order(self):
         
         if self.order_dict_size == 0:
@@ -54,37 +69,7 @@ class BaseAi(Order):
                     self.order = choices(population=keys, weights=weights, k=1)[0]
                     
             except IndexError:
-                
                 pass
-    
-    def calc_beam_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
-        raise NotImplementedError
-
-    def calc_cannon_weapon(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
-        raise NotImplementedError
-
-    def calc_torpedos(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
-        raise NotADirectoryError
-    
-    def calc_shields(self):
-        raise NotImplementedError
-    
-    def calc_ram(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
-        raise NotImplementedError
-    
-    def calc_cloak(self, enemies_in_same_system:Iterable[Starship], enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]):
-        raise NotImplementedError
-    
-    def calc_auto_destruct(
-        self, 
-        all_nearbye_ships:Iterable[Starship],
-        nearbye_enemy_ships:Iterable[Starship],
-        nearbye_allied_ships:Iterable[Starship]
-    ):
-        raise NotImplementedError
-
-    def calc_oppress(self):
-        raise NotImplementedError
     
     def get_player_enemies_in_same_system(self):
         return [ship for ship in  self.entity.game_data.grab_ships_in_same_sub_sector(
@@ -765,17 +750,12 @@ class EasyEnemy(BaseAi):
         
     def perform(self) -> None:
         
-        assert self.entity.ship_status.is_active
-        
-        try:
-            if self.entity.warp_drive.is_at_warp:
-                wto = WarpTravelOrder(self.entity)
-                wto.perform()
-                return
-        except AttributeError:
-            pass
+        if self.check_for_at_warp():
+            return
         
         player_status = self.game_data.player.ship_status
+        
+        assert player_status.is_active
         
         if not player_status.is_active:
             # player is not alive = do nothing
@@ -812,15 +792,12 @@ class MediumEnemy(BaseAi):
     
     def perform(self) -> None:
         
-        try:
-            if self.entity.warp_drive.is_at_warp:
-                wto = WarpTravelOrder(self.entity)
-                wto.perform()
-                return
-        except AttributeError:
-            pass
+        if self.check_for_at_warp():
+            return
         
         player_status = self.game_data.player.ship_status
+        
+        assert player_status.is_active
         
         if not player_status.is_active:
             # player is not alive = do nothing
@@ -888,15 +865,12 @@ class HardEnemy(BaseAi):
     
     def perform(self) -> None:
         
-        try:
-            if self.entity.warp_drive.is_at_warp:
-                wto = WarpTravelOrder(self.entity)
-                wto.perform()
-                return
-        except AttributeError:
-            pass
+        if self.check_for_at_warp():
+            return
         
         player_status = self.game_data.player.ship_status
+        
+        assert player_status.is_active
         
         if not player_status.is_active:
             # player is not alive = do nothing
@@ -977,15 +951,12 @@ class AllyAI(BaseAi):
     
     def perform(self) -> None:
         
-        try:
-            if self.entity.warp_drive.is_at_warp:
-                wto = WarpTravelOrder(self.entity)
-                wto.perform()
-                return
-        except AttributeError:
-            pass
+        if self.check_for_at_warp():
+            return
         
         player_status = self.game_data.player.ship_status
+        
+        assert player_status.is_active
         
         if not player_status.is_active:
             # player is not alive = do nothing
@@ -1113,7 +1084,13 @@ class AllyAI(BaseAi):
 class MissionCriticalAllyAI(BaseAi):
     
     def perform(self) -> None:
-        player_status = self.game_data.player
+        
+        if self.check_for_at_warp():
+            return
+        
+        player_status = self.game_data.player.ship_status
+        
+        assert player_status.is_active
         
         if not player_status.is_active:
             # player is not alive = do nothing
