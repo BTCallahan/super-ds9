@@ -1033,56 +1033,6 @@ class AllyAI(BaseAi):
             
         self.order.perform()
         
-    def calc_oppress(self):
-        
-        unopressed_planets = tuple(
-            planet for planet in find_unopressed_planets(
-                self.entity.game_data, self.entity
-            ) if self.entity.sector_coords.distance(
-                coords=planet
-            ) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier <= self.entity.power_generator.energy
-        )
-
-        number_of_unoppressed_planets = len(unopressed_planets)
-        
-        if number_of_unoppressed_planets == 1:
-            
-            planet = unopressed_planets[0]
-            
-            energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier
-                
-            warp_to = WarpOrder.from_coords(
-                self.entity, x=planet.x, y=planet.y, speed=1, 
-                start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
-            )
-            self.order_dict[warp_to] = self.entity.power_generator.energy - round(energy_cost)
-            
-            self.order_dict_size+=1
-            
-        elif number_of_unoppressed_planets > 1:
-
-            planet_counter = Counter(unopressed_planets)
-            
-            highest = max(planet_counter.values())
-            
-            most_common = [
-                k for k,v in planet_counter.items() if v == highest
-            ]
-            most_common.sort(key=lambda coords: coords.distance(coords=self.entity.sector_coords), reverse=True)
-
-            planet = most_common[0]
-            
-            warp_to = WarpOrder.from_coords(self.entity, 
-                self.entity, x=planet.x, y=planet.y, speed=1, 
-                start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
-            )
-            energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier
-                
-            
-        self.determin_order()
-            
-        self.order.perform()
-
 class MissionCriticalAllyAI(BaseAi):
     
     def perform(self) -> None:
