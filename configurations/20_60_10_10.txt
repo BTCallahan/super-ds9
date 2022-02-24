@@ -26,7 +26,7 @@ sector_display_y:0
 # If the width of a sector is 4, and the height is 4, then the width in characters will be 1 + 5 * 4 = 21 and the height will be 1 + 4 * 4 = 17. 
 # If width is 8, and the height is 8, then the width in characters will be 1 + 5 * 8 = 41, and the height will be 1 + 4 * 8 = 33.
 subsector_display_x:54
-subsector_display_y:0
+subsector_display_y:1
 message_display_x:0
 message_display_end_x:41
 message_display_y:33
@@ -42,9 +42,9 @@ other_ship_display_end_y:60
 command_display_x:46
 command_display_end_x:85
 command_display_y:28
-command_display_end_y:55
+command_display_end_y:58
 position_info_x:45
 position_info_end_x:80
-position_info_y:20
+position_info_y:19
 position_info_end_y:28
 graphics:dejavu10x10_gs_tc.png
