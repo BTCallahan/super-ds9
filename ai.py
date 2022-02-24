@@ -389,7 +389,7 @@ def calc_shields_easy(
     raise_shields = len(hostile_ships_in_same_system)
     
     recharge_amount = min(
-        self.entity.get_max_effective_shields - self.entity.shield_generator.shields, self.entity.power_generator.energy
+        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
     )
             
     recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
@@ -405,7 +405,7 @@ def calc_shields_medium(
     raise_shields = len(hostile_ships_in_same_system)
     
     recharge_amount = min(
-        self.entity.get_max_effective_shields - self.entity.shield_generator.shields, self.entity.power_generator.energy
+        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
     )
             
     recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
@@ -438,11 +438,13 @@ def calc_shields_hard(
         evaluate_scan(a) for a in enemy_scans
     ]
     
-    recharge_amount = self.entity.get_max_effective_shields - self.entity.shield_generator.shields
+    recharge_amount = min(
+        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
+    )
             
     recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
                     
-    self.order_dict[recharge] = recharge_amount * 10 * max(attacks)
+    self.order_dict[recharge] = recharge_amount * 10 * max(attacks + [1])
     
     self.order_dict_size+=1
     
