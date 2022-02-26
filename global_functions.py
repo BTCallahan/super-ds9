@@ -1,5 +1,5 @@
 from datetime import datetime
-from math import floor, pi, sin, cos, atan2
+from math import floor, pi, sin, cos, atan2, exp
 from typing import Final, Iterable, Optional, Pattern
 import re
 from coords import IntOrFloat
@@ -211,3 +211,12 @@ def scan_assistant(v:IntOrFloat, precision:int):
     r = round(v / precision) * precision
     assert isinstance(r, float) or isinstance(r, int)
     return r
+
+def calculate_polarization(damage:float, polarization:int):
+    
+    try:
+        dp = exp(damage / polarization)
+    except ZeroDivisionError:
+        dp = 0
+    
+    return max((damage - polarization) + dp, dp) 

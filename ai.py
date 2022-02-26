@@ -775,17 +775,30 @@ class EasyEnemy(BaseAi):
                     precision=self.precision, scan_for_crew=False, scan_for_systems=False
                 ) for ship in enemy_ships
             ]
-            if self.entity.ship_can_fire_beam_arrays:
-            
-                calc_beam_weapon_easy(self, enemy_ships, enemy_scans)
-                
-            if self.entity.ship_can_fire_cannons:
-                
-                calc_cannon_weapon_easy(self, enemy_ships, enemy_scans)
-            
-            if self.entity.ship_can_fire_torps:
+            try:
+                if self.entity.shield_generator.is_opperational:
                     
-                calc_torpedos_easy(self, enemy_ships, enemy_scans)
+                    calc_shields_easy(self, enemy_ships)
+            except AttributeError:
+                pass
+            try:
+                if self.entity.beam_array.is_opperational:
+                
+                    calc_beam_weapon_easy(self, enemy_ships, enemy_scans)
+            except AttributeError:
+                pass
+            try:
+                if self.entity.cannons.is_opperational:
+                    
+                    calc_cannon_weapon_easy(self, enemy_ships, enemy_scans)
+            except AttributeError:
+                pass
+            try:
+                if self.entity.torpedo_launcher.is_opperational:
+                        
+                    calc_torpedos_easy(self, enemy_ships, enemy_scans)
+            except AttributeError:
+                pass
                 
         self.determin_order()
         self.order.perform()         
@@ -839,26 +852,36 @@ class MediumEnemy(BaseAi):
             has_energy = self.entity.power_generator.energy > 0
             
             if has_energy:
-            
-                if self.entity.ship_can_fire_beam_arrays:
+                try:
+                    if self.entity.beam_array.is_opperational:
+                        
+                        calc_beam_weapon_medium(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
+                try:
+                    if self.entity.cannons.is_opperational:
+                        
+                        calc_cannon_weapon_medium(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
+            try:
+                if self.entity.torpedo_launcher.is_opperational:
+                        
+                    calc_torpedos_medium(self, enemy_ships, enemy_scans)
+            except AttributeError:
+                pass    
+            try:
+                if self.entity.cloak.is_opperational:
                     
-                    calc_beam_weapon_medium(self, enemy_ships, enemy_scans)
-                
-                if self.entity.ship_can_fire_cannons:
+                    calc_cloak_medium(self, enemy_ships, enemy_scans)
+            except AttributeError:
+                pass
+            try:
+                if self.entity.shield_generator.is_opperational > 0:
                     
-                    calc_cannon_weapon_medium(self, enemy_ships, enemy_scans)
-            
-            if self.entity.ship_can_fire_torps:
-                    
-                calc_torpedos_medium(self, enemy_ships, enemy_scans)
-            
-            if self.entity.ship_can_cloak:
-                
-                calc_cloak_medium(self, enemy_ships, enemy_scans)
-                
-            if self.entity.get_max_effective_shields > 0:
-                
-                calc_shields_medium(self, enemy_ships)
+                    calc_shields_medium(self, enemy_ships, enemy_scans)
+            except AttributeError:
+                pass
                 
         self.determin_order()
         self.order.perform()
@@ -912,24 +935,36 @@ class HardEnemy(BaseAi):
                         nearbye_allied_ships=friendly_ships, 
                         nearbye_enemy_ships=enemy_is_present,
                     )
-                if self.entity.ship_can_fire_torps:
-                    
-                    calc_torpedos_hard(self, enemy_ships, enemy_scans)
-                    
-                if has_energy:                    
-                    if self.entity.ship_can_fire_beam_arrays:
+                try:
+                    if self.entity.torpedo_launcher.is_opperational:
                         
-                        calc_beam_weapon_hard(self, enemy_ships, enemy_scans)
-                    
-                    if self.entity.ship_can_fire_cannons:
+                        calc_torpedos_hard(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
+                if has_energy:
+                    try:
+                        if self.entity.beam_array.is_opperational:
+                            
+                            calc_beam_weapon_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                    try:
+                        if self.entity.cannons.is_opperational:
                         
-                        calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
+                            calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                    try:
+                        if self.entity.impulse_engine:
+                            calc_ram_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                try:
+                    if self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
                         
-                    calc_ram_hard(self, enemy_ships, enemy_scans)
-                        
-                if self.entity.ship_can_cloak and self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
-                    
-                    calc_cloak_hard(self, enemy_ships, enemy_scans)
+                        calc_cloak_hard(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
             else:
                 # if the player is not present:
                 
@@ -941,9 +976,12 @@ class HardEnemy(BaseAi):
                     
             max_effective_shields = self.entity.shield_generator.get_max_effective_shields
             
-            if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
+            try:
+                if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
                 
-                calc_shields_hard(self, enemy_ships)
+                    calc_shields_hard(self, enemy_ships)
+            except AttributeError:
+                pass
             
         self.determin_order()
             
@@ -998,38 +1036,48 @@ class AllyAI(BaseAi):
                         nearbye_allied_ships=friendly_ships, 
                         nearbye_enemy_ships=enemy_is_present,
                     )
-                if self.entity.ship_can_fire_torps:
-                    
-                    calc_torpedos_hard(self, enemy_ships, enemy_scans)
-                    
-                if has_energy:                    
-                    if self.entity.ship_can_fire_beam_arrays:
+                try:
+                    if self.entity.torpedo_launcher.is_opperational:
                         
-                        calc_beam_weapon_hard(self, enemy_ships, enemy_scans)
-                    
-                    if self.entity.ship_can_fire_cannons:
+                        calc_torpedos_hard(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
+                if has_energy:
+                    try:
+                        if self.entity.beam_array.is_opperational:
+                            
+                            calc_beam_weapon_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                    try:
+                        if self.entity.cannons.is_opperational:
+                            
+                            calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                    try:
+                        if self.entity.impulse_engine:
+                            calc_ram_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                    try:
+                        if self.entity.shield_generator.is_opperational:
+                            
+                            calc_shields_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                try:
+                    if self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
                         
-                        calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
-                        
-                    calc_ram_hard(self, enemy_ships, enemy_scans)
-                        
-                if self.entity.ship_can_cloak and self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
-                    
-                    calc_cloak_hard(self, enemy_ships, enemy_scans)
-            else:
-                # if the player is not present:
-                
+                        calc_cloak_hard(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
+            else:# if the player is not present:
                 system = self.entity.get_sub_sector
                 
                 if friendly_ships or system.friendly_planets == 0:
                 
                     calc_oppress_hard(self)
-                    
-            max_effective_shields = self.entity.get_max_effective_shields
-            
-            if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
-                
-                calc_shields_hard(self, enemy_ships)
             
         self.order.perform()
         
@@ -1068,29 +1116,37 @@ class MissionCriticalAllyAI(BaseAi):
             has_energy = self.entity.power_generator.energy > 0
             
             if enemy_is_present:
-                
-                if self.entity.ship_can_fire_torps:
-                    
-                    calc_torpedos_hard(self, enemy_ships, enemy_scans)
-                    
-                if has_energy:                    
-                    if self.entity.ship_can_fire_beam_arrays:
+                try:
+                    if self.entity.torpedo_launcher.is_opperational:
                         
-                        calc_beam_weapon_hard(self, enemy_ships, enemy_scans)
-                    
-                    if self.entity.ship_can_fire_cannons:
+                        calc_torpedos_hard(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
+                if has_energy:
+                    try:
+                        if self.entity.beam_array.is_opperational:
+                            
+                            calc_beam_weapon_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                    try:
+                        if self.entity.cannons.is_opperational:
+                            
+                            calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                    try:
+                        if self.entity.shield_generator.is_opperational:
+                            
+                            calc_shields_hard(self, enemy_ships, enemy_scans)
+                    except AttributeError:
+                        pass
+                try:
+                    if self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
                         
-                        calc_cannon_weapon_hard(self, enemy_ships, enemy_scans)
-                        
-                if self.entity.ship_can_cloak and self.entity.cloak.cloak_status == CloakStatus.INACTIVE:
-                    
-                    calc_cloak_hard(self, enemy_ships, enemy_scans)
-                    
-            max_effective_shields = self.entity.get_max_effective_shields
-            
-            if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
-                
-                calc_shields_hard(self)
+                        calc_cloak_hard(self, enemy_ships, enemy_scans)
+                except AttributeError:
+                    pass
             
         self.determin_order()
             
