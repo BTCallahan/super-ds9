@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from math import ceil, sqrt
+from math import sqrt
 
 from components.starship_system import StarshipSystem
 
@@ -32,13 +32,13 @@ class PolarizedHull(StarshipSystem):
             self._polarization_amount = self.starship.ship_class.polarized_hull
     
     @property
-    def calculate_damage_reduction(self):
+    def calculate_polarization_strength(self):
         
-        return sqrt(self._polarization_amount * 10) * 0.5 * self.get_effective_value
+        return self._polarization_amount * self.get_effective_value
     
-    def determin_damage_reduction(self, precision:int, effective_value:bool=True):
+    def determin_polarization_strength(self, precision:int, effective_value:bool=True):
         
-        return sqrt(self._polarization_amount * 10) * 0.5 * self.get_info(precision, effective_value=effective_value)
+        return self._polarization_amount * self.get_info(precision, effective_value=effective_value)
     
     @property
     def get_energy_cost_per_turn(self):

@@ -16,7 +16,7 @@ from components.torpedo_launcher import TorpedoLauncher
 from components.transporter import Transporter
 from components.warp_drive import WarpDrive
 
-from global_functions import inverse_square_law, scan_assistant
+from global_functions import calculate_polarization, inverse_square_law, scan_assistant
 from nation import ALL_NATIONS
 from ship_class import ShipClass
 from space_objects import SubSector, CanDockWith
@@ -578,7 +578,7 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
-            d["polarization"] = self.polarized_hull.determin_damage_reduction(
+            d["polarization"] = self.polarized_hull.determin_polarization_strength(
                 precision, effective_value=use_effective_values
             )
         except AttributeError:
@@ -1036,7 +1036,7 @@ class Starship(CanDockWith):
             amount += to_add
             hull_dam = amount * armorHullDamMulti
         
-        hull_dam = max(hull_dam - polarization, 0)
+        hull_dam = round(calculate_polarization(hull_dam, polarization))
         
         new_shields = scan_assistant(current_shields - shields_dam, precision) if shields_dam > 0 else current_shields
         new_hull = scan_assistant(current_hull - hull_dam, precision) if hull_dam > 0 else current_hull
@@ -1106,7 +1106,7 @@ class Starship(CanDockWith):
                 def random_system_damage():
                     return uniform(0.0, system_damage_chance * hull_damage_as_a_percent)
                 
-                if chance_of_system_damage():
+                if self.ship_class.max_shields and chance_of_system_damage():
                     shield_sys_damage = random_system_damage()
                     
                 if self.ship_class.max_beam_energy and chance_of_system_damage():
@@ -1169,8 +1169,10 @@ class Starship(CanDockWith):
             pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player, use_effective_values=True
         )
         perm_hull_damage = round(hull_dam * 0.15)
-        
-        self.shield_generator.shields = new_shields
+        try:
+            self.shield_generator.shields = new_shields
+        except AttributeError:
+            pass
         self.hull = new_hull
         
         self.hull_damage += perm_hull_damage
@@ -1238,7 +1240,7 @@ class Starship(CanDockWith):
             except KeyError:
                 old_shields = 0
                 
-                new_shields = 0
+                newer_shields = 0
             
             old_hull = old_scan["hull"]
             
@@ -1246,7 +1248,7 @@ class Starship(CanDockWith):
             
             try:
                 scaned_shields_percentage = newer_shields / self.ship_class.max_shields
-            except DivisionByZero:
+            except ZeroDivisionError:
                 scaned_shields_percentage = 0
             
             shield_status = "holding" if scaned_shields_percentage > 0.9 else (
@@ -1343,7 +1345,7 @@ class Starship(CanDockWith):
                 )
                 message_log.add_message(" ".join(message_to_print),fg)
                 
-            else:
+            elif self.ship_class.max_shields:
                 name_first_occ = "Our" if ship_is_player else f"The {self.name}'s"
                 message_log.add_message(f"{name_first_occ} shields are {shield_status}." )
             
