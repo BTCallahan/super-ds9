@@ -3,7 +3,7 @@ from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
 from global_functions import average
-from data_globals import LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
+from data_globals import LOCAL_ENERGY_COST, PLANET_FRIENDLY, PLANET_NEUTRAL, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
 
 from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, PolarizeOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, TransportOrder, WarpOrder, WarpTravelOrder
 
@@ -98,7 +98,7 @@ def find_unopressed_planets(game_data:GameData, ship:Starship):
 
                 for planet in sector.planets_dict.values():
 
-                    if planet.planet_habbitation is PLANET_FRIENDLY:
+                    if planet.get_habbitation(ship) in {PLANET_FRIENDLY, PLANET_NEUTRAL}:
                         yield planet.sector_coords
 
 def calc_torpedos_easy(

@@ -5,7 +5,7 @@ from random import choice
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from nation import ALL_NATIONS
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
@@ -818,13 +818,13 @@ class DockOrder(Order):
         if not self.planet.local_coords.is_adjacent(other=self.entity.local_coords):
             return OrderWarning.PLANET_TOO_DISTANT
         
-        planet_habbitation = self.planet.planet_habbitation
+        planet_habbitation = self.planet.get_habbitation(self.entity)
 
         if planet_habbitation in {PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_PREWARP}:
             return OrderWarning.PLANET_TOO_PRIMITIVE
         
         return (
-            OrderWarning.PLANET_UNFRIENDLY if planet_habbitation in {PLANET_ANGERED, PLANET_HOSTILE} else 
+            OrderWarning.PLANET_UNFRIENDLY if planet_habbitation == PLANET_HOSTILE else 
             OrderWarning.SAFE
         )
 
