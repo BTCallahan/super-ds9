@@ -3,8 +3,9 @@ from typing import Dict, Iterable, List, Optional,  Tuple, TYPE_CHECKING
 from random import choice, choices, randint, uniform, random
 from itertools import accumulate
 from coords import Coords
-from data_globals import PLANET_ANGERED, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_TYPES, PlanetHabitation
+from data_globals import PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_RELATIONS, PLANET_TYPES, PLANET_WARP_CAPABLE, PlanetHabitation, PlanetRelation, PLANET_RELATION_DICT
 import colors
+from nation import Nation
 from torpedo import ALL_TORPEDO_TYPES, Torpedo
 
 if TYPE_CHECKING:
@@ -207,6 +208,7 @@ class SubSector:
         #self.y = y
 
         #print(stars)
+        self.game_data = gd
 
         self.stars_dict:Dict[Coords, Star] = {}
 
@@ -215,6 +217,7 @@ class SubSector:
         #self.planets = []
         self.planets_dict:Dict[Coords, Planet] = {}
         self.friendly_planets = 0
+        self.neutral_planets = 0
         self.unfriendly_planets = 0
         self.barren_planets = 0
     

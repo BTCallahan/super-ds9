@@ -102,16 +102,17 @@ class GameData:
         self.captain_name = ""
         self.player_record = OrderedDict(
             {
-            "planets_angered" : 0,
-            "planets_depopulated" : 0,
-            "prewarp_planets_depopulated" : 0,
-            "times_hit_planet" : 0,
-            "times_hit_poipulated_planet" : 0,
-            "times_hit_prewarp_planet" : 0,
-            "deathtoll" : 0,
-            "times_gone_to_warp": 0,
-            "energy_used" : 0,
-            "torpedos_fired" : 0
+                "planets_aggravated" : 0,
+                "planets_angered" : 0,
+                "planets_depopulated" : 0,
+                "prewarp_planets_depopulated" : 0,
+                "times_hit_planet" : 0,
+                "times_hit_poipulated_planet" : 0,
+                "times_hit_prewarp_planet" : 0,
+                "deathtoll" : 0,
+                "times_gone_to_warp": 0,
+                "energy_used" : 0,
+                "torpedos_fired" : 0
             }
         )
         self.debug_warning = 0
