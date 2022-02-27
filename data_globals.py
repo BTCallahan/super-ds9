@@ -246,3 +246,19 @@ def create_warp_factor():
         ad *= 2
 
 WARP_FACTOR = tuple(create_warp_factor())
+
+class PlanetRelation(Enum):
+    FRIENDLY = auto()
+    NEUTRAL = auto()
+    HOSTILE = auto()
+
+PLANET_RELATIONS = (
+    PlanetRelation.FRIENDLY,
+    PlanetRelation.NEUTRAL,
+    PlanetRelation.HOSTILE
+)
+PLANET_RELATION_DICT:Final = {
+    PlanetRelation.FRIENDLY : PLANET_FRIENDLY,
+    PlanetRelation.NEUTRAL : PLANET_NEUTRAL,
+    PlanetRelation.HOSTILE : PLANET_HOSTILE
+}
