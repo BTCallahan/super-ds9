@@ -297,6 +297,17 @@ def print_ship_info(
         except KeyError:
             pass
         try:
+            n = "Polarization:"
+            d = scan['polarization'][0]
+            c = scan['polarization'][1]
+            m = self.ship_class.polarized_hull
+            add_to_y += 1
+            console.print(x=x+3, y=y+add_to_y, string=f"{n:>16}", fg=colors.white)
+            console.print(x=x+3+16, y=y+add_to_y, string=f"{d: =4}", fg=c)
+            console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}", fg=colors.white)
+        except KeyError:
+            pass
+        try:
             hd, hc = scan["hull_damage"]
             n = "Perm. Hull Dam.:"
             add_to_y+=1
@@ -533,7 +544,7 @@ def render_position(console: Console, gameData:GameData):
     console.print_box(
         x=CONFIG_OBJECT.position_info_x+1,
         y=CONFIG_OBJECT.position_info_y+1,
-        string=f"Local pos: {gameData.player.local_coords}\nSystem pos: {gameData.player.sector_coords}\nStardate: {gameData.stardate}\nEnding stardate: {gameData.ending_stardate}\n{gameData.warp_factor}\n{gameData.shields_description}",
+        string=gameData.info_description,
         width=w-2,
         height=h-2
     )
