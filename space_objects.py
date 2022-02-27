@@ -380,7 +380,21 @@ class Planet(InterstellerObject, CanDockWith):
                 
         return None, 0
 
-    def hit_by_torpedo(self, is_player:bool, game_data:GameData, torpedo:Torpedo):
+    def get_habbitation(self, ship:Starship):
+        
+        if self.planet_habbitation.has_disposition_towards_warp_capiable_civs:
+            
+            disp = self.enemy_planet_relation if ship.is_enemy else self.player_planet_relation
+            
+            return PLANET_RELATION_DICT[disp]
+        
+        return self.planet_habbitation
+
+    def hit_by_torpedo(
+        self, 
+        guilty_party:Starship,
+        game_data:GameData, torpedo:Torpedo
+    ):
         """Somebody did a bad, bad, thing (and it was probably you).
 
         Args:
