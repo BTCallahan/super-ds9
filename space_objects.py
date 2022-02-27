@@ -346,10 +346,17 @@ class SubSector:
 class Planet(InterstellerObject, CanDockWith):
 
     def __init__(
-        self, planet_habbitation:PlanetHabitation, local_coords:Coords, sector_coords:Coords, system:SubSector
+        self, 
+        planet_habbitation:PlanetHabitation, 
+        player_planet_relation:PlanetRelation,
+        enemy_planet_relation:PlanetRelation,
+        local_coords:Coords, sector_coords:Coords, 
+        system:SubSector
     ):    
         super().__init__(local_coords, sector_coords, system)
-        self.planet_habbitation = planet_habbitation# if random() < change_of_life_supporting_planets[self.planetType] else PlanetHabitation.PLANET_BARREN
+        self.planet_habbitation = planet_habbitation
+        self.player_planet_relation = player_planet_relation
+        self.enemy_planet_relation = enemy_planet_relation
 
         self.infastructure = self.planet_habbitation.generate_development()
 
