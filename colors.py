@@ -24,6 +24,7 @@ alert_green = (8, 255, 15)
 alert_blue = (127, 127, 255)
 
 planet_allied = lime
+planet_neutral = (180, 180, 180)
 planet_hostile = (255, 0, 171)
 planet_frightened = (0, 127, 255)
 planet_barren = grey

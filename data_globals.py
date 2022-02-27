@@ -14,10 +14,11 @@ class PlanetHabitation:
     
     color:Tuple[int,int,int]
     description:str
-    supports_life:bool=True
+    supports_life:bool = True
     can_ressuply:bool = False
     min_development:float =  0.0
     max_development:float = 0.0
+    has_disposition_towards_warp_capiable_civs:bool = False
 
     def generate_development(self):
         
@@ -40,6 +41,12 @@ PLANET_BOMBED_OUT:Final = PlanetHabitation(
     supports_life=False,
     color=colors.planet_barren
 )
+PLANET_WARP_CAPABLE:Final = PlanetHabitation(
+    description="Warp Capable",
+    supports_life=True,
+    color=colors.white,
+    has_disposition_towards_warp_capiable_civs=True
+)
 PLANET_FRIENDLY:Final = PlanetHabitation(
     supports_life=True, 
     description="Friendly", 
@@ -55,14 +62,14 @@ PLANET_HOSTILE:Final = PlanetHabitation(
     min_development=0.05,
     max_development=1.0
 )
-PLANET_ANGERED:Final = PlanetHabitation(
+PLANET_NEUTRAL:Final = PlanetHabitation(
     supports_life=True, 
-    description="Angered", 
-    color=colors.planet_hostile,
+    description="Neutral", 
+    color=colors.planet_neutral,
     min_development=0.05,
     max_development=1.0
 )
-PLANET_TYPES:Final = (PLANET_BARREN, PLANET_HOSTILE, PLANET_FRIENDLY, PLANET_PREWARP)
+PLANET_TYPES:Final = (PLANET_BARREN, PLANET_PREWARP, PLANET_WARP_CAPABLE)
 
 LOCAL_ENERGY_COST:Final = 50
 SECTOR_ENERGY_COST:Final = 250
