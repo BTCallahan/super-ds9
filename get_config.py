@@ -3,8 +3,9 @@ from math import ceil
 from typing import Dict, Final
 from collections.abc import Mapping
 from datetime import timedelta
-from global_functions import get_first_group_in_pattern
+from dataclasses import dataclass
 import re
+from global_functions import get_first_group_in_pattern
 from data_globals import string_or_int
 from coords import Coords
 
@@ -13,9 +14,59 @@ class FrozenDict(Mapping):
     def __init__(self, ) -> None:
         super().__init__()
         
+@dataclass(frozen=True)
 class ConfigObject:
 
-    def __init__(self) -> None:
+    chances_to_detect_cloak:int
+    time_per_turn:int
+    
+    screen_width:int
+    screen_height:int
+    
+    sector_width:int
+    sector_height:int
+    
+    subsector_width:int
+    subsector_height:int
+    
+    sector_display_x:int
+    sector_display_y:int
+    
+    subsector_display_x:int
+    subsector_display_y:int
+    
+    message_display_x:int
+    message_display_end_x:int
+    message_display_y:int
+    message_display_end_y:int
+    
+    your_ship_display_x:int
+    your_ship_display_end_x:int
+    your_ship_display_y:int
+    your_ship_display_end_y:int
+
+    other_ship_display_x:int
+    other_ship_display_end_x:int
+    other_ship_display_y:int
+    other_ship_display_end_y:int
+
+    command_display_x:int
+    command_display_end_x:int
+    command_display_y:int
+    command_display_end_y:int
+
+    position_info_x:int
+    position_info_end_x:int
+    position_info_y:int
+    position_info_end_y:int
+    
+    graphics:str
+    max_warp_distance:int
+    max_move_distance:int
+    max_distance:int
+    
+    @classmethod
+    def create_config(self) -> "ConfigObject":
         
         config_file_pattern = re.compile(r"config_file:([\w.,-]+)\n")
         
@@ -47,7 +98,7 @@ class ConfigObject:
                 "The value of 'seconds_per_turn' is zero, which means that no time will pass between turns"
             )
         
-        self.time_per_turn = timedelta(seconds=seconds_per_turn)
+        time_per_turn = timedelta(seconds=seconds_per_turn)
         
         chances_to_detect_cloak_pattern = re.compile(r"chances_to_detect_cloak:([\d]+)\n")
         
@@ -62,8 +113,8 @@ class ConfigObject:
             
             raise ValueError("The value of 'chances_to_detect_cloak' is zero, which means that ship will not get any chances to detect a cloaked ship")
         
-        self.chances_to_detect_cloak = chances_to_detect_cloak
-        
+        chances_to_detect_cloak = chances_to_detect_cloak
+                
         d:Dict[str,string_or_int] = {}
         
         with open(config_file, "r") as f:
@@ -77,50 +128,89 @@ class ConfigObject:
                     d[k] = v
         f.close()
 
-        self.screen_width = d['screen_width']
-        self.screen_height = d['screen_height']
+        your_ship_display_x = d['your_ship_display_x']
+        your_ship_display_end_x = d['your_ship_display_end_x']
+        your_ship_display_y = d['your_ship_display_y']
+        your_ship_display_end_y = d['your_ship_display_end_y']
 
-        self.sector_width = d['sector_width']
-        self.sector_height = d['sector_height']
-        self.subsector_width = d['subsector_width']
-        self.subsector_height = d['subsector_height']
+        other_ship_display_x = d['other_ship_display_x']
+        other_ship_display_end_x = d['other_ship_display_end_x']
+        other_ship_display_y = d['other_ship_display_y']
+        other_ship_display_end_y = d['other_ship_display_end_y']
 
-        self.sector_display_x = d['sector_display_x']
-        self.sector_display_y = d['sector_display_y']
-        self.subsector_display_x = d['subsector_display_x']
-        self.subsector_display_y = d['subsector_display_y']
+        command_display_x = d['command_display_x']
+        command_display_end_x = d['command_display_end_x']
+        command_display_y = d['command_display_y']
+        command_display_end_y = d['command_display_end_y']
 
-        self.message_display_x = d['message_display_x']
-        self.message_display_end_x = d['message_display_end_x']
-        self.message_display_y = d['message_display_y']
-        self.message_display_end_y = d['message_display_end_y']
-
-        self.your_ship_display_x = d['your_ship_display_x']
-        self.your_ship_display_end_x = d['your_ship_display_end_x']
-        self.your_ship_display_y = d['your_ship_display_y']
-        self.your_ship_display_end_y = d['your_ship_display_end_y']
-
-        self.other_ship_display_x = d['other_ship_display_x']
-        self.other_ship_display_end_x = d['other_ship_display_end_x']
-        self.other_ship_display_y = d['other_ship_display_y']
-        self.other_ship_display_end_y = d['other_ship_display_end_y']
-
-        self.command_display_x = d['command_display_x']
-        self.command_display_end_x = d['command_display_end_x']
-        self.command_display_y = d['command_display_y']
-        self.command_display_end_y = d['command_display_end_y']
-
-        self.position_info_x = d['position_info_x']
-        self.position_info_end_x = d['position_info_end_x']
-        self.position_info_y = d['position_info_y']
-        self.position_info_end_y = d['position_info_end_y']
+        position_info_x = d['position_info_x']
+        position_info_end_x = d['position_info_end_x']
+        position_info_y = d['position_info_y']
+        position_info_end_y = d['position_info_end_y']
                 
-        self.graphics = "fonts/" + d['graphics']
+        graphics = "fonts/" + d['graphics']
 
         c1:Coords = Coords(x=0, y=0)
 
-        self.max_warp_distance = ceil(c1.distance(x=d["sector_width"], y=d["sector_height"]))
-        self.max_move_distance = ceil(c1.distance(x=d["subsector_width"], y=d["subsector_height"]))
-        self.max_distance = max(self.max_warp_distance, self.max_move_distance)
+        max_warp_distance = ceil(c1.distance(x=d["sector_width"], y=d["sector_height"]))
+        max_move_distance = ceil(c1.distance(x=d["subsector_width"], y=d["subsector_height"]))
+        max_distance = max(max_warp_distance, max_move_distance)
         
-CONFIG_OBJECT:Final= ConfigObject()
+        screen_width = d['screen_width']
+        screen_height = d['screen_height']
+
+        sector_width = d['sector_width']
+        sector_height = d['sector_height']
+        subsector_width = d['subsector_width']
+        subsector_height = d['subsector_height']
+
+        sector_display_x = d['sector_display_x']
+        sector_display_y = d['sector_display_y']
+        subsector_display_x = d['subsector_display_x']
+        subsector_display_y = d['subsector_display_y']
+
+        message_display_x = d['message_display_x']
+        message_display_end_x = d['message_display_end_x']
+        message_display_y = d['message_display_y']
+        message_display_end_y = d['message_display_end_y']
+        
+        return ConfigObject(
+            chances_to_detect_cloak=chances_to_detect_cloak,
+            time_per_turn=time_per_turn,
+            screen_width=screen_width,
+            screen_height=screen_height,
+            sector_width=sector_width,
+            sector_height=sector_height,
+            subsector_width=subsector_width,
+            subsector_height=subsector_height,
+            sector_display_x=sector_display_x,
+            sector_display_y=sector_display_y,
+            subsector_display_x=subsector_display_x,
+            subsector_display_y=subsector_display_y,
+            message_display_x=message_display_x,
+            message_display_end_x=message_display_end_x,
+            message_display_y=message_display_y,
+            message_display_end_y=message_display_end_y,
+            your_ship_display_x=your_ship_display_x,
+            your_ship_display_end_x=your_ship_display_end_x,
+            your_ship_display_y=your_ship_display_y,
+            your_ship_display_end_y=your_ship_display_end_y,
+            other_ship_display_x=other_ship_display_x,
+            other_ship_display_end_x=other_ship_display_end_x,
+            other_ship_display_y=other_ship_display_y,
+            other_ship_display_end_y=other_ship_display_end_y,
+            command_display_x=command_display_x,
+            command_display_end_x=command_display_end_x,
+            command_display_y=command_display_y,
+            command_display_end_y=command_display_end_y,
+            position_info_x=position_info_x,
+            position_info_end_x=position_info_end_x,
+            position_info_y=position_info_y,
+            position_info_end_y=position_info_end_y,
+            graphics=graphics,
+            max_warp_distance=max_warp_distance,
+            max_move_distance=max_move_distance,
+            max_distance=max_distance
+        )
+        
+CONFIG_OBJECT:Final= ConfigObject.create_config()
