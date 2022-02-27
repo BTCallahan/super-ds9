@@ -899,7 +899,7 @@ class MediumEnemy(BaseAi):
             except AttributeError:
                 pass
             try:
-                if self.entity.shield_generator.is_opperational > 0:
+                if self.entity.shield_generator.is_opperational:
                     
                     calc_shields_medium(self, enemy_ships, enemy_scans)
             except AttributeError:
@@ -994,12 +994,9 @@ class HardEnemy(BaseAi):
                 
                 if friendly_ships or system.friendly_planets == 0:
                 
-                    calc_oppress_hard(self)
-                    
-            max_effective_shields = self.entity.shield_generator.get_max_effective_shields
-            
+                    calc_oppress_hard(self)            
             try:
-                if self.entity.shield_generator.is_opperational and self.entity.shield_generator.shields < max_effective_shields:
+                if self.entity.shield_generator.is_opperational:
                 
                     calc_shields_hard(self, enemy_ships)
             except AttributeError:
