@@ -255,19 +255,33 @@ class SubSector:
                 x,y = SubSector.__grab_random_and_remove(self.safe_spots)
 
                 local_coords = Coords(x=x, y=y)
-
+                
+                planet_habbitation = choice(PLANET_TYPES)
+                
+                has_disposition_towards_warp_capiable_civs = planet_habbitation.has_disposition_towards_warp_capiable_civs
+                
+                player_planet_relation, enemy_planet_relation = (
+                    choice(PLANET_RELATIONS), choice(PLANET_RELATIONS)
+                ) if has_disposition_towards_warp_capiable_civs else (
+                    PlanetRelation.HOSTILE, PlanetRelation.HOSTILE
+                )
                 p = Planet(
-                    planet_habbitation=choice(PLANET_TYPES), 
-                    local_coords=local_coords, sector_coords=self.coords,
+                    planet_habbitation=PlanetRelation.HOSTILE, 
+                    player_planet_relation = player_planet_relation,
+                    enemy_planet_relation = enemy_planet_relation,
+                    local_coords = local_coords, sector_coords=self.coords,
                     system=self
                 )
 
                 self.planets_dict[local_coords] = p
                 
-                if p.planet_habbitation == PLANET_FRIENDLY:
-                    self.friendly_planets+=1
-                else:
-                    self.unfriendly_planets += 1
+                if has_disposition_towards_warp_capiable_civs:
+                    if player_planet_relation == PlanetRelation.FRIENDLY:
+                        self.friendly_planets+=1
+                    elif player_planet_relation == PlanetRelation.NEUTRAL:
+                        self.neutral_planets += 1
+                    else:
+                        self.unfriendly_planets += 1
 
     def count_planets(self):
         self.friendly_planets = len(
