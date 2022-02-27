@@ -26,7 +26,11 @@ class Shields(StarshipSystem):
             self._shields = 0
         elif self._shields > self.get_max_effective_shields:
             self._shields = self.get_max_effective_shields
-        
+    
+    @property
+    def read_shields(self):
+        return self._shields if self.is_opperational and self.shields_up else 0
+    
     @property
     def get_max_shields(self):
         return self.starship.ship_class.max_shields

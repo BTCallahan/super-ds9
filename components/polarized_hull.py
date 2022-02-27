@@ -41,6 +41,10 @@ class PolarizedHull(StarshipSystem):
         return self._polarization_amount * self.get_info(precision, effective_value=effective_value)
     
     @property
+    def read_polarization(self):
+        return self._polarization_amount if self.is_opperational and self.is_polarized else 0
+    
+    @property
     def get_energy_cost_per_turn(self):
         try:
             is_cloaked = self.starship.cloak.cloak_is_turned_on

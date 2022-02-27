@@ -457,17 +457,15 @@ class Starship(CanDockWith):
             "energy" : (energy, print_color(energy, ship_class.max_energy))
         }
         try:
-            shields = scan_assistant(self.shield_generator.shields, precision)
+            shields = scan_assistant(self.shield_generator.read_shields, precision)
             d["shields"] = (shields, print_color(shields, ship_class.max_shields))
         except AttributeError:
             pass
-        
         try:
-            hull_polarization = scan_assistant(self.polarized_hull.polarization_amount, precision)
+            hull_polarization = scan_assistant(self.polarized_hull.read_polarization, precision)
             d["polarization"] = (hull_polarization, colors.white)
         except AttributeError:
             pass
-        
         if hull_damage:
             d["hull_damage"] = hull_damage, print_color(hull_damage, ship_class.max_hull)
         try:
