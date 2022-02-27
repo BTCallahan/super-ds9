@@ -378,13 +378,18 @@ def calc_polarize_easy(
     self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):    
-    polarize_hull = len(hostile_ships_in_same_system)
+    number_of_hostile_ships = len(hostile_ships_in_same_system)
+    
+    polarize_hull = bool(number_of_hostile_ships)
     
     polarize_amount = self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull
-            
-    recharge= RechargeOrder(self.entity, polarize_amount, bool(polarize_hull))
+    
+    if polarize_hull == self.entity.polarized_hull.is_polarized and polarize_amount == self.entity.polarized_hull.polarization_amount:
+        return
+    
+    recharge = PolarizeOrder(self.entity, polarize_amount, polarize_hull)
                     
-    self.order_dict[recharge] = polarize_amount * 10 * (1 + polarize_hull)
+    self.order_dict[recharge] = polarize_amount * 10 * (1 + number_of_hostile_ships)
     
     self.order_dict_size += 1
 
@@ -392,15 +397,19 @@ def calc_shields_easy(
     self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):    
-    raise_shields = len(hostile_ships_in_same_system)
+    number_of_hostile_ships = len(hostile_ships_in_same_system)
+    
+    raise_shields = bool(number_of_hostile_ships)
     
     recharge_amount = min(
         self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
     )
-            
-    recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
+    if raise_shields == self.entity.shield_generator.shields_up and recharge_amount == self.entity.shield_generator.shields:
+        return
+    
+    recharge = RechargeOrder(self.entity, recharge_amount, raise_shields)
                     
-    self.order_dict[recharge] = recharge_amount * 10 * (1 + raise_shields)
+    self.order_dict[recharge] = recharge_amount * 10 * (1 + number_of_hostile_ships)
     
     self.order_dict_size+=1
 
@@ -408,15 +417,19 @@ def calc_shields_medium(
     self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):    
-    raise_shields = len(hostile_ships_in_same_system)
+    number_of_hostile_ships = len(hostile_ships_in_same_system)
+    
+    raise_shields = bool(number_of_hostile_ships)
     
     recharge_amount = min(
         self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
     )
-            
-    recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
+    if raise_shields == self.entity.shield_generator.shields_up and recharge_amount == self.entity.shield_generator.shields:
+        return
+    
+    recharge = RechargeOrder(self.entity, recharge_amount, raise_shields)
                     
-    self.order_dict[recharge] = recharge_amount * 10 * (1 + raise_shields)
+    self.order_dict[recharge] = recharge_amount * 10 * (1 + number_of_hostile_ships)
     
     self.order_dict_size+=1
 
@@ -424,7 +437,15 @@ def calc_shields_hard(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):
-    raise_shields = len(enemies_in_same_system)
+    number_of_hostile_ships = len(enemies_in_same_system)
+    
+    raise_shields = bool(number_of_hostile_ships)
+    
+    recharge_amount = min(
+        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
+    )
+    if raise_shields == self.entity.shield_generator.shields_up and recharge_amount == self.entity.shield_generator.shields:
+        return
     
     def evaluate_scan(scan: Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]):
         try:
@@ -442,12 +463,7 @@ def calc_shields_hard(
     
     attacks = [
         evaluate_scan(a) for a in enemy_scans
-    ]
-    
-    recharge_amount = min(
-        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
-    )
-            
+    ]       
     recharge= RechargeOrder(self.entity, recharge_amount, raise_shields)
                     
     self.order_dict[recharge] = recharge_amount * 10 * max(attacks + [1])
