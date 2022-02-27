@@ -386,7 +386,9 @@ class Planet(InterstellerObject, CanDockWith):
 
     def can_supply_torpedos(self, ship:Starship):
         
-        if ship.ship_type_can_fire_torps:
+        planet_relation = self.enemy_planet_relation if ship.is_enemy else self.player_planet_relation
+        
+        if ship.ship_type_can_fire_torps and planet_relation == PlanetRelation.FRIENDLY:
             
             supply = ship.ship_class.max_torpedos - ship.torpedo_launcher.get_total_number_of_torpedos
             
