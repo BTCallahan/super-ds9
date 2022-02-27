@@ -284,12 +284,20 @@ class SubSector:
                         self.unfriendly_planets += 1
 
     def count_planets(self):
+        
+        planet_habitations = [
+            planet.get_habbitation(self.game_data.player) for planet in self.planets_dict.values()
+        ]
+        
+        total_planets = len(planet_habitations)
+        
         self.friendly_planets = len(
-            [planet for planet in self.planets_dict.values() if planet.planet_habbitation is PLANET_FRIENDLY]
+            [planet for planet in planet_habitations if planet == PLANET_FRIENDLY]
         )
-        self.unfriendly_planets = len(
-            [planet for planet in self.planets_dict.values() if planet.planet_habbitation is not PLANET_FRIENDLY]
+        self.neutral_planets = len(
+            [planet for planet in planet_habitations if planet == PLANET_NEUTRAL]
         )
+        self.unfriendly_planets = total_planets - (self.friendly_planets + self.neutral_planets)
     
     @property
     def number_of_planets(self):
