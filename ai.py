@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
 from global_functions import average
 from data_globals import LOCAL_ENERGY_COST, PLANET_FRIENDLY, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
 
-from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, TransportOrder, WarpOrder, WarpTravelOrder
+from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, PolarizeOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, TransportOrder, WarpOrder, WarpTravelOrder
 
 if TYPE_CHECKING:
     from starship import Starship
@@ -27,12 +27,18 @@ class BaseAi(Order):
         
         self.precision = self.entity.sensors.determin_precision
     
-    def check_for_at_warp(self):
+    def clear_orders_and_check_for_at_warp(self):
         """Returns True if the entity is at warp, False if not
 
         Returns:
             bool: True if the entity is at warp, False if not
         """
+        self.order_dict.clear()
+        
+        self.order_dict_size = 0
+        
+        self.precision = self.entity.sensors.determin_precision
+        
         try:
             if self.entity.warp_drive.is_at_warp:
                 wto = WarpTravelOrder(self.entity)
@@ -752,7 +758,7 @@ class EasyEnemy(BaseAi):
         
     def perform(self) -> None:
         
-        if self.check_for_at_warp():
+        if self.clear_orders_and_check_for_at_warp():
             return
         
         player_status = self.game_data.player.ship_status
@@ -806,8 +812,8 @@ class EasyEnemy(BaseAi):
 class MediumEnemy(BaseAi):
     
     def perform(self) -> None:
-        
-        if self.check_for_at_warp():
+                
+        if self.clear_orders_and_check_for_at_warp():
             return
         
         player_status = self.game_data.player.ship_status
@@ -889,8 +895,8 @@ class MediumEnemy(BaseAi):
 class HardEnemy(BaseAi):
     
     def perform(self) -> None:
-        
-        if self.check_for_at_warp():
+                
+        if self.clear_orders_and_check_for_at_warp():
             return
         
         player_status = self.game_data.player.ship_status
@@ -990,8 +996,8 @@ class HardEnemy(BaseAi):
 class AllyAI(BaseAi):
     
     def perform(self) -> None:
-        
-        if self.check_for_at_warp():
+                
+        if self.clear_orders_and_check_for_at_warp():
             return
         
         player_status = self.game_data.player.ship_status
@@ -1084,8 +1090,8 @@ class AllyAI(BaseAi):
 class MissionCriticalAllyAI(BaseAi):
     
     def perform(self) -> None:
-        
-        if self.check_for_at_warp():
+                
+        if self.clear_orders_and_check_for_at_warp():
             return
         
         player_status = self.game_data.player.ship_status
