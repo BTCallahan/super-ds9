@@ -84,8 +84,6 @@ class Starship(CanDockWith):
             self.torpedo_launcher = TorpedoLauncher(ship_class)
             self.torpedo_launcher.starship = self
 
-        #self.torps = set_torps(ship_class.torp_types, ship_class.max_torpedos)
-
         if ship_class.max_crew:#if has crew
             
             self.crew = Crew(ship_class)
@@ -597,17 +595,12 @@ class Starship(CanDockWith):
             except AttributeError:
                 pass
 
-        ship_type_can_cloak = self.ship_type_can_cloak
-
         try:
             d["cloak_cooldown"] = self.cloak.cloak_cooldown
         except AttributeError:
             pass
 
-        ship_type_can_fire_torps = self.ship_type_can_fire_torps
-
         if scan_for_systems:
-            
             try:
                 d["sys_warp_drive"] = self.warp_drive.get_info(precision, use_effective_values)# * 0.01,
             except AttributeError:
@@ -698,14 +691,12 @@ class Starship(CanDockWith):
             self.shield_generator.integrety = 0.0
         except AttributeError:
             pass
-
         try:
             self.polarized_hull.polarization_amount = 0
             self.polarized_hull.is_polarized = False
             self.polarized_hull.integrety = 0.0
         except AttributeError:
             pass
-
         self.power_generator.energy = 0
         self.power_generator.integrety = 0
         try:
@@ -724,9 +715,7 @@ class Starship(CanDockWith):
             self.impulse_engine.integrety = 0.0
         except AttributeError:
             pass
-        
         self.sensors.integrety = 0.0
-        
         try:
             self.cloak.cloak_status = CloakStatus.INACTIVE
             self.cloak.integrety = 0.0
@@ -764,7 +753,7 @@ class Starship(CanDockWith):
 
                 s.take_damage(
                     round(damPercent * damage), 
-                    f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"} of the {self.name}', 
+f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"} of the {self.name}', 
                     damage_type=DAMAGE_EXPLOSION
                 )
 
@@ -983,9 +972,7 @@ class Starship(CanDockWith):
         except KeyError:
             polarization = 0
         current_hull:int = old_scan["hull"]
-        
-        #old_hull_as_a_percent = current_hull / self.ship_class.max_hull
-        
+                
         old_status = self.ship_status
         
         is_hulk = current_hull < 0
@@ -994,7 +981,6 @@ class Starship(CanDockWith):
             is_derlict = old_scan["able_crew"] + old_scan["injured_crew"] <= 0
         except KeyError:
             is_derlict = False
-        
         try:
             shield_effectiveness = 0 if old_scan["sys_shield"] < 0.15 else min(old_scan["sys_shield"] * 1.25, 1.0)
         except KeyError:
@@ -1203,7 +1189,6 @@ class Starship(CanDockWith):
             pass
 
         self.sensors.integrety -= sensors_sys_damage
-        
         try:
             self.warp_drive.integrety -= warp_drive_sys_damage
         except AttributeError:

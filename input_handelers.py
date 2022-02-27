@@ -106,9 +106,7 @@ class EventHandler(BaseEventHandler):
             game_data.player.sensors.detect_all_enemy_cloaked_ships_in_system()
         except AttributeError:
             pass
-        
-        game_data.warp_factor = game_data.describe_warp_factor()
-        game_data.shields_description = game_data.describe_shields()
+        game_data.info_description = game_data.describe_info()
         return True
 
     def handle_events(self, event: tcod.event.Event) -> BaseEventHandler:
@@ -365,7 +363,6 @@ class HeadingBasedHandler(CancelConfirmHandler):
             bg=colors.black,
             alignment=tcod.constants.RIGHT
         )
-
         self.two_twenty_five_button = SimpleElement(
             x=16+CONFIG_OBJECT.command_display_x,
             y=2+CONFIG_OBJECT.command_display_y,
@@ -679,7 +676,6 @@ class CommandEventHandler(MainGameEventHandler):
         
         if self.engine.game_data.debug_warning == 1:
             self.engine.game_data.debug_warning = 0
-                
         try:
             is_at_warp = self.engine.player.warp_drive.is_at_warp
             
@@ -1028,8 +1024,6 @@ class CommandEventHandler(MainGameEventHandler):
         elif self.engine.player.power_generator.energy <= 0:
             
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
-        #elif self.engine.player.docked:
-        #    self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
         else:
             return ShieldsHandler(self.engine)
             
