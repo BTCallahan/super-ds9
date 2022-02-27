@@ -436,6 +436,8 @@ class Planet(InterstellerObject, CanDockWith):
         player_is_in_same_system = game_data.player.sector_coords == self.sector_coords
         
         message_log = game_data.engine.message_log
+        
+        is_player = guilty_party.is_controllable
 
         if is_player:
             game_data.player_record['times_hit_planet'] += 1
@@ -484,19 +486,66 @@ class Planet(InterstellerObject, CanDockWith):
                 
                 self.planet_habbitation = PLANET_BOMBED_OUT
 
-            elif self.planet_habbitation is PLANET_FRIENDLY:
+            elif self.planet_habbitation is PLANET_WARP_CAPABLE:
+                
+                guilty_party_is_enemy = guilty_party.is_enemy
+                
+                planet_disposition = self.enemy_planet_relation if guilty_party_is_enemy else self.player_planet_relation
 
                 if player_is_in_same_system:
-                    message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}.')
+                    message_log.add_message(
+                        f'The torpedo struck the planet, killing {how_many_killed}.', 
+                        colors.red if is_player else colors.white
+                    )
 
-                if is_player:
-                    self.planet_habbitation = PLANET_ANGERED
-
-                    game_data.player_record['planets_angered'] += 1
-                    game_data.player_record['times_hit_poipulated_planet'] += 1
+                if planet_disposition == PlanetRelation.FRIENDLY:
                     
-                    message_log.add_message('The planet has severed relations with the Federation.')
+                    if player_is_in_same_system:
+                        message_log.add_message(
+                            f'Relations between planet {guilty_party.nation.name_short} have cooled considerably.'
+                        )
+                    if guilty_party_is_enemy:
+                    
+                        self.enemy_planet_relation = PlanetRelation.NEUTRAL
+                    else:
+                        self.player_planet_relation = PlanetRelation.NEUTRAL
+                        
+                        if is_player:
+                            
+                            message_log.add_message(
+                                "This will definitly go on your record.", colors.red
+                            )
+                            game_data.player_record['planets_aggravated'] += 1
+                            game_data.player_record['times_hit_poipulated_planet'] += 1
                     self.system.count_planets()
+                            
+                elif planet_disposition == PlanetRelation.NEUTRAL:
+                    
+                    if player_is_in_same_system:
+                        message_log.add_message(
+                            f'The planet has severed relations with the {guilty_party.nation.name_short}.'
+                        )
+                    if guilty_party_is_enemy:
+                        
+                        self.enemy_planet_relation = PlanetRelation.HOSTILE
+                    else:
+                        self.planet_habbitation = PlanetRelation.HOSTILE
+                        
+                        if is_player:
+                            self.planet_habbitation = PLANET_NEUTRAL
+                            
+                            message_log.add_message('You will probably be charged with a war crime.', colors.red)
+
+                            game_data.player_record['planets_angered'] += 1
+                            game_data.player_record['times_hit_poipulated_planet'] += 1
+                            
+                    self.system.count_planets()
+                else:
+                    if is_player:
+                        
+                        message_log.add_message('You will probably be charged with a war crime.', colors.red)
+                        
+                        game_data.player_record['times_hit_poipulated_planet'] += 1
 
             elif self.planet_habbitation is PLANET_PREWARP:
                 if player_is_in_same_system:
@@ -513,6 +562,6 @@ class Planet(InterstellerObject, CanDockWith):
                 if player_is_in_same_system:
                     message_log.add_message(f'The torpedo struck the planet, killing {how_many_killed}.')
                 if is_player:
-                    game_data.player_record['times_hit_poipulated_planet'] += 1
+                    
                     message_log.add_message('You will probably be charged with a war crime.', colors.red)
                     self.system.count_planets()
