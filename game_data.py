@@ -116,8 +116,7 @@ class GameData:
         )
         self.debug_warning = 0
         
-        self.warp_factor = self.describe_warp_factor()
-        self.shields_description = self.describe_shields()
+        self.info_description = self.describe_info()
         
     @property
     def is_time_up(self):
@@ -342,7 +341,36 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
             ) if self.player.shield_generator.shields_up else "Shields down"
         except AttributeError:
             return "Shields unavialble"
-            
+    
+    def describe_info(self):
+        try:
+            wf = self.player.warp_drive.current_warp_factor
+            warp_factor =  f"Warp factor: {wf}" if wf else "Impulse"
+        except AttributeError:
+            warp_factor = "Impulse"
+        try:
+            shields = (
+                "Shields up" if self.player.shield_generator.is_opperational else "Shields offline"
+            ) if self.player.shield_generator.shields_up else "Shields down"
+        except AttributeError:
+            shields = "Shields unavialble"
+        try:
+            hull = (
+                "Hull polarized" if self.player.polarized_hull.is_opperational else "Hull polarization offline"
+            ) if self.player.polarized_hull.is_polarized else "Hull unpolarized"
+        except AttributeError:
+            hull = "Hull polarization unavialble"
+        try:
+            local_coords = self.player.local_coords
+        except AttributeError:
+            local_coords = "?, ?"
+        try:
+            sector_coords = self.player.sector_coords
+        except AttributeError:
+            sector_coords = "?, ?"
+        
+        return f"System Position: {local_coords}\nSector Position: {sector_coords}\nStardate: {self.stardate}\nEnding Stardate: {self.ending_stardate}\n{warp_factor}\n{shields}\n{hull}"
+    
     @classmethod
     def newGame(cls):
         return cls(8, 8, 8, 8,
