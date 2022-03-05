@@ -855,7 +855,7 @@ class CommandEventHandler(MainGameEventHandler):
         dock_with_this = None
         if (
             (
-                isinstance(planet, Planet) and planet.planet_habbitation.can_ressuply
+                isinstance(planet, Planet) and planet.display_status.can_ressuply
             ) or (
                 isinstance(planet, Starship) and planet.can_be_docked_with
             )
