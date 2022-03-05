@@ -130,6 +130,12 @@ def calc_torpedos_medium(
     except AttributeError:
         c_value = 100
     
+    torpedo, number_of_torps = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable()
+        
+    times_to_fire=min(
+        self.entity.torpedo_launcher.get_avaliable_torpedo_tubes, 
+        number_of_torps
+    )
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
         chance_of_hit = self.entity.check_torpedo_los(self.entity.game_data.player)
@@ -154,21 +160,27 @@ def calc_torpedos_medium(
                 OrderWarning.TORPEDO_WILL_HIT_PLANET, 
                 OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
                 OrderWarning.TORPEDO_WILL_MISS
-                }:
-            
-                self.order_dict[torpedo] = (
-                        c_value
-                    ) * (total_shield_dam + total_hull_dam + (1000 if ship_kills else 0))
+            }:
+                self.order_dict[torpedo_order] = (
+                    c_value
+                ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills))
                 
                 self.order_dict_size+=1
 
 def calc_torpedos_hard(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
-):    
+):
+    try:
+        c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+    except AttributeError:
+        c_value = 100
+        
+    torpedo, number_of_torps = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable()
+    
     torpedos_to_fire = min(
-        self.entity.torpedo_launcher.torps[self.entity.torpedo_launcher. get_most_powerful_torp_avaliable], 
-        self.entity.ship_class.torp_tubes
+        number_of_torps, 
+        self.entity.torpedo_launcher.get_avaliable_torpedo_tubes
     )
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
     
@@ -193,7 +205,7 @@ def calc_torpedos_hard(
                 OrderWarning.TORPEDO_WILL_MISS
             }:
                 self.order_dict[torpedo] = (
-                    300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
+                    c_value
                 ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills))
                 
                 self.order_dict_size+=1
