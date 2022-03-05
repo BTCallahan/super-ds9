@@ -10,6 +10,7 @@ from nation import ALL_NATIONS
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
 import colors
+from torpedo import Torpedo
 if TYPE_CHECKING:
     from starship import Starship
 
@@ -646,13 +647,17 @@ class TransportOrder(Order):
 class TorpedoOrder(Order):
 
     def __init__(
-        self, entity:Starship, amount:int, *, heading:IntOrFloat, x:int, y:int, x_aim:float, y_aim:float
+        self, entity:Starship, amount:int, 
+        *, 
+        torpedo:Torpedo,
+        heading:IntOrFloat, x:int, y:int, x_aim:float, y_aim:float
     ) -> None:
         super().__init__(entity)
         self.heading = heading
         self.amount = amount
         self.x, self.y = x,y
         self.x_aim, self.y_aim = x_aim, y_aim
+        self.torpedo = torpedo
         
         torp_coords = self.game_data.engine.get_lookup_table(
             direction_x=x_aim, direction_y=y_aim, normalise_direction=False
@@ -674,15 +679,26 @@ class TorpedoOrder(Order):
         return hash((self.entity, self.heading, self.amount, self.x, self.y, self.x_aim, self.y_aim, self.coord_list))
     
     @classmethod
-    def from_coords(cls, entity:Starship, amount:int, x:int, y:int):
-        
+    def from_coords(
+        cls, 
+        entity:Starship, 
+        amount:int, 
+        torpedo:Torpedo,
+        x:int, y:int
+    ):
         x_aim, y_aim = Coords.normalize_other(x=x - entity.local_coords.x, y=y - entity.local_coords.y)
 
         heading = atan2(y_aim, x_aim) / TO_RADIANS
-        return cls(entity, amount, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
+        return cls(
+            entity, amount, 
+            torpedo=torpedo,
+            heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim
+        )
     
     @classmethod
-    def from_heading(cls, entity:Starship, heading:int, amount:int):
+    def from_heading(
+        cls, entity:Starship, heading:int, amount:int, torpedo:Torpedo
+    ):
         #m=max(config_object.max_move_distance, config_object.max_warp_distance)
 
         x_aim, y_aim = heading_to_direction(heading)
@@ -694,7 +710,9 @@ class TorpedoOrder(Order):
             CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
         )
 
-        return cls(entity, amount, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
+        return cls(
+            entity, amount, torpedo=torpedo, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim
+        )
 
     def perform(self) -> None:
         try:
@@ -715,7 +733,7 @@ class TorpedoOrder(Order):
         self.entity.game_data.handle_torpedo(
             shipThatFired=self.entity,torpsFired=self.amount, 
             coords=self.coord_list, 
-            torpedo_type=self.entity.torpedo_launcher.torpedo_loaded, 
+            torpedo_type=self.torpedo, 
             ships_in_area=self.ships, 
             heading=self.heading
         )
