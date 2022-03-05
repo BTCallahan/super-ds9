@@ -104,7 +104,7 @@ def print_system(console:Console, gamedata:GameData):
             x=x + (c.x * 2) + 1, 
             y=y + (c.y * 2) + 1, 
             string="#", 
-            fg=planet.planet_habbitation.color
+            fg=planet.display_status.color
         )
 
     for s in ships:
@@ -168,10 +168,10 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     x=x+j2, y=y+i2+1,
                     string=f"+{sector_x.barren_planets + sector_x.unfriendly_planets}", fg=colors.planet_barren
                 )
-            if sector_x.friendly_planets > 0:
+            if sector_x.friendly_planets+sector_x.neutral_planets > 0:
                 console.print(
                     x=x+j2, y=y+i2+2,
-                    string=f"+{sector_x.friendly_planets}", fg=colors.planet_allied
+                    string=f"+{sector_x.friendly_planets+sector_x.neutral_planets}", fg=colors.planet_allied
                 )
             hostile_ships = sector_x.display_hostile_ships
             
