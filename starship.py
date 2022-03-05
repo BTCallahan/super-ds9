@@ -601,43 +601,43 @@ class Starship(CanDockWith):
 
         if scan_for_systems:
             try:
-                d["sys_warp_drive"] = self.warp_drive.get_info(precision, use_effective_values)# * 0.01,
+                d["sys_warp_drive"] = self.warp_drive.get_info(precision)
             except AttributeError:
                 pass
             try:
-                d["sys_impulse"] = self.impulse_engine.get_info(precision, use_effective_values)# * 0.01,
+                d["sys_impulse"] = self.impulse_engine.get_info(precision)
             except AttributeError:
                 pass
             try:
-                d["sys_beam_array"] = self.beam_array.get_info(precision, use_effective_values)# * 0.01,
+                d["sys_beam_array"] = self.beam_array.get_info(precision)
             except AttributeError:
                 pass
             try:
-                d["sys_cannon_weapon"] = self.cannons.get_info(precision, use_effective_values)
+                d["sys_cannon_weapon"] = self.cannons.get_info(precision)
             except AttributeError:
                 pass
             try:
-                d["sys_polarize"] = self.polarized_hull.get_info(precision, use_effective_values)
+                d["sys_polarize"] = self.polarized_hull.get_info(precision)
             except AttributeError:
                 pass
             try:
-                d["sys_shield"] = self.shield_generator.get_info(precision, use_effective_values)# * 0.01,
+                d["sys_shield"] = self.shield_generator.get_info(precision)
             except AttributeError:
                 pass
-            d["sys_sensors"] = self.sensors.get_info(precision, use_effective_values)# * 0.01,
+            d["sys_sensors"] = self.sensors.get_info(precision)
             try:
-                d["sys_torpedos"] = self.torpedo_launcher.get_info(precision, use_effective_values)# * 0.01
-            except AttributeError:
-                pass
-            try:
-                d["sys_cloak"] = self.cloak.get_info(precision, use_effective_values)
+                d["sys_torpedos"] = self.torpedo_launcher.get_info(precision)
             except AttributeError:
                 pass
             try:
-                d["sys_transporter"] = self.transporter.get_info(precision, use_effective_values)
+                d["sys_cloak"] = self.cloak.get_info(precision)
             except AttributeError:
                 pass
-            d["sys_warp_core"] = self.power_generator.get_info(precision, use_effective_values)
+            try:
+                d["sys_transporter"] = self.transporter.get_info(precision)
+            except AttributeError:
+                pass
+            d["sys_warp_core"] = self.power_generator.get_info(precision)
             
         d["status"] = status
         try:
@@ -744,14 +744,10 @@ class Starship(CanDockWith):
             
             damage = self.warp_core_breach_damage_based_on_distance(s, self_destruct)
 
-            distance = self.local_coords.distance(coords=s.local_coords)
-            
-            damPercent = 1 - (distance / self.ship_class.warp_breach_damage)
-
-            if damPercent > 0.0 and s.hull < 0:
+            if damage > 0:
 
                 s.take_damage(
-                    round(damPercent * damage), 
+                    damage, 
 f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"} of the {self.name}', 
                     damage_type=DAMAGE_EXPLOSION
                 )
@@ -968,6 +964,14 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             current_shields = 0
         try:
             polarization:int = old_scan["polarization"]
+            
+            if calculate_systems:
+                
+                polarization = round(polarization * (
+                    ajust_system_integrity(
+                        old_scan["sys_polarize"]
+                    ) if use_effective_values else old_scan["sys_polarize"]
+                ))
         except KeyError:
             polarization = 0
         current_hull:int = old_scan["hull"]
@@ -981,7 +985,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         except KeyError:
             is_derlict = False
         try:
-            shield_effectiveness = 0 if old_scan["sys_shield"] < 0.15 else min(old_scan["sys_shield"] * 1.25, 1.0)
+            shield_effectiveness = ajust_system_integrity(old_scan["sys_shield"]) if use_effective_values else old_scan["sys_shield"]
         except KeyError:
             shield_effectiveness = 1
         
@@ -1685,24 +1689,31 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         except AttributeError:
             crew_readyness = 1
         
-        scan_target_crew = not target.ship_class.is_automated and simulate_crew
-        try:        
-            target_crew_readyness = target.crew.scan_crew_readyness(precision) if scan_target_crew else 1.0
-        except AttributeError:
-            target_crew_readyness = 1
+        scan_target_crew = not target.ship_class.is_automated and simulate_crew        
 
         for s in range(number_of_simulations):
             
-            new_hull = target_scan["hull"]
+            new_scan = copy(target_scan)
+            
+            new_hull = new_scan["hull"]
+            new_shields = new_scan["shields"]
+            
+            hull_dam  = 0
+            shield_dam = 0
+            try:
+                target_crew_readyness = target.crew.caluclate_crew_readyness(
+                    new_scan["able_crew"], new_scan["injured_crew"]
+                ) if scan_target_crew else 1.0
+            except AttributeError:
+                target_crew_readyness = 1.0
             
             for attack in range(times_to_fire):
-                hull_dam  = 0
-                shield_dam = 0
+                
                 if self.roll_to_hit(
                     target, 
-                    estimated_enemy_impulse=min(
-                        1.0, min(target_scan["sys_impulse"] * 1.25, 1.0)
-                    ), 
+                    estimated_enemy_impulse=ajust_system_integrity(
+                        new_scan["sys_impulse"]
+                    ) if use_effective_values else new_scan["sys_impulse"], 
                     systems_used_for_accuray=(
                         self.sensors.get_effective_value,
                         self.torpedo_launcher.get_effective_value
@@ -1711,30 +1722,31 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     crew_readyness=crew_readyness,
                     target_crew_readyness=target_crew_readyness
                 ):
-                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage =self.calculate_damage(
+                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = target.calculate_damage(
                         damage, precision=precision, calculate_crew=simulate_crew, 
-                        calculate_systems=simulate_systems, scan_dict=target_scan, damage_type=DAMAGE_TORPEDO
+                        calculate_systems=simulate_systems, scan_dict=new_scan, damage_type=DAMAGE_TORPEDO
                     )
-                    target_scan["shields"] = new_shields
-                    target_scan["hull"] = new_hull
+                    new_scan["shields"] = new_shields
+                    new_scan["hull"] = new_hull
                     
                     shield_dam += shields_dam
                     hull_dam += hull_dam
                     
                     if simulate_systems:
                         
-                        target_scan["sys_impulse"] -= impulse_sys_damage
-                        target_scan["sys_shield"] -= shield_sys_damage
-                        target_scan["sys_warp_drive"] -= warp_drive_sys_damage
-                        target_scan["sys_warp_core"] -= warp_core_sys_damage
-                        
+                        new_scan["sys_impulse"] -= impulse_sys_damage
+                        new_scan["sys_shield"] -= shield_sys_damage
+                        new_scan["sys_warp_drive"] -= warp_drive_sys_damage
+                        new_scan["sys_warp_core"] -= warp_core_sys_damage
+                        new_scan["sys_polarize"] -= polarized_hull_damage
+                                                
                     if scan_target_crew:
                         
-                        target_scan["able_crew"] -= wounded + killed_outright
-                        target_scan["injured_crew"] += wounded - killed_in_sickbay
+                        new_scan["able_crew"] -= wounded + killed_outright
+                        new_scan["injured_crew"] += wounded - killed_in_sickbay
                         
                         target_crew_readyness = target.crew.caluclate_crew_readyness(
-                            target_scan["able_crew"], target_scan["injured_crew"]
+                            new_scan["able_crew"], new_scan["injured_crew"]
                         )
             total_shield_dam += shield_dam
             total_hull_dam += hull_dam
@@ -1742,19 +1754,15 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             if new_hull <= 0:
                 number_of_ship_kills +=1
             
-            averaged_hull += target_scan["hull"]
-            averaged_shields += target_scan["shields"]
+            averaged_hull += new_scan["hull"]
+            averaged_shields += new_scan["shields"]
             
             if scan_target_crew:
                 _crew_readyness = target.crew.caluclate_crew_readyness(
-                    target_scan["able_crew"], target_scan["injured_crew"]
+                    new_scan["able_crew"], new_scan["injured_crew"]
                 )
                 if _crew_readyness == 0.0:
                     number_of_crew_kills += 1
-                
-            target_crew_readyness = target.crew.scan_crew_readyness(precision) if scan_target_crew else 1.0
-            
-            target_scan = target.scan_this_ship(precision, scan_for_crew=simulate_crew)
         
         averaged_shields /= number_of_simulations
         averaged_hull /= number_of_simulations
@@ -1868,6 +1876,8 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     if able_crew + injured_crew == 0:
                         
                         number_of_crew_kills += 1
+                else:
+                    averaged_crew_readyness += 1
             else:
                 averaged_shields += targ_shield
                 averaged_hull += targ_hull
