@@ -762,7 +762,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         )
         return round(damage)
 
-    def calc_self_destruct_damage(
+    def simulate_self_destruct(
         self, target:Starship, *, scan:Optional[Dict]=None, number_of_simulations:int=1, 
         simulate_systems:bool=False, simulate_crew:bool=False
         ):
@@ -939,6 +939,20 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         damage_type:DamageType,
         use_effective_values:bool=True
     ):
+        """Calculates the result of damage inflicted on this ship
+
+        Args:
+            amount (int): The amount of damage
+            damage_type (DamageType): The type of damage
+            scan_dict (Optional[Dict], optional): A dictionary containing values. Defaults to None.
+            precision (int, optional): This is only used if scan_dict is None. Defaults to 1.
+            calculate_crew (bool, optional): If true, the calculation will take into account the result of killed/injured crewmembers. Defaults to True.
+            calculate_systems (bool, optional): If true, the calculation will take into account the result of damaged. Defaults to True.
+            use_effective_values (bool, optional): If scan_dict is None, this value will be passed in the scan_this_ship method call. Defaults to True.
+
+        Returns:
+            Tuple[float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float]: _description_
+        """
         #assume damage is 64, current shields are 80, max shields are 200
         #armor is 75, max armor is 100
         #80 * 2 / 200 = 160 / 200 = 0.8
