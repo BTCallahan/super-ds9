@@ -219,4 +219,9 @@ def calculate_polarization(damage:float, polarization:int):
     except ZeroDivisionError:
         dp = 0
     
-    return max((damage - polarization) + dp, dp) 
+    return max((damage - polarization) + dp, dp)
+
+def ajust_system_integrity(value:float):
+    
+    return 0.0 if value < 0.15 else min(1.0, value * 1.25)
+
