@@ -26,7 +26,7 @@ class TorpedoLauncher(StarshipSystem):
     def __init__(self, shipclass:ShipClass) -> None:
         super().__init__("Torp. Launcher:")
                 
-        self.torps = {
+        self.torps:Dict[Torpedo,int] = {
             k : v for k,v in shipclass.torp_dict.items()
         } if shipclass.torp_dict else {}
         
@@ -35,15 +35,20 @@ class TorpedoLauncher(StarshipSystem):
         except IndexError:
             self.torpedo_loaded = ALL_TORPEDO_TYPES["NONE"]
     
-    @property
     def get_most_powerful_torp_avaliable(self):
         
-        torps = [t for t,v in self.torps.items() if v]
+        torps:List[Torpedo] = [t for t,v in self.torps.items() if v]
         
         torps.sort(key=lambda a: a.damage, reverse=True)
         
         t = torps[0]
-        return t, self.torps[t]
+        n = self.torps[t]
+        r = (t,n)
+        return t,n
+    
+    @property
+    def get_avaliable_torpedo_tubes(self):
+        return ceil(self.starship.ship_class.torp_tubes * self.get_effective_value) if self.is_opperational else 0
     
     @property
     def get_total_number_of_torpedos(self):
