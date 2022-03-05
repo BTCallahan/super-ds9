@@ -105,20 +105,24 @@ def calc_torpedos_easy(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):
+    torpedo, number_of_torps = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable()
+            
+    times_to_fire=min(
+        self.entity.torpedo_launcher.get_avaliable_torpedo_tubes, 
+        number_of_torps
+    )
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
         chance_of_hit = self.entity.check_torpedo_los(ship)
     
         if chance_of_hit > 0:
             
-            torpedos_to_fire = min(
-                self.entity.torpedo_launcher.get_most_powerful_torp_avaliable, self.entity.ship_class.torp_tubes
+            torpedo_order = TorpedoOrder.from_coords(
+                self.entity, times_to_fire, 
+                torpedo,
+                ship.local_coords.x, ship.local_coords.y
             )
-
-            torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, ship.local_coords.x, ship.local_coords.y
-            )
-            self.order_dict[torpedo] = 1000
+            self.order_dict[torpedo_order] = 1000
             self.order_dict_size+=1
 
 def calc_torpedos_medium(
@@ -143,16 +147,18 @@ def calc_torpedos_medium(
         if chance_of_hit > 0.0:
             
             averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
-                ship, 5,
+                ship, 
+                torpedo,
+                5,
+                times_to_fire=times_to_fire,
                 target_scan=scan
             )
-            torpedos_to_fire = min(
-                self.entity.torpedo_launcher.get_most_powerful_torp_avaliable, self.entity.ship_class.torp_tubes
+            torpedo_order = TorpedoOrder.from_coords(
+                self.entity, times_to_fire, 
+                torpedo,
+                ship.local_coords.x, ship.local_coords.y
             )
-            torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, ship.local_coords.x, ship.local_coords.y
-            )
-            warning = torpedo.raise_warning()
+            warning = torpedo_order.raise_warning()
             
             if warning not in {
                 OrderWarning.NO_TORPEDOS_LEFT, 
@@ -590,7 +596,7 @@ def calc_auto_destruct_medium(
     precision = user.sensors.determin_precision
     
     enemy_collected_values = [
-        user.calc_self_destruct_damage(
+        user.simulate_self_destruct(
             enemy, 
             scan=enemy.scan_this_ship(
                 precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
@@ -627,7 +633,7 @@ def calc_auto_destruct_hard(
     precision = user.sensors.determin_precision
     
     enemy_collected_values = [
-        user.calc_self_destruct_damage(
+        user.simulate_self_destruct(
             enemy, 
             scan=enemy.scan_this_ship(
                 precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
@@ -654,7 +660,7 @@ def calc_auto_destruct_hard(
         )
         allied_collected_values = [
             
-            user.calc_self_destruct_damage(
+            user.simulate_self_destruct(
                 enemy, 
                 scan=enemy.scan_this_ship(
                     precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
@@ -812,7 +818,7 @@ class EasyEnemy(BaseAi):
             try:
                 if self.entity.shield_generator.is_opperational:
                     
-                    calc_shields_easy(self, enemy_ships)
+                    calc_shields_easy(self, enemy_ships, enemy_scans)
             except AttributeError:
                 pass
             try:
