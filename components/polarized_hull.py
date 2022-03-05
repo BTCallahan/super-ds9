@@ -32,15 +32,6 @@ class PolarizedHull(StarshipSystem):
             self._polarization_amount = self.starship.ship_class.polarized_hull
     
     @property
-    def calculate_polarization_strength(self):
-        
-        return self._polarization_amount * self.get_effective_value
-    
-    def determin_polarization_strength(self, precision:int, effective_value:bool=True):
-        
-        return self._polarization_amount * self.get_info(precision, effective_value=effective_value)
-    
-    @property
     def read_polarization(self):
         return self._polarization_amount if self.is_opperational and self.is_polarized else 0
     
