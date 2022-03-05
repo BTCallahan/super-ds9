@@ -1,4 +1,5 @@
 from __future__ import annotations
+from copy import copy
 from decimal import DivisionByZero
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Type, Union
 from random import choice, uniform, random, randint
@@ -16,7 +17,7 @@ from components.torpedo_launcher import TorpedoLauncher
 from components.transporter import Transporter
 from components.warp_drive import WarpDrive
 
-from global_functions import calculate_polarization, inverse_square_law, scan_assistant
+from global_functions import ajust_system_integrity, calculate_polarization, inverse_square_law, scan_assistant
 from nation import ALL_NATIONS
 from ship_class import ShipClass
 from space_objects import SubSector, CanDockWith
@@ -574,9 +575,7 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
-            d["polarization"] = self.polarized_hull.determin_polarization_strength(
-                precision, effective_value=use_effective_values
-            )
+            d["polarization"] = scan_assistant(self.polarized_hull.polarization_amount, precision)
         except AttributeError:
             pass
         try:
@@ -880,7 +879,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         except AttributeError:
             self_hp = self.hull
         try:
-            other_hp = (other_ship.shield_generator if other_status.do_shields_work else 0) + other_ship.hull
+            other_hp = (other_ship.shield_generator.shields if other_status.do_shields_work else 0) + other_ship.hull
         except AttributeError:
             other_hp = other_ship.hull
         
@@ -1161,8 +1160,10 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         self.hull_damage += perm_hull_damage
         
-        if not self.ship_class.is_automated:
+        try:
             self.crew.injuries_and_deaths(wounded, killed_outright, killed_in_sickbay)
+        except AttributeError:
+            pass            
         try:
             self.shield_generator.integrety -= shield_sys_damage
         except AttributeError:
@@ -1656,7 +1657,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         simulate_systems:bool=False, 
         simulate_crew:bool=False,
         use_effective_values:bool=False,
-        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus]]]
+        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus,ShipClass]]]
     ):
         precision = self.sensors.determin_precision
         
@@ -1773,7 +1774,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         simulate_systems:bool=False, 
         simulate_crew:bool=False, 
         use_effective_values:bool=False,
-        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus]]]
+        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus,ShipClass]]]
     ):
         """Run a number of simulations of energy weapon hits against the target ship and returns the avaraged result.
 
