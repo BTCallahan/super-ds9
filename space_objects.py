@@ -578,7 +578,7 @@ class Planet(InterstellerObject, CanDockWith):
                         message_log.add_message('You will probably be charged with a war crime.', colors.red)
                         
                         game_data.player_record['times_hit_poipulated_planet'] += 1
-
+                
             elif self.planet_habbitation is PLANET_PREWARP:
                 if player_is_in_same_system:
                     message_log.add_message(
