@@ -503,7 +503,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                         try:
                             ship = shipsInArea[co]
                             try:
-                                crew_readyness = shipThatFired.crew.crew_readyness# * 0.5 + 0.5
+                                crew_readyness = shipThatFired.crew.crew_readyness
                             except AttributeError:
                                 crew_readyness = 1
                             try:
@@ -523,7 +523,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                                 ),
                                 crew_readyness=crew_readyness,
                                 target_crew_readyness=target_crew_readyness
-                            )
+                            )                            
                             if hitSomething:
                                 
                                 ship_name = "We were" if ship.is_controllable else f"{ship.name} was"
@@ -533,7 +533,6 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                                 self.engine.message_log.add_message(
                                     f'{ship_name} hit by a {torpedo.name} torpedo from {shipThatFired.name}. '
                                 )
-
                                 ship.take_damage(
                                     torpedo.damage, 
                                     f'Destroyed by a {torpedo.name} torpedo hit from the {shipThatFired_name}', 
