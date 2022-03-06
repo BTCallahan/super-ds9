@@ -468,7 +468,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
         plural = "torpedo" if torpsFired == 1 else "torpedos"
         
         self.engine.message_log.add_message(
-            f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading:3.2}...", colors.yellow
+            f"Firing {descriptive_number} {torpedo.name} {plural} at heading {heading}..." if shipThatFired.is_controllable else f"{shipThatFired.name} has fired {descriptive_number} {torpedo.name} {plural} at heading {heading:3.2f}...", colors.yellow
         )
         g: SubSector = self.grid[shipThatFired.sector_coords.y][shipThatFired.sector_coords.x]
         
@@ -525,20 +525,27 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                                 target_crew_readyness=target_crew_readyness
                             )
                             if hitSomething:
-                                #chance to hit:
-                                #(4.0 / distance) + sensors * 1.25 > EnemyImpuls + rand(-0.25, 0.25)
+                                
+                                ship_name = "We were" if ship.is_controllable else f"{ship.name} was"
+                                
+                                shipThatFired_name = "us" if shipThatFired.is_controllable else shipThatFired.name
+                                
                                 self.engine.message_log.add_message(
-                                    f'{ship.name} was hit by a {torpedo.name} torpedo from {shipThatFired.name}. '
+                                    f'{ship_name} hit by a {torpedo.name} torpedo from {shipThatFired.name}. '
                                 )
 
                                 ship.take_damage(
                                     torpedo.damage, 
-                                    f'Destroyed by a {torpedo.name} torpedo hit from the {shipThatFired.name}', 
+                                    f'Destroyed by a {torpedo.name} torpedo hit from the {shipThatFired_name}', 
                                     damage_type=DAMAGE_TORPEDO
                                 )
                             else:
+                                ship_name = "us" if ship.is_controllable else ship.name
+                                
+                                shipThatFired_name = "us" if shipThatFired.is_controllable else shipThatFired.name
+                                
                                 self.engine.message_log.add_message(
-                                    f'A {torpedo.name} torpedo from {shipThatFired.name} missed {ship.name}. '
+                                    f'A {torpedo.name} torpedo from {shipThatFired_name} missed {ship_name}. '
                                 )
                                 missed_the_target = True
                                 

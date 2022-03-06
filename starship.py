@@ -742,6 +742,9 @@ class Starship(CanDockWith):
 
         for s in shipList:
             
+            if s is self:
+                continue
+            
             damage = self.warp_core_breach_damage_based_on_distance(s, self_destruct)
 
             if damage > 0:
