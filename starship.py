@@ -1713,20 +1713,26 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             
             hull_dam  = 0
             shield_dam = 0
-            try:
-                target_crew_readyness = target.crew.caluclate_crew_readyness(
-                    new_scan["able_crew"], new_scan["injured_crew"]
-                ) if scan_target_crew else 1.0
-            except AttributeError:
-                target_crew_readyness = 1.0
             
             for attack in range(times_to_fire):
+                try:
+                    target_crew_readyness = target.crew.caluclate_crew_readyness(
+                        new_scan["able_crew"], new_scan["injured_crew"]
+                    ) if scan_target_crew else 1.0
+                except AttributeError:
+                    target_crew_readyness = 1.0
+                except KeyError:
+                    target_crew_readyness = 1.0
+                try:
+                    estimated_enemy_impulse = (ajust_system_integrity(
+                        new_scan["sys_impulse"]
+                    ) if use_effective_values else new_scan["sys_impulse"])
+                except KeyError:
+                    estimated_enemy_impulse = 1.0 if ship_class.evasion else 0.0
                 
                 if self.roll_to_hit(
                     target, 
-                    estimated_enemy_impulse=ajust_system_integrity(
-                        new_scan["sys_impulse"]
-                    ) if use_effective_values else new_scan["sys_impulse"], 
+                    estimated_enemy_impulse=estimated_enemy_impulse, 
                     systems_used_for_accuray=(
                         self.sensors.get_effective_value,
                         self.torpedo_launcher.get_effective_value
@@ -1848,9 +1854,19 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         scan_target_crew = not target.ship_class.is_automated and simulate_crew
         try:
-            target_crew_readyness = target.crew.scan_crew_readyness(precision) if scan_target_crew else 1.0
+            target_crew_readyness = target.crew.caluclate_crew_readyness(
+                target_scan["able_crew"], target_scan["injured_crew"]
+            ) if scan_target_crew else 1.0
         except AttributeError:
-            target_crew_readyness = 1
+            target_crew_readyness = 1.0
+        except KeyError:
+            target_crew_readyness = 1.0
+        try:
+            estimated_enemy_impulse = (ajust_system_integrity(
+                target_scan["sys_impulse"]
+            ) if use_effective_values else target_scan["sys_impulse"])
+        except KeyError:
+            estimated_enemy_impulse = 1.0 if ship_class.evasion else 0.0
                 
         for i in range(number_of_simulations):
             
@@ -1916,7 +1932,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         simulate_systems:bool=False, 
         simulate_crew:bool=False,
         use_effective_values:bool=False,
-        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus]]]
+        target_scan:Optional[Dict[str,Union[Tuple,int,ShipStatus,ShipClass]]]
     ):
         precision = self.sensors.determin_precision
 
@@ -1950,7 +1966,21 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             crew_readyness = self.crew.crew_readyness
         except AttributeError:
             crew_readyness = 1
-                
+        try:
+            target_crew_readyness = target.crew.caluclate_crew_readyness(
+                target_scan["able_crew"], target_scan["injured_crew"]
+            ) if scan_target_crew else 1.0
+        except AttributeError:
+            target_crew_readyness = 1.0
+        except KeyError:
+            target_crew_readyness = 1.0
+        try:
+            estimated_enemy_impulse = (ajust_system_integrity(
+                target_scan["sys_impulse"]
+            ) if use_effective_values else target_scan["sys_impulse"])
+        except KeyError:
+            estimated_enemy_impulse = 1.0 if ship_class.evasion else 0.0
+        
         scan_target_crew = not target.ship_class.is_automated and simulate_crew
                 
         for i in range(number_of_simulations):
@@ -1959,9 +1989,9 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                 target, 
                 damage_type=DAMAGE_RAMMING,
                 crew_readyness=crew_readyness,
-                target_crew_readyness=target.crew.scan_crew_readyness(precision),
+                target_crew_readyness=target_crew_readyness,
                 systems_used_for_accuray=[self.impulse_engine.get_effective_value, self.ship_class.evasion],
-                estimated_enemy_impulse=target_scan["sys_impulse"]
+                estimated_enemy_impulse=estimated_enemy_impulse
             )
             if to_hit:
                 
