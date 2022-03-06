@@ -571,7 +571,7 @@ class Starship(CanDockWith):
             "class" : self.ship_class
         }
         try:
-            d["shield"] = scan_assistant(self.shield_generator.shields, precision)
+            d["shields"] = scan_assistant(self.shield_generator.shields, precision)
         except AttributeError:
             pass
         try:
@@ -679,7 +679,7 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
-            for k,v in self.torpedo_launcher.torps.keys():
+            for k in self.torpedo_launcher.torps.keys():
                 self.torpedo_launcher.torps[k] = 0
             self.torpedo_launcher.integrety = 0.0
         except AttributeError:
@@ -756,10 +756,14 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         distance = self.local_coords.distance(coords=target.local_coords)
         
-        damage = inverse_square_law(
-            base=self.ship_class.warp_breach_damage * ((4/3) if self_destruct else 1), 
-            distance=distance
-        )
+        try:
+            damage = inverse_square_law(
+                base=self.ship_class.warp_breach_damage * ((4/3) if self_destruct else 1), 
+                distance=distance
+            )
+        except ZeroDivisionError:
+            damage = self.ship_class.warp_breach_damage
+        
         return round(damage)
 
     def simulate_self_destruct(
@@ -1679,6 +1683,8 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             scan_for_systems=simulate_systems, 
             use_effective_values=use_effective_values
         )
+        ship_class = target_scan["class"]
+        
         damage = torpdeo.damage
 
         total_shield_dam = 0
@@ -1812,6 +1818,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             scan_for_crew=simulate_crew, 
             use_effective_values=use_effective_values
         )
+        ship_class = target_scan["class"]
         try:
             targ_shield = target_scan["shields"]
         except KeyError:
@@ -1917,6 +1924,8 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             precision, scan_for_systems=simulate_systems, scan_for_crew=simulate_crew, 
             use_effective_values=use_effective_values
         )
+        ship_class = target_scan["class"]
+        
         targ_shield = target_scan["shields"]
         targ_hull = target_scan["hull"]
 

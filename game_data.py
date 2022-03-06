@@ -15,6 +15,7 @@ from starship import Starship
 from ship_class import ALL_SHIP_CLASSES
 from space_objects import Star, SubSector, Planet
 import colors
+from torpedo import Torpedo
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -457,7 +458,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
 
     def handle_torpedo(
         self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], 
-        torpedo_type:str, ships_in_area:Dict[Coords, Starship]
+        torpedo_type:Torpedo, ships_in_area:Dict[Coords, Starship]
     ):
         torpedo = torpedo_type
 
@@ -510,12 +511,15 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                             except AttributeError:
                                 target_crew_readyness = 1
                             
+                            estimated_enemy_impulse = ship.impulse_engine.get_effective_value
+                            
                             hitSomething = shipThatFired.roll_to_hit(
                                 ship, 
                                 damage_type=DAMAGE_TORPEDO,
+                                estimated_enemy_impulse=estimated_enemy_impulse,
                                 systems_used_for_accuray=(
                                     shipThatFired.sensors.get_effective_value,
-                                    shipThatFired.torpedos.get_effective_value
+                                    shipThatFired.torpedo_launcher.get_effective_value
                                 ),
                                 crew_readyness=crew_readyness,
                                 target_crew_readyness=target_crew_readyness
