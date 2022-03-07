@@ -141,14 +141,18 @@ class WarpOrder(Order):
         ))
     
     @classmethod
-    def from_coords(cls, entity:Starship, *, x:int, y:int, speed:int, start_x:int, start_y:int):
-
+    def from_coords(
+        cls, 
+        *,
+        entity:Starship,  
+        x:int, y:int, speed:int, start_x:int, start_y:int
+    ):
         distance = entity.sector_coords.distance(coords=Coords(x,y))
         
         x_, y_ = Coords.normalize_other(x=x - entity.sector_coords.x, y=y - entity.sector_coords.y)
 
         heading = atan2(y_, x_)
-        return cls(entity, heading=heading, distance=distance, x=x, y=y, speed=speed, start_x=start_x, start_y=start_y)
+        return cls(entity=entity, heading=heading, distance=distance, x=x, y=y, speed=speed, start_x=start_x, start_y=start_y)
     
     @classmethod
     def from_heading(cls, entity:Starship, *, heading:int, distance:int, speed:int, start_x:int, start_y:int):
@@ -158,7 +162,9 @@ class WarpOrder(Order):
             entity.sector_coords.x, entity.sector_coords.y, 
             CONFIG_OBJECT.sector_width, CONFIG_OBJECT.sector_height
         )
-        return cls(entity, heading=heading, distance=distance, x=x, y=y, speed=speed, start_x=start_x, start_y=start_y)
+        return cls(
+            entity=entity, heading=heading, distance=distance, x=x, y=y, speed=speed, start_x=start_x, start_y=start_y
+        )
 
     def perform(self) -> None:
         
@@ -273,12 +279,15 @@ class WarpTravelOrder(Order):
 class MoveOrder(Order):
 
     def __init__(
-        self, entity:Starship, *, heading:IntOrFloat, distance:int, x:int, y:int, x_aim:float, y_aim:float
+        self, 
+        *,
+        entity:Starship,
+        heading:IntOrFloat, distance:int, x:int, y:int, x_aim:float, y_aim:float, cost:int
     ) -> None:
         super().__init__(entity)
         self.heading = heading
         self.distance = distance
-        self.cost = ceil(distance * self.entity.impulse_engine.affect_cost_multiplier * LOCAL_ENERGY_COST)
+        self.cost = cost#ceil(distance * self.entity.impulse_engine.affect_cost_multiplier * LOCAL_ENERGY_COST)
         self.x, self.y = x,y
         self.x_aim, self.y_aim = x_aim, y_aim
         
@@ -301,8 +310,11 @@ class MoveOrder(Order):
         return hash((self.entity, self.heading, self.distance, self.cost, self.x, self.y, self.x_aim, self.y_aim))
     
     @classmethod
-    def from_coords(cls, entity:Starship, x:int, y:int, cost:int):
-
+    def from_coords(
+        cls, 
+        *,
+        entity:Starship, x:int, y:int, cost:int
+    ):
         distance = entity.local_coords.distance(x=x,y=y)
 
         rel_x = x - entity.local_coords.x
@@ -312,18 +324,21 @@ class MoveOrder(Order):
 
         heading = atan2(y_, x_) / TO_RADIANS
 
-        return cls(entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_, y_aim=y_)
+        return cls(entity=entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_, y_aim=y_, cost=cost)
     
     @classmethod
-    def from_heading(cls, entity:Starship, heading:int, distance:int, cost:int):
-        
+    def from_heading(
+        cls, 
+        *,
+        entity:Starship, heading:int, distance:int, cost:int
+    ):
         x_aim, y_aim = heading_to_direction(heading)
         x, y = heading_to_coords(
             heading, distance, 
             entity.local_coords.x, entity.local_coords.y,
             CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
         )
-        return cls(entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim)
+        return cls(entity=entity, distance=distance, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim, cost=cost)
 
     def perform(self) -> None:
         
@@ -650,7 +665,7 @@ class TorpedoOrder(Order):
         self, entity:Starship, amount:int, 
         *, 
         torpedo:Torpedo,
-        heading:IntOrFloat, x:int, y:int, x_aim:float, y_aim:float
+        heading:IntOrFloat, x:int, y:int, x_aim:float, y_aim:float, cost:int
     ) -> None:
         super().__init__(entity)
         self.heading = heading
@@ -658,6 +673,7 @@ class TorpedoOrder(Order):
         self.x, self.y = x,y
         self.x_aim, self.y_aim = x_aim, y_aim
         self.torpedo = torpedo
+        self.cost = cost
         
         torp_coords = self.game_data.engine.get_lookup_table(
             direction_x=x_aim, direction_y=y_aim, normalise_direction=False
@@ -676,15 +692,17 @@ class TorpedoOrder(Order):
         }
     
     def __hash__(self):
-        return hash((self.entity, self.heading, self.amount, self.x, self.y, self.x_aim, self.y_aim, self.coord_list))
+        return hash((self.entity, self.heading, self.amount, self.x, self.y, self.x_aim, self.y_aim, self.coord_list, self.cost))
     
     @classmethod
     def from_coords(
         cls, 
+        *,
         entity:Starship, 
         amount:int, 
         torpedo:Torpedo,
-        x:int, y:int
+        x:int, y:int,
+        cost:int
     ):
         x_aim, y_aim = Coords.normalize_other(x=x - entity.local_coords.x, y=y - entity.local_coords.y)
 
@@ -692,15 +710,15 @@ class TorpedoOrder(Order):
         return cls(
             entity, amount, 
             torpedo=torpedo,
-            heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim
+            heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim, cost=cost
         )
     
     @classmethod
     def from_heading(
-        cls, entity:Starship, heading:int, amount:int, torpedo:Torpedo
+        cls, 
+        *,
+        entity:Starship, heading:int, amount:int, torpedo:Torpedo, cost:int
     ):
-        #m=max(config_object.max_move_distance, config_object.max_warp_distance)
-
         x_aim, y_aim = heading_to_direction(heading)
         
         x_aim, y_aim = Coords.normalize_other(x=x_aim, y=y_aim)
@@ -709,9 +727,8 @@ class TorpedoOrder(Order):
             heading, CONFIG_OBJECT.max_move_distance, entity.local_coords.x, entity.local_coords.y, 
             CONFIG_OBJECT.subsector_width, CONFIG_OBJECT.subsector_height
         )
-
         return cls(
-            entity, amount, torpedo=torpedo, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim
+            entity, amount, torpedo=torpedo, heading=heading, x=x, y=y, x_aim=x_aim, y_aim=y_aim, cost=cost
         )
 
     def perform(self) -> None:
@@ -749,6 +766,9 @@ class TorpedoOrder(Order):
 
         if self.amount == 0:
             return OrderWarning.ZERO_VALUE_ENTERED
+        
+        if self.cost > self.entity.power_generator.energy:
+            return OrderWarning.NOT_ENOUGHT_ENERGY
 
         sub_sector:SubSector = self.game_data.grid[self.entity.sector_coords.y][self.entity.sector_coords.x]
 
@@ -767,7 +787,6 @@ class TorpedoOrder(Order):
                         OrderWarning.TORPEDO_COULD_HIT_PLANET if hit_friendly_ship else 
                         OrderWarning.TORPEDO_COULD_HIT_PLANET_OR_FRIENDLY_SHIP
                     )
-                    
             except KeyError:
                 try:
                     star = sub_sector.stars_dict[co]
@@ -818,18 +837,12 @@ class DockOrder(Order):
     
     def raise_warning(self):
         
-        #dock = not self.undock
-        
-        #is_cloaked = self.entity.cloak_status != CloakStatus.INACTIVE
-        
         if not self.undock:
-            
             try:
                 if self.entity.cloak.cloak_is_turned_on:
                     return OrderWarning.DECLOAK_FIRST
             except AttributeError:
                 pass
-        
         elif self.ships:
             return OrderWarning.ENEMY_SHIPS_NEARBY
 
