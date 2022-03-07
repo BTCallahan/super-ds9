@@ -19,6 +19,7 @@ class ConfigObject:
 
     chances_to_detect_cloak:int
     time_per_turn:int
+    energy_cost_per_torpedo:int
     
     screen_width:int
     screen_height:int
@@ -114,7 +115,16 @@ class ConfigObject:
             raise ValueError("The value of 'chances_to_detect_cloak' is zero, which means that ship will not get any chances to detect a cloaked ship")
         
         chances_to_detect_cloak = chances_to_detect_cloak
-                
+        
+        energy_cost_per_torpedo_patten = re.compile(r"energy_cost_per_torpedo:([\d]+)\n")
+        
+        energy_cost_per_torpedo = get_first_group_in_pattern(
+            text, energy_cost_per_torpedo_patten, return_aux_if_no_match=True, type_to_convert_to=int
+        )
+        if energy_cost_per_torpedo is None:
+            
+            raise OSError("The file 'config.ini' did not contain an entry for 'energy_cost_per_torpedo'")
+        
         d:Dict[str,string_or_int] = {}
         
         with open(config_file, "r") as f:
@@ -177,6 +187,7 @@ class ConfigObject:
         return ConfigObject(
             chances_to_detect_cloak=chances_to_detect_cloak,
             time_per_turn=time_per_turn,
+            energy_cost_per_torpedo=energy_cost_per_torpedo,
             screen_width=screen_width,
             screen_height=screen_height,
             sector_width=sector_width,
