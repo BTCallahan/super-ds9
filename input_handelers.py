@@ -168,7 +168,20 @@ def torpedo_number_button(*, max_value:int):
         bg=colors.black,
         initally_active=False
     )
-    
+
+def torpedo_energy_cost_display(*, amount:int) -> SimpleElement:
+    return SimpleElement(
+        x=3+CONFIG_OBJECT.command_display_x,
+        y=9+CONFIG_OBJECT.command_display_y,
+        width=12,
+        height=3,
+        title="E. Cost:",
+        alignment=tcod.constants.RIGHT,
+        active_fg=colors.white,
+        bg=colors.black,
+        text=str(amount)
+    )
+
 def torpedo_select_button(index_items:Iterable[str], keys:Iterable[Any]):
     return Selector(
         x=15+CONFIG_OBJECT.command_display_x,
