@@ -1168,8 +1168,11 @@ class WarpHandler(HeadingBasedHandler):
             return CommandEventHandler(self.engine)
         if not self.is_at_warp:
             if self.confirm_button.cursor_overlap(event):
-                if self.engine.player.warp_drive.is_at_warp:
-                    return CommandEventHandler(self.engine)
+                try:
+                    if self.engine.player.warp_drive.is_at_warp:
+                        return CommandEventHandler(self.engine)
+                except AttributeError:
+                    pass
                 
                 warp_order = WarpOrder.from_heading(
                     self.engine.player, heading=self.heading_button.add_up(), distance=self.distance.add_up(),
@@ -1352,8 +1355,11 @@ class WarpHandlerEasy(CoordBasedHandler):
         
         if not self.is_at_warp:
             if event.sym in confirm:
-                if self.engine.player.is_at_warp:
-                    return CommandEventHandler(self.engine)
+                try:
+                    if self.engine.player.warp_drive.is_at_warp:
+                        return CommandEventHandler(self.engine)
+                except AttributeError:
+                    pass
                 
                 warp_order = WarpOrder.from_coords(
                     entity=self.engine.player, 
@@ -2340,12 +2346,13 @@ class TorpedoHandler(HeadingBasedHandler):
                 if isinstance(ship_planet_or_star, (Planet, Star)):
                     game_data.selected_ship_planet_or_star = ship_planet_or_star
                 elif isinstance(ship_planet_or_star, Starship):
-                    
                     if (
                         ship_planet_or_star is not self.engine.player and 
                         ship_planet_or_star is not game_data.selected_ship_planet_or_star
                     ):
-                        game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.sensors.determin_precision)
+                        game_data.ship_scan = ship_planet_or_star.scan_for_print(
+                            game_data.player.sensors.determin_precision
+                        )
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
                     game_data.selected_ship_planet_or_star = None
