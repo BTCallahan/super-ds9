@@ -2267,6 +2267,8 @@ class TorpedoHandler(HeadingBasedHandler):
             ],
             keys=torpedos
         )
+        self.energy_cost = self.number_button.add_up() * CONFIG_OBJECT.energy_cost_per_torpedo
+        self.energy_cost_display:SimpleElement = torpedo_energy_cost_display(amount=self.energy_cost)
 
     def on_render(self, console: tcod.Console) -> None:
         
@@ -2278,7 +2280,7 @@ class TorpedoHandler(HeadingBasedHandler):
         super().on_render(console)
         
         self.number_button.render(console)
-        
+        self.energy_cost_display.render(console)
         self.torpedo_select.render(console)
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
@@ -2376,6 +2378,10 @@ class TorpedoHandler(HeadingBasedHandler):
         else:
             self.selected_handeler.handle_key(event)
             
+            if self.selected_handeler is self.number_button:
+                self.energy_cost = self.number_button.add_up() * CONFIG_OBJECT.energy_cost_per_torpedo
+                self.energy_cost_display.text = str(self.energy_cost)
+            
 class TorpedoHandlerEasy(CoordBasedHandler):
 
     def __init__(self, engine: Engine) -> None:
@@ -2401,6 +2407,8 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             ],
             keys=tuple(torpedos)
         )
+        self.energy_cost = self.number_button.add_up() * CONFIG_OBJECT.energy_cost_per_torpedo
+        self.energy_cost_display:SimpleElement = torpedo_energy_cost_display(amount=self.energy_cost)
         
     def on_render(self, console: tcod.Console) -> None:
         
@@ -2412,7 +2420,7 @@ class TorpedoHandlerEasy(CoordBasedHandler):
         super().on_render(console)
         
         self.number_button.render(console)
-        
+        self.energy_cost_display.render(console)
         self.torpedo_select.render(console)
         
     def ev_mousebuttondown(self, event: "tcod.event.MouseButtonDown") -> Optional[OrderOrHandler]:
@@ -2518,6 +2526,10 @@ class TorpedoHandlerEasy(CoordBasedHandler):
                 self.can_render_confirm_button = self.engine.player.ship_can_fire_torps
         else:
             self.selected_handeler.handle_key(event)
+            
+            if self.selected_handeler is self.number_button:
+                self.energy_cost = self.number_button.add_up() * CONFIG_OBJECT.energy_cost_per_torpedo
+                self.energy_cost_display.text = str(self.energy_cost)
                 
 class SelfDestructHandler(CancelConfirmHandler):
 
