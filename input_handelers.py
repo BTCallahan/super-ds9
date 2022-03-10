@@ -1314,7 +1314,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                     return CommandEventHandler(self.engine)
                 
                 warp_order = WarpOrder.from_coords(
-                    self.engine.player, x=self.x_button.add_up(), y=self.y_button.add_up(), 
+                    entity=self.engine.player, x=self.x_button.add_up(), y=self.y_button.add_up(), 
                     speed=self.warp_speed.add_up(), 
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
@@ -1356,7 +1356,9 @@ class WarpHandlerEasy(CoordBasedHandler):
                     return CommandEventHandler(self.engine)
                 
                 warp_order = WarpOrder.from_coords(
-                    self.engine.player, x=self.x_button.add_up(), y=self.y_button.add_up(), speed=self.warp_speed.add_up(),
+                    entity=self.engine.player, 
+                    x=self.x_button.add_up(), y=self.y_button.add_up(), 
+                    speed=self.warp_speed.add_up(),
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
                 warning = warp_order.raise_warning()
@@ -1522,7 +1524,10 @@ class MoveHandlerEasy(CoordBasedHandler):
         elif self.confirm_button.cursor_overlap(event) and self.engine.player.impulse_engine.is_opperational:
             
             warp_order = MoveOrder.from_coords(
-                self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
+                entity=self.engine.player, 
+                x=self.x_button.add_up(), 
+                y=self.y_button.add_up(), 
+                cost=self.energy_cost
             )
             warning = warp_order.raise_warning()
 
@@ -1564,7 +1569,10 @@ class MoveHandlerEasy(CoordBasedHandler):
         if event.sym in confirm and self.engine.player.impulse_engine.is_opperational:
             
             warp_order = MoveOrder.from_coords(
-                self.engine.player, self.x_button.add_up(), self.y_button.add_up(), self.energy_cost
+                entity=self.engine.player, 
+                x=self.x_button.add_up(), 
+                y=self.y_button.add_up(), 
+                cost=self.energy_cost
             )
             warning = warp_order.raise_warning()
 
@@ -2304,7 +2312,12 @@ class TorpedoHandler(HeadingBasedHandler):
             self.number_button.is_active = True
             
         elif self.confirm_button.cursor_overlap(event):
-            torpedo_order = TorpedoOrder.from_heading(self.engine.player, self.heading_button.add_up(), self.number_button.add_up())
+            torpedo_order:TorpedoOrder = TorpedoOrder.from_heading(
+                entity=self.engine.player, 
+                heading=self.heading_button.add_up(), 
+                amount=self.number_button.add_up(),
+                cost=self.energy_cost
+            )
             warning = torpedo_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -2342,8 +2355,11 @@ class TorpedoHandler(HeadingBasedHandler):
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            torpedo_order = TorpedoOrder.from_heading(
-                self.engine.player, self.heading_button.add_up(), self.number_button.add_up()
+            torpedo_order:TorpedoOrder = TorpedoOrder.from_heading(
+                entity=self.engine.player, 
+                heading=self.heading_button.add_up(), 
+                amount=self.number_button.add_up(),
+                cost=self.energy_cost
             )
             warning = torpedo_order.raise_warning()
 
@@ -2431,11 +2447,14 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             
         elif self.confirm_button.cursor_overlap(event) and self.engine.player.ship_can_fire_torps:
             
-            torpedo_order = TorpedoOrder.from_coords(
-                self.engine.player, self.number_button.add_up(), self.x_button.add_up(), self.y_button.add_up()
+            torpedo_order:TorpedoOrder = TorpedoOrder.from_coords(
+                entity=self.engine.player, 
+                amount=self.number_button.add_up(), 
+                x=self.x_button.add_up(), 
+                y=self.y_button.add_up(),
+                cost=self.energy_cost
             )
             warning = torpedo_order.raise_warning()
-            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             except KeyError:
@@ -2479,9 +2498,13 @@ class TorpedoHandlerEasy(CoordBasedHandler):
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
         if event.sym in confirm:
-            torpedo_order = TorpedoOrder.from_coords(self, self.x_button.add_up(), self.y_button.add_up())
+            torpedo_order:TorpedoOrder = TorpedoOrder.from_coords(
+                entity=self.engine.player, 
+                x=self.x_button.add_up(), 
+                y=self.y_button.add_up(),
+                cost=self.energy_cost
+            )
             warning = torpedo_order.raise_warning()
-            
             try:
                 self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
             except KeyError:
