@@ -131,13 +131,14 @@ class WarpOrder(Order):
         self.start_y = start_y
         assert speed > 0
         self.speed = speed
-        warp_speed, cost = WARP_FACTOR[speed]
+        self.warp_speed, cost = WARP_FACTOR[speed]
         self.cost = ceil(self.distance * SECTOR_ENERGY_COST * cost)
         self.x, self.y = x,y
     
     def __hash__(self):
         return hash((
-            self.entity, self.heading, self.distance, self.speed, self.cost, self.x, self.y, self.start_x, self.start_y
+            self.entity, self.heading, self.distance, self.speed, self.warp_speed, self.cost, 
+            self.x, self.y, self.start_x, self.start_y
         ))
     
     @classmethod
@@ -272,7 +273,7 @@ class WarpTravelOrder(Order):
         if player_in_destination_system or is_controllable:
             
             self.game_data.engine.message_log.add_message(
-                f"The {self.entity.name} has come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", 
+f"The {self.entity.name} has come out of warp in {self.entity.sector_coords.x} {self.entity.sector_coords.y}.", 
                 colors.cyan
             )
 
@@ -343,11 +344,6 @@ class MoveOrder(Order):
     def perform(self) -> None:
         
         sub_sector:SubSector = self.entity.get_sub_sector
-
-        #ships = [ship for ship in self.entity.game_data.grab_ships_in_same_sub_sector(self.entity) if 
-        # ship.local_coords in self.coord_list]
-
-        #self.entity.move()
         
         energy_cost = self.cost
 
@@ -396,14 +392,11 @@ class MoveOrder(Order):
                 try:
                     planet = sub_sector.planets_dict[co]
                     break
-
                 except KeyError:
                     try:
                         star = sub_sector.stars_dict[co]
                         break
-
                     except KeyError:
-
                         try:
                             ship = self.ships[co]
                             try:
@@ -414,7 +407,6 @@ class MoveOrder(Order):
                                 target_crew_readyness = ship.crew.crew_readyness
                             except AttributeError:
                                 target_crew_readyness = 1
-                            
                             hit = self.entity.roll_to_hit(
                                 ship, 
                                 systems_used_for_accuray=(
@@ -460,7 +452,6 @@ class MoveOrder(Order):
         if self.game_data.three_d_movment:
             
             co = Coords(x=self.x,y=self.y)
-            
             try:
                 planet = sub_sector.planets_dict[co]
                 return OrderWarning.SHIP_WILL_COLLIDE_WITH_PLANET
@@ -743,7 +734,6 @@ class TorpedoOrder(Order):
                 self.game_data.engine.message_log.add_message(
                     "Enemy ship decloaking!", colors.alert_red
                 )
-            
         except AttributeError:
             pass
         
@@ -758,6 +748,7 @@ class TorpedoOrder(Order):
         
         if self.entity.is_controllable:
             self.game_data.player_record["torpedos_fired"] += self.amount
+            self.game_data.player_record["energy_used"] += self.cost
 
     def raise_warning(self):
 
@@ -893,7 +884,6 @@ class PolarizeOrder(Order):
                 self.game_data.engine.message_log.add_message(
                     f"The {self.entity.name} has {'polarized' if self.active else 'depolarized'} it's hull."
                 )
-        
         if amount != shields:
             
             if is_player:
@@ -905,7 +895,6 @@ class PolarizeOrder(Order):
                 self.game_data.engine.message_log.add_message(
                     f"The {self.entity.name} has {'increased to' if amount > shields else 'decreased'} its hull polarization."
                 )
-        
         self.entity.polarized_hull.is_polarized = self.active
         
         self.entity.polarized_hull.polarization_amount = self.amount
@@ -970,7 +959,6 @@ class RechargeOrder(Order):
                 self.game_data.engine.message_log.add_message(
                     f"The {self.entity.name} has {'transfered energy to' if amount > shields else 'diverted energy from'} its shields."
                 )
-                
         if self.entity.is_controllable:
             shields = self.entity.shield_generator.shields
             
@@ -984,7 +972,6 @@ class RechargeOrder(Order):
                 self.game_data.engine.message_log.add_message(
                     "Diverting shield energy"
                 )
-            
         self.entity.shield_generator.shields = amount
         
         if self.entity.is_controllable:
