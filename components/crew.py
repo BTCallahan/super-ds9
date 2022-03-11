@@ -9,11 +9,10 @@ if TYPE_CHECKING:
     from ship_class import ShipClass
     from starship import Starship
 
-class Crew:
-    
-    starship:Starship
-    
+class Crew(StarshipSystem):
+        
     def __init__(self, ship_class:ShipClass) -> None:
+        super().__init__("Life Support:")
         
         self.able_crew = ship_class.max_crew
         self.injured_crew = 0
