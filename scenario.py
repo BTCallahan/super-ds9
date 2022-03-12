@@ -10,7 +10,7 @@ from random import randint
 from datetime import datetime
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 from evaluate_player import SCENARIO_TYPES
-from nation import ALL_NATIONS
+from nation import ALL_NATIONS, Nation
 from ship_class import ALL_SHIP_CLASSES, ShipClass
 
 if TYPE_CHECKING:
@@ -31,11 +31,11 @@ class Scenerio:
     default_ship_name:str
     default_captain_name:str
     self_destruct_code:str
-    your_ship:str
-    your_nation:str
-    allied_nations:Optional[Tuple[str]]
-    main_enemy_nation:str
-    other_enemy_nations:Optional[Tuple[str]]
+    your_ship:ShipClass
+    your_nation:Nation
+    allied_nations:Optional[Tuple[Nation]]
+    main_enemy_nation:Nation
+    other_enemy_nations:Optional[Tuple[Nation]]
     your_commanding_officer:str
     startdate:datetime
     enddate:datetime
