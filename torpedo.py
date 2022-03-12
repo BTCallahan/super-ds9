@@ -2,6 +2,8 @@ from typing import Dict, Final, Iterable
 from dataclasses import dataclass
 
 import re
+
+from frozendict import frozendict
 from global_functions import get_first_group_in_pattern
 
 @dataclass(eq=True, frozen=True)
@@ -75,7 +77,7 @@ def create_torpedos() -> Dict[str,Torpedo]:
         )
         torpedo_dict[torpedo_code] = torp
         
-    return torpedo_dict
+    return frozendict(torpedo_dict)
 
 ALL_TORPEDO_TYPES:Final = create_torpedos()
 

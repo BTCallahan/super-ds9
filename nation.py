@@ -3,6 +3,8 @@ from random import choice
 from typing import Dict, Final, Optional, Tuple
 from string import digits
 import re
+
+from frozendict import frozendict
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 
 @dataclass(frozen=True, eq=True)
@@ -114,6 +116,6 @@ def create_nations() -> Dict[str,Nation]:
         )
         nation_dict[nation_code] = return_this
         
-    return nation_dict
+    return frozendict(nation_dict)
         
 ALL_NATIONS:Final = create_nations()

@@ -8,6 +8,7 @@ import re
 from typing import Dict, Final, FrozenSet, Optional, Pattern, Tuple, TYPE_CHECKING
 from random import randint
 from datetime import datetime
+from frozendict import frozendict
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 from evaluate_player import SCENARIO_TYPES
 from nation import ALL_NATIONS, Nation
@@ -132,7 +133,7 @@ class Encounter:
     
     min_encounters:int
     max_encounters:int
-    ships:Dict[str,Tuple[int,int]]
+    ships:frozendict[str,Tuple[int,int]]
     
     def __len__(self):
         return len(self.ships)
@@ -215,16 +216,19 @@ def create_sceneraio():
                     
                     ship_min = ship.group(2)
                     
-                    ship_max = ship.group(2)
+                    ship_max = ship.group(3)
                     
                     ship_dict[sh] = (
                         int(ship_min),
                         int(ship_max)
-                    )
+                    )   
+                fd = frozendict(
+                    ship_dict
+                )
                 yield Encounter(
                     min_encounters=int(min_encs),
                     max_encounters=int(max_encs),
-                    ships=ship_dict
+                    ships=fd
                 )
         
         enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
@@ -347,6 +351,6 @@ def create_sceneraio():
             scenario_type=scenario_type,
             victory_percent=victory_percent
         )
-    return scenario_dict
+    return frozendict(scenario_dict)
 
 ALL_SCENERIOS:Final = create_sceneraio()

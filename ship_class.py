@@ -466,7 +466,7 @@ def create_ship_classes():
         torpedos = get_first_group_in_pattern(
             shipclass_txt, torpedos_pattern, return_aux_if_no_match=True
         )
-        torp_dict = {}
+        torp_dict_ = {}
         
         if torpedos:
             
@@ -475,9 +475,11 @@ def create_ship_classes():
             t_types = tt[::2]
             t_numbers = tt[1::2]
             
-            torp_dict = {
+            torp_dict_ = {
                 ALL_TORPEDO_TYPES[k] :int(v) for k,v in zip(t_types, t_numbers)
             }
+        
+        torp_dict = frozendict(torp_dict_)
         
         torpedo_tubes = get_first_group_in_pattern(
             shipclass_txt, torpedos_tubes_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0,
@@ -564,7 +566,7 @@ def create_ship_classes():
             energy_weapon_code=energy_weapon
         )
         
-    return shipclass_dict
+    return frozendict(shipclass_dict)
     
 ALL_SHIP_CLASSES = create_ship_classes()
     

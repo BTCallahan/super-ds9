@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 import re
 from typing import Dict, Final, Tuple
+
+from frozendict import frozendict
 from global_functions import get_first_group_in_pattern, get_multiple_groups_in_pattern
 
 @dataclass(eq=True, frozen=True)
@@ -98,6 +100,6 @@ def create_energy_weapons() -> Dict[str,EnergyWeapon]:
         )
         energy_weapon_dict[energy_weapon_code] = EnergyWeapon.create_weapon(name, short_name, color_tuple)
     
-    return energy_weapon_dict
+    return frozendict(energy_weapon_dict)
 
 ALL_ENERGY_WEAPONS:Final = create_energy_weapons()
