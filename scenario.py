@@ -58,17 +58,17 @@ class Scenerio:
     def get_all_enemy_nation(self):
         if self.other_enemy_nations:
             return tuple(
-                [ALL_NATIONS[self.main_enemy_nation]] + [ALL_NATIONS[nation] for nation in self.other_enemy_nations]
+                [self.main_enemy_nation] + list(self.other_enemy_nations)
             )
-        return tuple([ALL_NATIONS[self.main_enemy_nation]])
+        return tuple([self.main_enemy_nation])
 
     @cached_property
     def get_all_allied_nations(self):
         if self.allied_nations:
             return tuple(
-                [ALL_NATIONS[self.your_nation]] + [ALL_NATIONS[nation] for nation in self.allied_nations]
+                [self.your_nation] + list(self.allied_nations)
             )
-        return tuple([ALL_NATIONS[self.your_nation]])
+        return tuple([self.your_nation])
     
     @cached_property
     def get_set_of_enemy_nations(self):
@@ -186,7 +186,9 @@ def create_sceneraio():
     
         description = get_first_group_in_pattern(scenario_txt, description_pattern)
 
-        your_ship = get_first_group_in_pattern(scenario_txt, your_ship_pattern)
+        your_ship_ = get_first_group_in_pattern(scenario_txt, your_ship_pattern)
+        
+        your_ship = ALL_SHIP_CLASSES[your_ship_]
         
         _mission_critical_ships = get_first_group_in_pattern(scenario_txt, mission_critical_ships_pattern)
         
@@ -219,14 +221,11 @@ def create_sceneraio():
                         int(ship_min),
                         int(ship_max)
                     )
-                    
                     yield Encounter(
                         min_encounters=int(min_encs),
                         max_encounters=int(max_encs),
                         ships=ship_dict
                     )
-                
-                pass
         
         enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
         
@@ -242,32 +241,39 @@ def create_sceneraio():
         
         victory_percent = get_first_group_in_pattern(scenario_txt, victory_percent_pattern, type_to_convert_to=float)
         
-        your_nation = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
+        your_nation_ = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
         
-        allied_nations_ = get_first_group_in_pattern(scenario_txt, allied_nations_pattern, return_aux_if_no_match=True)
+        your_nation = ALL_NATIONS[your_nation_]
         
+        allied_nations_:str = get_first_group_in_pattern(scenario_txt, allied_nations_pattern, return_aux_if_no_match=True)
         try:
-            allied_nations = allied_nations_.split(",")
+            allied_nations__ = allied_nations_.split(",")
+            allied_nations = tuple(
+                ALL_NATIONS[n] for n in allied_nations__
+            )
         except AttributeError:
-            allied_nations = list()
+            allied_nations = tuple()
         
-        enemy_nation = get_first_group_in_pattern(scenario_txt, enemy_nation_pattern)
+        enemy_nation_:str = get_first_group_in_pattern(scenario_txt, enemy_nation_pattern)
         
-        other_enemy_nations_ = get_first_group_in_pattern(
+        enemy_nation = ALL_NATIONS[enemy_nation_]
+        
+        other_enemy_nations_:str = get_first_group_in_pattern(
             scenario_txt, other_enemy_nations_pattern, return_aux_if_no_match=True
         )
-        
         try:
-            other_enemy_nations = other_enemy_nations_.split(",")
+            other_enemy_nations__ = other_enemy_nations_.split(",")
+            other_enemy_nations = tuple(
+                ALL_NATIONS[n] for n in other_enemy_nations__
+            )
         except AttributeError:
-            allied_nations = list()
+            other_enemy_nations = tuple()
         
         your_commanding_officer = get_first_group_in_pattern(scenario_txt, your_commanding_officer_pattern)
         
-        star_generation_ = get_first_group_in_pattern(
+        star_generation_:str = get_first_group_in_pattern(
             scenario_txt, star_generation_pattern, return_aux_if_no_match=True
         )
-        
         try:
             split_stars = star_generation_.split(",")
             
@@ -333,8 +339,8 @@ def create_sceneraio():
             your_commanding_officer=your_commanding_officer,
             self_destruct_code=code,
             mission_critical_ships=mission_critical_ships,
-            enemy_encounters=tuple(all_enemy_encounters),
-            allied_encounters=tuple(all_allied_encounters),
+            enemy_encounters=all_enemy_encounters,
+            allied_encounters=all_allied_encounters,
             startdate=startdate,
             enddate=enddate,
             enemy_give_up_threshold=enemy_give_up_threshold,
