@@ -1,13 +1,13 @@
 from __future__ import annotations
-from math import ceil
-from random import randint
-from typing import TYPE_CHECKING
+from math import ceil, floor
+from typing import TYPE_CHECKING, Counter
+from components.starship_system import StarshipSystem
 
 from global_functions import scan_assistant
 
 if TYPE_CHECKING:
     from ship_class import ShipClass
-    from starship import Starship
+    from nation import Nation
 
 class Crew(StarshipSystem):
         
