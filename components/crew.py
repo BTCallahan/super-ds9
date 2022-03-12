@@ -43,7 +43,10 @@ class Crew(StarshipSystem):
         return self.able_crew + self.injured_crew
     
     def heal_crew(self, percentage_of_injured_crew:float, minimal_crew_to_heal:int):
-        heal_crew = min(self.injured_crew, ceil(self.injured_crew * percentage_of_injured_crew) + minimal_crew_to_heal)
+        
+        p = percentage_of_injured_crew * self.get_effective_value
+        
+        heal_crew = min(self.injured_crew, ceil(self.injured_crew * p) + minimal_crew_to_heal)
         self.able_crew+= heal_crew
         self.injured_crew-= heal_crew
     
