@@ -14,6 +14,8 @@ class Crew(StarshipSystem):
     def __init__(self, ship_class:ShipClass) -> None:
         super().__init__("Life Support:")
         
+        self.turn_without_lifesupport = 0
+
         self.able_crew = ship_class.max_crew
         self.injured_crew = 0
     
@@ -50,4 +52,38 @@ class Crew(StarshipSystem):
         self.able_crew -= injured + killed_outright
         self.injured_crew += injured - killed_in_sickbay
     
+    def on_turn(self):
         
+        if not self.is_opperational:
+            
+            self.turn_without_lifesupport += 1
+            
+            if self.turn_without_lifesupport > 10:
+                
+                crew_death = floor(self.turn_without_lifesupport / 10)
+                
+                total_crew = self.able_crew + self.injured_crew
+                
+                able_crew_percentage = self.able_crew / total_crew
+                
+                able_crew_deaths = min(round(crew_death * able_crew_percentage), self.able_crew)
+                
+                injured_crew_deaths = min(crew_death - able_crew_deaths, self.injured_crew)
+                
+                total_crew_deaths = able_crew_deaths + injured_crew_deaths
+                
+                if total_crew_deaths:
+                
+                    self.injuries_and_deaths(0, able_crew_deaths, injured_crew_deaths)
+                
+                    if self.starship.is_controllable:
+                        
+                        m = "members" if total_crew_deaths > 0 else "member"
+                        
+                        self.starship.game_data.engine.message_log.add_message(
+                            f"{total_crew_deaths} crew {m} have died from enviromental exposure."
+                        )
+        
+        elif self.turn_without_lifesupport > 0:
+            
+            self.turn_without_lifesupport -= 1
