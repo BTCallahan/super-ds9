@@ -221,11 +221,11 @@ def create_sceneraio():
                         int(ship_min),
                         int(ship_max)
                     )
-                    yield Encounter(
-                        min_encounters=int(min_encs),
-                        max_encounters=int(max_encs),
-                        ships=ship_dict
-                    )
+                yield Encounter(
+                    min_encounters=int(min_encs),
+                    max_encounters=int(max_encs),
+                    ships=ship_dict
+                )
         
         enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
         

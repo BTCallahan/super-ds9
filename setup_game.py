@@ -496,7 +496,7 @@ class NewGame(input_handelers.BaseEventHandler):
         
         self.scenario = scenario if scenario else ALL_SCENERIOS["DOM_STRIKE"]
         
-        self.rand_ship_names = ALL_NATIONS[scenario.your_nation].ship_names
+        self.rand_ship_names = scenario.your_nation.ship_names
         
         self.ship_name = TextHandeler(
             limit=16, 
