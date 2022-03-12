@@ -93,3 +93,14 @@ def find_most_powerful_torpedo(iter_torpedo_type:Iterable[Torpedo]):
             torp_type = torp
             damage = torp.damage
     return torp_type
+
+def find_most_destructive_torpedo(iter_torpedo_type:Iterable[Torpedo]):
+    
+    torp_type = None
+    infrastructure_damage = 0.0
+    
+    for torp in iter_torpedo_type:
+        if torp.infrastructure_damage > infrastructure_damage:
+            torp_type = torp
+            infrastructure_damage = torp.infrastructure_damage
+    return torp_type
