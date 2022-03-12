@@ -9,11 +9,6 @@ from global_functions import get_first_group_in_pattern
 from data_globals import string_or_int
 from coords import Coords
 
-class FrozenDict(Mapping):
-
-    def __init__(self, ) -> None:
-        super().__init__()
-        
 @dataclass(frozen=True)
 class ConfigObject:
 
