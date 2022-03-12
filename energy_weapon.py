@@ -66,12 +66,12 @@ class EnergyWeapon:
             color=color
         )
 
-energy_weapon_pattern = re.compile(r"ENERGY_WEAPON:([\w\d_]+)\n([^#]+)END_ENERGY_WEAPON")
-color_pattern = re.compile(r"COLOR:([\d]+),([\d]+),([\d]+)\n")
-name_pattern = re.compile(r"NAME:([\w\d\ ]+)\n" )
-name_short_pattern = re.compile(r"NAME_SHORT:([a-zA-Z \.]+)\n")
-
 def create_energy_weapons() -> Dict[str,EnergyWeapon]:
+    
+    energy_weapon_pattern = re.compile(r"ENERGY_WEAPON:([\w\d_]+)\n([^#]+)END_ENERGY_WEAPON")
+    color_pattern = re.compile(r"COLOR:([\d]+),([\d]+),([\d]+)\n")
+    name_pattern = re.compile(r"NAME:([\w\d\ ]+)\n" )
+    name_short_pattern = re.compile(r"NAME_SHORT:([a-zA-Z \.]+)\n")
     
     with open("library/energy_weapons.txt") as energy_weapon_text:
         

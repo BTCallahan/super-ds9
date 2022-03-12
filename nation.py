@@ -30,22 +30,22 @@ class Nation:
         
         return choice(self.ship_names)
     
-#\d\w\s\!\:\,\.\'\-\_
-nation_pattern = re.compile(r"NATION:([\w]+)\n([^#]+)END_NATION")
-color_pattern = re.compile(r"COLOR:([\d]{1,3}),([\d]{1,3}),([\d]{1,3})\n")
-name_long_pattern = re.compile(r"NAME_LONG:([\w\s\ ]+)\n")
-name_short_pattern = re.compile(r"NAME_SHORT:([a-zA-Z\ \']+)\n")
-name_possesive_pattern = re.compile(r"NAME_POSSESIVE:([a-zA-Z\ \']+)\n")
-command_name_pattern = re.compile(r"COMMAND_NAME:([a-zA-Z\ \']+)\n")
-intelligence_agency_pattern = re.compile(r"INTELLIGENCE_AGENCY:([a-zA-Z\ \']+)\n")
-navy_name_pattern = re.compile(r"NAVY_NAME:([a-zA-Z\ \']+)\n")
-ship_prefix_pattern = re.compile(r"SHIP_PREFIX:([A-Z\.]+)\n")
-congratulations_pattern = re.compile(r"CONGRATULATIONS_TEXT:([a-zA-Z\.\!\,\(\) ]+)\n")
-captain_rank_pattern = re.compile(r"CAPTAIN_RANK_NAME:([a-zA-Z ]+)\n")
-admiral_rank_pattern = re.compile(r"ADMIRAL_RANK_NAME:([a-zA-Z ]+)\n")
-ship_names_pattern = re.compile(r"SHIP_NAMES:([\d\w\s\!\:\,\.\'\-]+)\nSHIP_NAMES_END")
-
 def create_nations() -> Dict[str,Nation]:
+    
+    #\d\w\s\!\:\,\.\'\-\_
+    nation_pattern = re.compile(r"NATION:([\w]+)\n([^#]+)END_NATION")
+    color_pattern = re.compile(r"COLOR:([\d]{1,3}),([\d]{1,3}),([\d]{1,3})\n")
+    name_long_pattern = re.compile(r"NAME_LONG:([\w\s\ ]+)\n")
+    name_short_pattern = re.compile(r"NAME_SHORT:([a-zA-Z\ \']+)\n")
+    name_possesive_pattern = re.compile(r"NAME_POSSESIVE:([a-zA-Z\ \']+)\n")
+    command_name_pattern = re.compile(r"COMMAND_NAME:([a-zA-Z\ \']+)\n")
+    intelligence_agency_pattern = re.compile(r"INTELLIGENCE_AGENCY:([a-zA-Z\ \']+)\n")
+    navy_name_pattern = re.compile(r"NAVY_NAME:([a-zA-Z\ \']+)\n")
+    ship_prefix_pattern = re.compile(r"SHIP_PREFIX:([A-Z\.]+)\n")
+    congratulations_pattern = re.compile(r"CONGRATULATIONS_TEXT:([a-zA-Z\.\!\,\(\) ]+)\n")
+    captain_rank_pattern = re.compile(r"CAPTAIN_RANK_NAME:([a-zA-Z ]+)\n")
+    admiral_rank_pattern = re.compile(r"ADMIRAL_RANK_NAME:([a-zA-Z ]+)\n")
+    ship_names_pattern = re.compile(r"SHIP_NAMES:([\d\w\s\!\:\,\.\'\-]+)\nSHIP_NAMES_END")
     
     with open("library/nations.txt") as nation_text:
         

@@ -25,13 +25,13 @@ class Torpedo:
         
         return (self.damage > t.damage) if self.infrastructure == t.infrastructure else (self.infrastructure > t.infrastructure)
     
-torpedo_pattern = re.compile(r"TORPEDO:([A-Z\_]+)\n([^#]+)END_TORPEDO")
-name_pattern = re.compile(r"NAME:([a-zA-Z\ \-\']+)\n" )
-damage_pattern = re.compile(r"DAMAGE:([\d]{1,4})\n" )
-req_infrastructure_pattern = re.compile(r"REQUIRED:([\d.]+)\n" )
-planet_damage_pattern = re.compile(r"PLANET_DAMAGE:([\d.]+)\n" )
-
 def create_torpedos() -> Dict[str,Torpedo]:
+    
+    torpedo_pattern = re.compile(r"TORPEDO:([A-Z\_]+)\n([^#]+)END_TORPEDO")
+    name_pattern = re.compile(r"NAME:([a-zA-Z\ \-\']+)\n" )
+    damage_pattern = re.compile(r"DAMAGE:([\d]{1,4})\n" )
+    req_infrastructure_pattern = re.compile(r"REQUIRED:([\d.]+)\n" )
+    planet_damage_pattern = re.compile(r"PLANET_DAMAGE:([\d.]+)\n" )
     
     with open("library/torpedos.txt") as torpedo_text:
         

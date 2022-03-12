@@ -79,55 +79,6 @@ class Scenerio:
     def get_set_of_allied_nations(self):
         return frozenset(self.get_all_allied_nations)
 
-#scenario
-scenerio_pattern = re.compile(r"SCENARIO:([\w_]+)\n([^#]+)END_SCENARIO")
-name_pattern = re.compile(r"NAME:([\w\ .\-]+)\n" )
-
-scenario_type_pattern = re.compile(r"SCENARIO_TYPE:([\w]+)\n" )
-
-description_pattern = re.compile(r"DESCRIPTION:([a-zA-Z \.\,\?\!]+)\nEND_DESCRIPTION")
-your_ship_pattern = re.compile(r"YOUR_SHIP:([a-zA-Z_]+)\n")
-
-enemy_encounters_pattern = re.compile(r"ENEMY_ENCOUNTERS:\n([\w\n\:\, \!]+)END_ENEMY_ENCOUNTERS")
-
-enemy_ships_pattern = re.compile(r"    ENEMY_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ENEMY_SHIPS\n")
-
-allied_encounters_pattern = re.compile(r"ALLIED_ENCOUNTERS:\n([\w\n\:\, \!]+)END_ALLIED_ENCOUNTERS")
-
-allied_ships_pattern = re.compile(r"    ALLIED_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ALLIED_SHIPS\n")
-
-ship_pattern = re.compile(r"([a-zA-Z_]+):(\d),(\d)\n")
-
-mission_critical_ships_pattern = re.compile(r"MISSION_CRITICAL_SHIPS:([\w,]+)")
-
-default_ship_name_pattern = re.compile(r"DEFAULT_SHIP_NAME:([a-zA-Z\-\'\ ]+)\n")
-
-default_captain_name_pattern = re.compile(r"DEFAULT_CAPTAIN_NAME:([a-zA-Z\-\'\ ]+)\n")
-
-star_generation_pattern = re.compile(r"STAR_GENERATION:([\d\,]+)\n")
-
-your_nation_pattern = re.compile(r"YOUR_NATION:([a-zA-Z_]+)\n")
-allied_nations_pattern = re.compile(r"ALLIED_NATIONS:([a-zA-Z_,]+)\n")
-enemy_nation_pattern = re.compile(r"MAIN_ENEMY_NATION:([a-zA-Z_]+)\n")
-other_enemy_nations_pattern = re.compile(r"OTHER_ENEMY_NATIONS:([a-zA-Z_,]+)\n")
-
-your_commanding_officer_pattern = re.compile(r"YOUR_COMMANDING_OFFICER:([a-zA-Z\ \'\.\-]+)\n")
-
-enemy_give_up_threshold_pattern = re.compile(r"ENEMY_GIVE_UP_THRESHOLD:([\d\.]+)\n")
-
-victory_percent_pattern = re.compile(r"VICTORY_PERCENT:([\d\.]+)\n")
-
-destruct_code_pattern = re.compile(r"DESTRUCT_CODE:([\w\-]+)\n")
-
-start_date_pattern = re.compile(r"START_DATE_TIME:([\d]+).([\d]+).([\d]+).([\d]+).([\d]+).([\d]+)\n")
-end_date_pattern = re.compile(r"END_DATE_TIME:([\d]+).([\d]+).([\d]+).([\d]+).([\d]+).([\d]+)\n")
-
-friendly_planet_pattern = re.compile(r"FRIENDLY_PLANET_PERCENT:([\d\.]+)\n")
-
-#the following is not used - yet, anyway!
-enc_pattern = re.compile(r"NO_OF_ENCS:([\d]+),([\d]+)\n([\w\n\,]+)END_NO_OF_ENCS")
-ship_enc_pattern = re.compile(r"SHIP:([\w]+),([\d]+),([\d]+)")
-
 @dataclass(frozen=True)
 class Encounter:
     
@@ -164,6 +115,54 @@ class Encounter:
             yield r
 
 def create_sceneraio():
+    
+    scenerio_pattern = re.compile(r"SCENARIO:([\w_]+)\n([^#]+)END_SCENARIO")
+    name_pattern = re.compile(r"NAME:([\w\ .\-]+)\n" )
+
+    scenario_type_pattern = re.compile(r"SCENARIO_TYPE:([\w]+)\n" )
+
+    description_pattern = re.compile(r"DESCRIPTION:([a-zA-Z \.\,\?\!]+)\nEND_DESCRIPTION")
+    your_ship_pattern = re.compile(r"YOUR_SHIP:([a-zA-Z_]+)\n")
+
+    enemy_encounters_pattern = re.compile(r"ENEMY_ENCOUNTERS:\n([\w\n\:\, \!]+)END_ENEMY_ENCOUNTERS")
+
+    enemy_ships_pattern = re.compile(r"    ENEMY_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ENEMY_SHIPS\n")
+
+    allied_encounters_pattern = re.compile(r"ALLIED_ENCOUNTERS:\n([\w\n\:\, \!]+)END_ALLIED_ENCOUNTERS")
+
+    allied_ships_pattern = re.compile(r"    ALLIED_SHIPS:([\d]+),([\d]+)\n([a-zA-Z0-9_\n\:\, ]+?)    END_ALLIED_SHIPS\n")
+
+    ship_pattern = re.compile(r"([a-zA-Z_]+):(\d),(\d)\n")
+
+    mission_critical_ships_pattern = re.compile(r"MISSION_CRITICAL_SHIPS:([\w,]+)")
+
+    default_ship_name_pattern = re.compile(r"DEFAULT_SHIP_NAME:([a-zA-Z\-\'\ ]+)\n")
+
+    default_captain_name_pattern = re.compile(r"DEFAULT_CAPTAIN_NAME:([a-zA-Z\-\'\ ]+)\n")
+
+    star_generation_pattern = re.compile(r"STAR_GENERATION:([\d\,]+)\n")
+
+    your_nation_pattern = re.compile(r"YOUR_NATION:([a-zA-Z_]+)\n")
+    allied_nations_pattern = re.compile(r"ALLIED_NATIONS:([a-zA-Z_,]+)\n")
+    enemy_nation_pattern = re.compile(r"MAIN_ENEMY_NATION:([a-zA-Z_]+)\n")
+    other_enemy_nations_pattern = re.compile(r"OTHER_ENEMY_NATIONS:([a-zA-Z_,]+)\n")
+
+    your_commanding_officer_pattern = re.compile(r"YOUR_COMMANDING_OFFICER:([a-zA-Z\ \'\.\-]+)\n")
+
+    enemy_give_up_threshold_pattern = re.compile(r"ENEMY_GIVE_UP_THRESHOLD:([\d\.]+)\n")
+
+    victory_percent_pattern = re.compile(r"VICTORY_PERCENT:([\d\.]+)\n")
+
+    destruct_code_pattern = re.compile(r"DESTRUCT_CODE:([\w\-]+)\n")
+
+    start_date_pattern = re.compile(r"START_DATE_TIME:([\d]+).([\d]+).([\d]+).([\d]+).([\d]+).([\d]+)\n")
+    end_date_pattern = re.compile(r"END_DATE_TIME:([\d]+).([\d]+).([\d]+).([\d]+).([\d]+).([\d]+)\n")
+
+    friendly_planet_pattern = re.compile(r"FRIENDLY_PLANET_PERCENT:([\d\.]+)\n")
+
+    #the following is not used - yet, anyway!
+    enc_pattern = re.compile(r"NO_OF_ENCS:([\d]+),([\d]+)\n([\w\n\,]+)END_NO_OF_ENCS")
+    ship_enc_pattern = re.compile(r"SHIP:([\w]+),([\d]+),([\d]+)")
         
     with open("library/scenarios.txt") as scenario_text:
         
