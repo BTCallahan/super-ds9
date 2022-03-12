@@ -2989,7 +2989,7 @@ class ShipPlacement(MainGameEventHandler):
             height=CONFIG_OBJECT.command_display_end_y - (CONFIG_OBJECT.command_display_y + 4),
             wrap_item=True,
             index_items=all_ship_names,
-            keys=tuple(ALL_SHIP_CLASSES.keys()),
+            keys=tuple(ALL_SHIP_CLASSES.values()),
             active_fg=colors.white,
             inactive_fg=colors.grey,
             bg=colors.black,
@@ -3148,7 +3148,7 @@ class ShipPlacement(MainGameEventHandler):
             
             self.all_ships.handle_click(event)
             
-            ship_class_nation = ALL_SHIP_CLASSES[self.all_ships.index_key].nation
+            ship_class_nation = self.all_ships.index_key.nation
             
             self.friendy_hostile.is_active = ship_class_nation in self.engine.game_data.scenerio.get_set_of_allied_nations
             
@@ -3312,7 +3312,7 @@ class ShipPlacement(MainGameEventHandler):
             
             if self.selected_button is self.all_ships:
                 
-                ship_class_nation = ALL_SHIP_CLASSES[self.all_ships.index_key].nation
+                ship_class_nation = self.all_ships.index_key.nation
                 
                 self.friendy_hostile.is_active = ship_class_nation in self.engine.game_data.scenerio.get_set_of_allied_nations
         
@@ -3342,7 +3342,7 @@ class ShipPlacement(MainGameEventHandler):
         
         if local_xy in sub_sector.safe_spots:
             
-            ship_class:ShipClass = ALL_SHIP_CLASSES[self.all_ships.index_key]
+            ship_class:ShipClass = self.all_ships.index_key
         
             selected_ship_is_friendly = ship_class.nation in game_data.scenerio.allied_nations
             

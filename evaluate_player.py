@@ -382,7 +382,7 @@ class DestroyEvaluation(ScenerioEvaluation):
                 )
             ]
         )        
-        player_nation = game_data.player.ship_class.nation
+        player_nation = game_data.scenerio.your_nation
         
         player_nation_short = player_nation.name_short
         
@@ -390,7 +390,7 @@ class DestroyEvaluation(ScenerioEvaluation):
         comander_rank_name = player_nation.comander_rank_name
         navy_name = player_nation.navy_name
         
-        enemy_nation = ALL_NATIONS[game_data.scenerio.main_enemy_nation]
+        enemy_nation = game_data.scenerio.main_enemy_nation
         
         enemy_nation_name_short = enemy_nation.name_short
         enemy_nation_posessive = enemy_nation.name_possesive

@@ -291,7 +291,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
 
         locPos = self.grid[randYsec][randXsec].find_random_safe_spot()
 
-        player_ship_class = ALL_SHIP_CLASSES[self.scenerio.your_ship]
+        player_ship_class = self.scenerio.your_ship
 
         self.player = Starship(player_ship_class, BaseAi, locPos.x, locPos.y, randXsec, randYsec, name=ship_name)
         self.player.game_data = self
