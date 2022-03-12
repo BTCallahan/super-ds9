@@ -568,5 +568,4 @@ def create_ship_classes():
         
     return frozendict(shipclass_dict)
     
-ALL_SHIP_CLASSES = create_ship_classes()
-    
+ALL_SHIP_CLASSES:Final = create_ship_classes()
