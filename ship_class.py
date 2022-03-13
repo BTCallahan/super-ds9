@@ -112,6 +112,7 @@ class ShipClass:
     targeting:float
     size:float
     torp_dict:frozendict[Torpedo, int]
+    transporters:int=0
     max_shields:int=0
     evasion:float=0.0
     max_beam_energy:int=0
@@ -191,6 +192,7 @@ to one.'''
         max_armor:int=0, 
         max_hull:int, 
         max_crew:int=0, 
+        transporters:int=0,
         max_energy:int, 
         max_warp:int,
         power_generated_per_turn:int,
@@ -240,6 +242,7 @@ to one.'''
             max_armor=max_armor,
             max_hull=max_hull,
             max_crew=max_crew,
+            transporters=transporters,
             max_energy=max_energy,
             polarized_hull=polarized_hull,
             power_generated_per_turn=power_generated_per_turn,
