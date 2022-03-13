@@ -600,14 +600,15 @@ class EnergyWeaponOrder(Order):
       
 class TransportOrder(Order):
     
-    def __init__(self, entity: Starship, target: Starship, amount: int, board:bool=False) -> None:
+    def __init__(self, entity: Starship, target: Starship, amount: int, board:bool=False, send:bool=True) -> None:
         super().__init__(entity)
         self.target = target
         self.amount = amount
         self.board = board
+        self.send = send
     
     def __hash__(self) -> int:
-        return hash((self.entity, self.target, self.amount, self.board))
+        return hash((self.entity, self.target, self.amount, self.board, self.send))
     
     def raise_warning(self):
         
