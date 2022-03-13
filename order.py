@@ -634,18 +634,47 @@ class TransportOrder(Order):
         
         if self.amount <= 0:
             return OrderWarning.TRANSPORT_NO_CREW_SELECTED
+        try:
+            target_shields_are_up = (
+                self.target.shield_generator.is_opperational and 
+                self.target.shield_generator.shields_up and 
+                self.target.shield_generator.shields > 0
+            )
+        except AttributeError:
+            target_shields_are_up = False
         
-        is_recrewable = self.target.ship_status.is_recrewable
-        same_nation = self.target.nation is self.entity.nation
+        if target_shields_are_up:
         
-        if not (is_recrewable or same_nation):
+            return OrderWarning.TRANSPORT_SHIELDS_ARE_UP
+
+        if self.board and not self.entity.local_coords.is_adjacent(self.target.local_coords):
+            return OrderWarning.TRANSPORT_DESTINATION_OUT_OF_RANGE
+        elif (
+            not self.board and 
+            not self.entity.local_coords.distance(coords=self.target.local_coords) <= 
+            self.entity.transporter.get_effective_value * CONFIG_OBJECT.max_move_distance
+        ):
+            return OrderWarning.TRANSPORT_DESTINATION_OUT_OF_RANGE
         
-            return OrderWarning.TRANSPORT_WRONG_NATION
+        set_of_allied_nations = self.target.game_data.scenerio.get_set_of_allied_nations
         
-        free = self.target.crew.get_total_crew - self.target.ship_class.max_crew
+        if not self.send:
+            
+            return (
+                OrderWarning.TRANSPORT_CREW_NOT_ABOARD if 
+                self.entity.nation not in self.target.crew.hostiles_on_board else 
+                OrderWarning.SAFE
+            )
+        else:
+            if self.target.ship_status.is_recrewable or (
+                (self.entity.nation in set_of_allied_nations) == (self.target.nation in set_of_allied_nations)
+            ):
+                free = self.target.crew.get_total_crew - self.target.ship_class.max_crew
+            
+                return OrderWarning.TRANSPORT_NOT_ENOUGH_SPACE if free <= self.amount else OrderWarning.SAFE
         
-        return OrderWarning.TRANSPORT_NOT_ENOUGH_SPACE if free <= self.amount else OrderWarning.SAFE
-    
+        return OrderWarning.SAFE
+        
     def perform(self) -> None:
         
         is_derlict = self.target.ship_status.is_recrewable
