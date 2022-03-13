@@ -5,8 +5,8 @@ from coords import Coords
 from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, WARP_FACTOR, CloakStatus
 from engine import CONFIG_OBJECT
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
-from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, blocks_action, \
-    torpedo_warnings, collision_warnings, misc_warnings, Order, DockOrder, OrderWarning, \
+from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, BLOCKS_ACTION, \
+    TORPEDO_WARNINGS, COLLISION_WARNINGS, MISC_WARNINGS, Order, DockOrder, OrderWarning, \
     EnergyWeaponOrder, RepairOrder, TorpedoOrder, WarpOrder, MoveOrder, RechargeOrder
 from global_functions import stardate
 from ship_class import ALL_SHIP_CLASSES, ShipClass
@@ -859,7 +859,7 @@ class CommandEventHandler(MainGameEventHandler):
             self.cloak_button.is_active = not self.cloak_button.is_active
             return cloak_order
         
-        self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+        self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
 
     def dock(self):
         
@@ -922,7 +922,7 @@ class CommandEventHandler(MainGameEventHandler):
                     return dock_order
                 self.engine.message_log.add_message("Warning: There are hostile ships nearby.", fg=colors.orange)
             else:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
         else:
             self.engine.message_log.add_message(
                 f"Error: No suitable planet nearbye, {player.nation.captain_rank_name}.", fg=colors.red
@@ -1049,7 +1049,7 @@ class CommandEventHandler(MainGameEventHandler):
         if self.warned_once:
             return repair
         try:
-            self.engine.message_log.add_message(misc_warnings[warning], fg=colors.orange)
+            self.engine.message_log.add_message(MISC_WARNINGS[warning], fg=colors.orange)
             self.warned_once = True
             
         except KeyError:
@@ -1181,7 +1181,7 @@ class WarpHandler(HeadingBasedHandler):
                 )
                 warning = warp_order.raise_warning()
                 try:
-                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                    self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
                 except KeyError:
                 
                     if warning == OrderWarning.SAFE:
@@ -1225,7 +1225,7 @@ class WarpHandler(HeadingBasedHandler):
                 )
                 warning = warp_order.raise_warning()
                 try:
-                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                    self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
                 except KeyError:
                 
                     if warning == OrderWarning.SAFE:
@@ -1323,7 +1323,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                 )
                 warning = warp_order.raise_warning()
                 try:
-                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                    self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
                 except KeyError:
                         
                     if warning == OrderWarning.SAFE:
@@ -1369,7 +1369,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                 )
                 warning = warp_order.raise_warning()
                 try:
-                    self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                    self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
                 except KeyError:
                         
                     if warning == OrderWarning.SAFE:
@@ -1442,11 +1442,11 @@ class MoveHandler(HeadingBasedHandler):
             if warning == OrderWarning.SAFE:
                 return move_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
             except KeyError:
                 if not self.engine.crash_warning or self.warned_once:
                     return move_order
-                self.engine.message_log.add_message(collision_warnings[warning], colors.orange)
+                self.engine.message_log.add_message(COLLISION_WARNINGS[warning], colors.orange)
                 self.warned_once = True
             finally:
                 self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
@@ -1468,11 +1468,11 @@ class MoveHandler(HeadingBasedHandler):
             if warning == OrderWarning.SAFE:
                 return move_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
             except KeyError:
                 if not self.engine.crash_warning or self.warned_once:
                     return move_order
-                self.engine.message_log.add_message(collision_warnings[warning], colors.orange)
+                self.engine.message_log.add_message(COLLISION_WARNINGS[warning], colors.orange)
                 self.warned_once = True
             finally:
                 self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
@@ -1540,7 +1540,7 @@ class MoveHandlerEasy(CoordBasedHandler):
             if warning == OrderWarning.SAFE:
                 return warp_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
                 
             except KeyError:
                 
@@ -1548,7 +1548,7 @@ class MoveHandlerEasy(CoordBasedHandler):
                     
                     return warp_order
                 
-                self.engine.message_log.add_message(collision_warnings[warning], fg=colors.orange)
+                self.engine.message_log.add_message(COLLISION_WARNINGS[warning], fg=colors.orange)
                 self.warned_once = True
             finally:
                 self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
@@ -1585,11 +1585,11 @@ class MoveHandlerEasy(CoordBasedHandler):
             if warning == OrderWarning.SAFE:
                 return warp_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
             except KeyError:
                 if self.warned_once:
                     return warp_order
-                self.engine.message_log.add_message(collision_warnings[warning], fg=colors.orange)
+                self.engine.message_log.add_message(COLLISION_WARNINGS[warning], fg=colors.orange)
                 self.warned_once =True
             finally:
                 self.can_render_confirm_button = self.engine.player.impulse_engine.is_opperational
@@ -1668,7 +1668,7 @@ class PolarizationHandler(MinMaxInitator):
             if warning == OrderWarning.SAFE:
                 return recharge_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
                 self.warned_once = False
                 
             except KeyError:
@@ -1676,7 +1676,7 @@ class PolarizationHandler(MinMaxInitator):
                 if self.warned_once:
                     return recharge_order
                 
-                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.engine.message_log.add_message(MISC_WARNINGS[warning], colors.orange)
                 self.warned_once = True
             
         elif self.cancel_button.cursor_overlap(event):
@@ -1697,14 +1697,14 @@ class PolarizationHandler(MinMaxInitator):
             if warning == OrderWarning.SAFE:
                 return recharge_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
                 self.warned_once = False
             except KeyError:
                 
                 if self.warned_once:
                     return recharge_order
                 
-                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.engine.message_log.add_message(MISC_WARNINGS[warning], colors.orange)
                 self.warned_once = True
         else:
             self.amount_button.handle_key(event)
@@ -1774,7 +1774,7 @@ class ShieldsHandler(MinMaxInitator):
             if warning == OrderWarning.SAFE:
                 return recharge_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
                 self.warned_once = False
                 
             except KeyError:
@@ -1782,7 +1782,7 @@ class ShieldsHandler(MinMaxInitator):
                 if self.warned_once:
                     return recharge_order
                 
-                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.engine.message_log.add_message(MISC_WARNINGS[warning], colors.orange)
                 self.warned_once = True
             
         elif self.cancel_button.cursor_overlap(event):
@@ -1803,14 +1803,14 @@ class ShieldsHandler(MinMaxInitator):
             if warning == OrderWarning.SAFE:
                 return recharge_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
                 self.warned_once = False
             except KeyError:
                 
                 if self.warned_once:
                     return recharge_order
                 
-                self.engine.message_log.add_message(misc_warnings[warning], colors.orange)
+                self.engine.message_log.add_message(MISC_WARNINGS[warning], colors.orange)
                 self.warned_once = True
         else:
             self.amount_button.handle_key(event)
@@ -1862,7 +1862,7 @@ class TransporterHandler(MinMaxInitator):
                 warning = order.raise_warning()
                 
                 try:
-                    self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                    self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
                 except KeyError:
                 
                     if warning == OrderWarning.SAFE:
@@ -1910,7 +1910,7 @@ class TransporterHandler(MinMaxInitator):
                 
                 warning = order.raise_warning()
                 try:
-                    self.engine.message_log.add_message(blocks_action[warning], colors.red)
+                    self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
                 except KeyError:
                 
                     if warning == OrderWarning.SAFE:
@@ -2021,7 +2021,7 @@ class BeamArrayHandler(MinMaxInitator):
             warning = fire_order.raise_warning()
             try:
                 self.engine.message_log.add_message(
-                    blocks_action[warning], colors.red
+                    BLOCKS_ACTION[warning], colors.red
                 )
             except KeyError:
                 if warning == OrderWarning.SAFE:
@@ -2093,7 +2093,7 @@ class BeamArrayHandler(MinMaxInitator):
             warning = fire_order.raise_warning()
             try:
                 self.engine.message_log.add_message(
-                    blocks_action[warning], colors.red
+                    BLOCKS_ACTION[warning], colors.red
                 )
             except KeyError:
                 if warning == OrderWarning.SAFE:
@@ -2182,7 +2182,7 @@ class CannonHandler(MinMaxInitator):
             warning = fire_order.raise_warning()
             try:
                 self.engine.message_log.add_message(
-                    blocks_action[warning], colors.red
+                    BLOCKS_ACTION[warning], colors.red
                 )
             except:
                 if warning == OrderWarning.SAFE:
@@ -2239,7 +2239,7 @@ class CannonHandler(MinMaxInitator):
             warning = fire_order.raise_warning()
             try:
                 self.engine.message_log.add_message(
-                    blocks_action[warning], colors.red
+                    BLOCKS_ACTION[warning], colors.red
                 )
             except:
                 if warning == OrderWarning.SAFE:
@@ -2331,12 +2331,12 @@ class TorpedoHandler(HeadingBasedHandler):
             if warning == OrderWarning.SAFE:
                 return torpedo_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
             except KeyError:
                 if self.engine.torpedo_warning or self.warned_once:
                     return torpedo_order
                 
-                self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
+                self.engine.message_log.add_message(TORPEDO_WARNINGS[warning], fg=colors.orange)
                 self.warned_once = True
         else:
             game_data = self.engine.game_data
@@ -2375,12 +2375,12 @@ class TorpedoHandler(HeadingBasedHandler):
             if warning == OrderWarning.SAFE:
                 return torpedo_order
             try:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
             except KeyError:
                 if not self.engine.torpedo_warning or self.warned_once:
                     return torpedo_order
                 
-                self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
+                self.engine.message_log.add_message(TORPEDO_WARNINGS[warning], fg=colors.orange)
                 self.warned_once = True
         else:
             self.selected_handeler.handle_key(event)
@@ -2471,13 +2471,13 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             )
             warning = torpedo_order.raise_warning()
             try:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
             except KeyError:
                 
                 if warning == OrderWarning.SAFE or not self.engine.torpedo_warning or self.warned_once:
                     return torpedo_order
                 
-                self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
+                self.engine.message_log.add_message(TORPEDO_WARNINGS[warning], fg=colors.orange)
                 self.warned_once = True
             finally:
                 self.can_render_confirm_button = self.engine.player.ship_can_fire_torps
@@ -2521,13 +2521,13 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             )
             warning = torpedo_order.raise_warning()
             try:
-                self.engine.message_log.add_message(blocks_action[warning], fg=colors.red)
+                self.engine.message_log.add_message(BLOCKS_ACTION[warning], fg=colors.red)
             except KeyError:
                 
                 if warning == OrderWarning.SAFE or not self.engine.torpedo_warning or self.warned_once:
                     return torpedo_order
                 
-                self.engine.message_log.add_message(torpedo_warnings[warning], fg=colors.orange)
+                self.engine.message_log.add_message(TORPEDO_WARNINGS[warning], fg=colors.orange)
                 self.warned_once = True
             finally:
                 self.can_render_confirm_button = self.engine.player.ship_can_fire_torps
