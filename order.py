@@ -2,8 +2,10 @@ from __future__ import annotations
 from enum import Enum, auto
 from math import atan2, ceil, floor
 from random import choice
+
+from frozendict import frozendict
 from coords import Coords, IntOrFloat
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Final, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
 from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from nation import ALL_NATIONS
@@ -50,11 +52,14 @@ class OrderWarning(Enum):
     UNDOCK_FIRST = auto()
     TRANSPORT_NO_CREW_SELECTED = auto()
     TRANSPORT_NOT_ENOUGHT_CREW = auto()
-    TRANSPORT_WRONG_NATION = auto()
+    TRANSPORT_TOO_MANY_FOR_SYSTEMS = auto()
+    TRANSPORT_DESTINATION_OUT_OF_RANGE = auto()
+    TRANSPORT_SHIELDS_ARE_UP = auto()
+    TRANSPORT_CREW_NOT_ABOARD = auto()
     TRANSPORT_CANNOT_RECREW = auto()
     TRANSPORT_NOT_ENOUGH_SPACE = auto()
     
-blocks_action = {
+BLOCKS_ACTION:Final = frozendict({
     OrderWarning.NOT_ENOUGHT_ENERGY : "Error: We possess insufficent energy reserves.",
     OrderWarning.OUT_OF_RANGE : "Error: Our destination is out of range.",
     OrderWarning.SYSTEM_INOPERATIVE : "Error: That ship system is off line.",
@@ -74,28 +79,31 @@ blocks_action = {
     OrderWarning.UNDOCK_FIRST : "Error: We must undock first.",
     OrderWarning.TRANSPORT_NO_CREW_SELECTED : "Error: We have not selected any crew to transport over.",
     OrderWarning.TRANSPORT_CANNOT_RECREW : "Error: That spacecraft cannot be boarded",
-    OrderWarning.TRANSPORT_WRONG_NATION : "Error: We would be beaming our boarding team onto a hostile ship!",
+    OrderWarning.TRANSPORT_TOO_MANY_FOR_SYSTEMS : "Error: Our systems are unable to handle that many passengers.",
+    OrderWarning.TRANSPORT_SHIELDS_ARE_UP : "Error: Our target's shields are up.",
+    OrderWarning.TRANSPORT_DESTINATION_OUT_OF_RANGE : "Error: Our destination is out of range.",
+    OrderWarning.TRANSPORT_CREW_NOT_ABOARD : "Error: We have no crew aboard that ship.",
     OrderWarning.TRANSPORT_NOT_ENOUGH_SPACE : "Error: There is not enough space for our boarding team.",
     OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW : "Error: If we sent over that amount of crew, it would criticly impare our ability to opperate our own ship."
-}
+})
 
-torpedo_warnings = {
+TORPEDO_WARNINGS:Final = frozendict({
     OrderWarning.TORPEDO_WILL_HIT_PLANET : "Warning: If we fire, the torpedo will hit a planet.",
     OrderWarning.TORPEDO_COULD_HIT_PLANET : "Warning: If the torpedo misses, it could hit a planet.",
     OrderWarning.TORPEDO_WILL_MISS : "Warning: The torpedo will not hit anything."
-}
+})
 
-collision_warnings = {
+COLLISION_WARNINGS:Final = frozendict({
     OrderWarning.SHIP_COULD_COLLIDE_WITH_SHIP : "Warning: That course could result in a ship to ship collision!",
     OrderWarning.SHIP_WILL_COLLIDE_WITH_PLANET : "Warning: That course will result in our ship crashing into a planet!",
     OrderWarning.SHIP_WILL_COLLIDE_WITH_STAR : "Warning: That course will result in our ship crashing into a star!"
-}
+})
 
-misc_warnings = {
+MISC_WARNINGS:Final = frozendict({
     OrderWarning.NO_ENEMY_SHIPS_NEARBY : "Warning: There are no enemy ships nearbye.",
     OrderWarning.ENEMY_SHIPS_NEARBY_WARN : "Warning: There are enemy ships nearbye.",
     OrderWarning.NO_REPAIRS_NEEDED : "Warning: No repairs are needed right now."
-}
+})
 
 class Order:
 
@@ -114,7 +122,7 @@ class Order:
     
     def can_be_carried_out(self) -> bool:
 
-        return self.raise_warning() not in blocks_action
+        return self.raise_warning() not in BLOCKS_ACTION
     
     def raise_warning(self):
         return OrderWarning.SAFE
@@ -603,19 +611,25 @@ class TransportOrder(Order):
     
     def raise_warning(self):
         
-        if self.board and not self.entity.local_coords.is_adjacent(self.target.local_coords):
-            return OrderWarning.OUT_OF_RANGE
         try:
             if self.entity.cloak.cloak_is_turned_on:
                 return OrderWarning.DECLOAK_FIRST
         except AttributeError:
             pass
+        try:
+            total_crew = self.target.crew.able_crew + self.target.crew.injured_crew
+        except AttributeError:
+            
+            return OrderWarning.TRANSPORT_CANNOT_RECREW
         
         if self.target.is_automated:
             return OrderWarning.TRANSPORT_CANNOT_RECREW
         
         if self.amount >= self.entity.crew.able_crew:
             return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
+        
+        if self.amount > self.entity.transporter.get_max_number:
+            return OrderWarning.TRANSPORT_TOO_MANY_FOR_SYSTEMS
         
         if self.amount <= 0:
             return OrderWarning.TRANSPORT_NO_CREW_SELECTED
