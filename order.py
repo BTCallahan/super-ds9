@@ -677,22 +677,252 @@ class TransportOrder(Order):
         
     def perform(self) -> None:
         
+        describe_actions = self.entity.sector_coords == self.target.sector_coords
+        
+        if describe_actions:
+            describe_player_actions = self.entity.is_controllable
+            describe_other_actions = self.target.is_controllable
+        else:
+            describe_player_actions = False
+            describe_other_actions = False
+        
+        message_log = self.entity.game_data.engine.message_log
+        
+        if describe_player_actions:
+            message_log.add_message("Energizing...", colors.alert_blue)
+        
+        if not self.send:
+            
+            nation = self.entity.nation
+            
+            crew = self.target.crew.hostiles_on_board[nation]
+            
+            able_crew, injured_crew = crew[0], crew[1]
+            
+            total_crew = able_crew + injured_crew
+            
+            crew_left_behind = total_crew - self.amount
+            
+            able_crew_left_behind, injured_crew_left_behind = 0, 0
+            able_crew_returned, injured_crew_returned = 0, 0
+            
+            # if not everybody was evacuated:
+            if crew_left_behind > 0:
+                
+                #if all able crew and some injured crew were left behind:
+                if crew_left_behind > able_crew:
+                    
+                    able_crew_left_behind = able_crew
+                    
+                    injured_crew_returned = total_crew - crew_left_behind
+                    
+                    injured_crew_left_behind = total_crew - injured_crew_returned
+                    
+                    # if some able crew and no injured crew were left behind
+                elif crew_left_behind < able_crew:
+                    
+                    injured_crew_returned = injured_crew
+                    
+                    able_crew_returned = total_crew - crew_left_behind
+                    
+                    able_crew_left_behind = able_crew - able_crew_returned
+                else:
+                    able_crew_left_behind = able_crew
+                    
+                    injured_crew_returned = injured_crew
+            else:
+                able_crew_returned = able_crew
+                
+                injured_crew_returned = injured_crew
+            
+            total_crew_returned = self.amount
+            
+            self.entity.crew.able_crew += able_crew_returned
+            self.entity.crew.injured_crew += injured_crew_returned
+            
+            if crew_left_behind == 0:
+                del self.target.crew.hostiles_on_board[nation]
+            else:
+                self.target.crew.hostiles_on_board[nation][0] = able_crew_left_behind
+                self.target.crew.hostiles_on_board[nation][1] = injured_crew_left_behind
+            
+            if describe_actions and (
+                describe_player_actions or describe_other_actions
+            ):
+                message:List[str] = []
+                
+                if describe_player_actions:
+                    
+                    message.append(
+                        f"We have retrived {self.amount} crew members."
+                    )
+                    if injured_crew_returned > 0:
+                        
+                        message.append(
+                            f"members, {'all' if injured_crew_returned == self.amount else f'{injured_crew}'} of whom were transported to sickbay."
+                        )
+                    else:
+                        message.append("members.")
+                    
+                    if crew_left_behind > 0:
+                        
+                        if able_crew_left_behind > 0:
+                            
+                            message.append(
+                                f"{able_crew_left_behind} uninjured crew"
+                            )
+                            if injured_crew_left_behind > 0:
+                                message.append("and")
+                            
+                        if injured_crew_left_behind > 0:
+                            
+                            message.append(
+                                    f"{injured_crew_left_behind} injured crew"
+                                )
+                        message.append("remain behind.")
+                    
+                else:
+                    message.append(
+                        f"The {self.entity.name} has transported"
+                    )
+                    if crew_left_behind == 0:
+                        
+                        message.append("all")
+                        
+                    if able_crew_returned > 0:
+                        
+                        message.append(f"{able_crew_returned} uninjured attackers")
+                        
+                        if injured_crew_returned > 0:
+                            
+                            message.append("and")
+                            
+                    if injured_crew_returned > 0:
+                        
+                        message.append(f"{injured_crew_returned} injured attackers")   
+                    
+                    if crew_left_behind == 0:
+                        
+                        message.append("back to the ship.")
+                    else:
+                        message.append(f"back to the ship, leaving behind")
+                        
+                        if able_crew_left_behind > 0:
+                            
+                            message.append(f"{able_crew_left_behind} uninjured attackers")
+                            
+                            if injured_crew_left_behind > 0:
+                                
+                                message.append("and")
+                        
+                        if injured_crew_left_behind > 0:
+                            
+                            message.append(f"{injured_crew_left_behind} injured attackers")
+                            
+                        message.append("who continue to fight on.")
+                
+                message_log.add_message(" ".join(message), colors.orange)
+            return
+        
         is_derlict = self.target.ship_status.is_recrewable
         
+        set_of_allied_nations = self.target.game_data.scenerio.get_set_of_allied_nations
+        
+        entity_in_allied_nation = self.entity.nation in set_of_allied_nations
+        
+        target_in_allied_nation = self.target.nation in set_of_allied_nations
+        
+        hostile_takeover = entity_in_allied_nation != target_in_allied_nation
+        
+        if hostile_takeover:
+            
+            if is_derlict:
+                
+                self.target.override_nation_code = self.entity.ship_class.nation_code
+            
+                difficulty = self.game_data.allied_ai if target_in_allied_nation else self.game_data.difficulty
+                
+                self.target.ai = difficulty
+                
+                self.target.crew.able_crew += self.amount
+                
+                if describe_player_actions:
+                    message_log.add_message(
+                        "Our forces have transported over taken control of the ship without meeting any restance."
+                    )
+                #if the acting ship is renforcing an existing boardign party
+            elif self.entity.nation in self.target.crew.hostiles_on_board:
+                
+                if describe_player_actions or describe_other_actions:
+                        
+                    attackers = self.target.crew.hostiles_on_board[self.entity.nation]
+                    
+                    able_attackers = attackers[0]
+                    injured_attackers = attackers[1]
+                    
+                    if able_attackers + injured_attackers <= 0:
+                        raise ValueError(f"The total number of attackers is {able_attackers + injured_attackers}. However this should have resulted in a diffrent operation")
+                    
+                    message:List[str] = []
+                    
+                    if describe_player_actions:
+                        
+                        message.append(
+                            f"Our force of {self.amount} have renforced our existing forces of"
+                        )
+                        if able_attackers > 0:
+                            
+                            message.append(f"{able_attackers} able")
+                        
+                            message.append("crew and" if injured_attackers > 0 else "crew.")
+                        
+                        if injured_attackers > 0:
+                            
+                            message.append(f"{injured_attackers} injured crew.")
+                    else:
+                        message.append(
+                            f"The {self.entity.name} has transported {self.amount} to renforce their existing forces of"
+                        )
+                        if able_attackers > 0:
+                            
+                            message.append(f"{able_attackers} able")
+                        
+                            message.append("crew and" if injured_attackers > 0 else "crew.")
+                        
+                        if injured_attackers > 0:
+                            
+                            message.append(f"{injured_attackers} injured crew.")
+                    
+                    message_log.add_message(" ".join(message), colors.orange)
+                    
+                self.target.crew.hostiles_on_board[self.entity.nation][0] = self.amount
+            else:
+                self.target.crew.hostiles_on_board[self.entity.nation] = [self.amount, 0]
+                
+                if describe_player_actions or describe_other_actions:
+                    
+                    we_them = "We have" if describe_player_actions else f"The {self.entity.name} has"
+                    
+                    us_them = "us" if describe_other_actions else f"the {self.entity.name}"
+                    
+                    message_log.add_message(
+                        f"{we_them} transported {self.amount} of boarders to {us_them}! {'Our' if describe_player_actions else 'Their'} forces are fighting for control of the ship.", 
+                        colors.orange
+                    )
+        else:
+            if describe_player_actions or describe_other_actions:
+                
+                we_them = "We have" if describe_player_actions else f"The {self.entity.name} has"
+                                    
+                us_them = "us" if describe_other_actions else f"the {self.entity.name}"
+                
+                message_log.add_message(
+                    f"{we_them} renforced {us_them} with {self.amount} fresh crew members."
+                )
+            
+            self.target.crew.able_crew += self.amount
+        
         self.entity.crew.able_crew -= self.amount
-        self.target.crew.able_crew += self.amount
-        
-        entity_in_allied_nation = self.entity.nation in self.target.game_data.scenerio.get_set_of_allied_nations
-        
-        target_in_allied_nation = self.target.nation in self.target.game_data.scenerio.get_set_of_allied_nations
-        
-        if is_derlict and entity_in_allied_nation != target_in_allied_nation:
-            
-            self.target.override_nation_code = self.entity.ship_class.nation_code
-            
-            difficulty = self.game_data.allied_ai if target_in_allied_nation else self.game_data.difficulty
-            
-            self.target.ai = difficulty
     
 class TorpedoOrder(Order):
 
