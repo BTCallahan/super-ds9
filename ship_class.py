@@ -408,6 +408,7 @@ def create_ship_classes():
     power_generation_pattern = re.compile(r"POWER:([\d]+)\n")
     energy_weapon_pattern = re.compile(r"ENERGY_WEAPON:([A-Z_]+)\n")
     crew_pattern = re.compile(r"CREW:([\d]+)\n")
+    transporters_pattern = re.compile(r"TRANSPORTERS:([\d]+)\n")
     torpedos_pattern = re.compile(r"TORPEDOS:([\w,]+)\n")
     cloak_strength_pattern = re.compile(r"CLOAK_STRENGTH:([\d.]+)\n")
     cloak_cooldown_pattern = re.compile(r"CLOAK_COOLDOWN:([\d]+)\n")
@@ -463,6 +464,10 @@ def create_ship_classes():
             shipclass_txt, crew_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=0, type_to_convert_to=int
         )
+        transporters = get_first_group_in_pattern(
+            shipclass_txt, transporters_pattern, return_aux_if_no_match=True,
+            aux_valute_to_return_if_no_match=0, type_to_convert_to=int
+        )
         energy = get_first_group_in_pattern(
             shipclass_txt, energy_pattern, type_to_convert_to=int
         )
@@ -488,7 +493,6 @@ def create_ship_classes():
             shipclass_txt, torpedos_tubes_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0,
             type_to_convert_to=int
         )
-        
         if (len(torp_dict) == 0) and (torpedo_tubes > 0):
             
             raise ValueError(
@@ -557,6 +561,7 @@ def create_ship_classes():
             max_energy=energy,
             power_generated_per_turn=power_generation,
             max_crew=crew,
+            transporters=transporters,
             cloak_strength=cloak_strength,
             cloak_cooldown=cloak_cooldown,
             detection_strength=detection_strength,
