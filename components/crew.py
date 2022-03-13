@@ -1,6 +1,6 @@
 from __future__ import annotations
 from math import ceil, floor
-from typing import TYPE_CHECKING, Counter
+from typing import TYPE_CHECKING, Dict, List
 from components.starship_system import StarshipSystem
 
 from global_functions import scan_assistant
@@ -18,6 +18,9 @@ class Crew(StarshipSystem):
 
         self.able_crew = ship_class.max_crew
         self.injured_crew = 0
+        
+        # format is Dict[nation of ship that send over boarding party, List[able boarders, injured boarders]]
+        self.hostiles_on_board: Dict[Nation, List[int,int]] = {}
     
     @property
     def crew_readyness(self):
