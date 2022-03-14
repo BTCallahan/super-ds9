@@ -1819,11 +1819,24 @@ class ShieldsHandler(MinMaxInitator):
 class TransporterHandler(MinMaxInitator):
     
     def __init__(self, engine: Engine) -> None:
-        max_value=engine.player.crew.able_crew
+        max_value=min(engine.player.crew.able_crew - 1, engine.player.transporter.get_max_number)
         super().__init__(
             engine, can_render_confirm_button=engine.player.transporter.is_opperational,
             max_value=max_value, 
             starting_value=0
+        )
+        self.to_from = BooleanBox(
+            x=4+12+CONFIG_OBJECT.command_display_x,
+            y=7+CONFIG_OBJECT.command_display_y,
+            width=14,
+            height=3,
+            title="Boarding team:",
+            active_text="Send",
+            inactive_text="Retrive",
+            initally_active=True,
+            active_fg=colors.green,
+            inactive_fg=colors.red,
+            bg=colors.black
         )
         
     def on_render(self, console: tcod.Console) -> None:
