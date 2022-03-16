@@ -56,17 +56,24 @@ def create_torpedos() -> Dict[str,Torpedo]:
         
         torpedo_txt = torpedo.group(2)
         
-        name = get_first_group_in_pattern(torpedo_txt, name_pattern)
-        
+        name = get_first_group_in_pattern(
+            torpedo_txt, name_pattern,
+            error_message=f"The entry {torpedo_code} file 'library/torpedos.txt' did not contain an entry for 'NAME:'"
+        )
         cap_name = name.capitalize()
         
-        damage = get_first_group_in_pattern(torpedo_txt, damage_pattern, type_to_convert_to=int)
-        
-        req_infrastructure = get_first_group_in_pattern(
-            torpedo_txt, req_infrastructure_pattern, type_to_convert_to=float
+        damage = get_first_group_in_pattern(
+            torpedo_txt, damage_pattern, type_to_convert_to=int,
+            error_message=f"The entry {torpedo_code} file 'library/torpedos.txt' did not contain an entry for 'DAMAGE:'"
         )
-        planet_damage = get_first_group_in_pattern(torpedo_txt, planet_damage_pattern, type_to_convert_to=float)
-        
+        req_infrastructure = get_first_group_in_pattern(
+            torpedo_txt, req_infrastructure_pattern, type_to_convert_to=float,
+            error_message=f"The entry {torpedo_code} file 'library/torpedos.txt' did not contain an entry for 'REQUIRED:'"
+        )
+        planet_damage = get_first_group_in_pattern(
+            torpedo_txt, planet_damage_pattern, type_to_convert_to=float,
+            error_message=f"The entry {torpedo_code} file 'library/torpedos.txt' did not contain an entry for 'PLANET_DAMAGE:'"
+        )
         torp = Torpedo(
             code=torpedo_code,
             name=name,

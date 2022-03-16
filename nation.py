@@ -61,11 +61,13 @@ def create_nations() -> Dict[str,Nation]:
         
         nation_txt = nation.group(2)
                         
-        color_r, color_g, color_b = get_multiple_groups_in_pattern(
+        colors = get_multiple_groups_in_pattern(
             nation_txt, color_pattern, expected_number_of_groups=3, type_to_convert_to=int
         )
-        name_long = get_first_group_in_pattern(nation_txt, name_long_pattern)
-        
+        name_long = get_first_group_in_pattern(
+            nation_txt, name_long_pattern, 
+            error_message=f"The entry {nation_code} file 'library/nations.txt' did not contain an entry for 'NAME_LONG:'"
+        )
         name_short = get_first_group_in_pattern(
             nation_txt, name_short_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=name_long
@@ -74,20 +76,32 @@ def create_nations() -> Dict[str,Nation]:
             nation_txt, name_possesive_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=name_short
         )
-        command_name = get_first_group_in_pattern(nation_txt, command_name_pattern)
-        
-        intelligence_agency = get_first_group_in_pattern(nation_txt, intelligence_agency_pattern)
-                            
+        command_name = get_first_group_in_pattern(
+            nation_txt, command_name_pattern, 
+            error_message=f"The entry {nation_code} file 'library/nations.txt' did not contain an entry for 'COMMAND_NAME:'"
+        )
+        intelligence_agency = get_first_group_in_pattern(
+            nation_txt, intelligence_agency_pattern,
+            error_message=f"The entry {nation_code} file 'library/nations.txt' did not contain an entry for 'INTELLIGENCE_AGENCY:'"
+        )
         ship_prefix = get_first_group_in_pattern(nation_txt, ship_prefix_pattern, return_aux_if_no_match=True)
         
-        congratulations = get_first_group_in_pattern(nation_txt, congratulations_pattern)
-        
-        captain_rank = get_first_group_in_pattern(nation_txt, captain_rank_pattern)
-        
-        admiral_rank = get_first_group_in_pattern(nation_txt, admiral_rank_pattern)
-        
-        navy_name = get_first_group_in_pattern(nation_txt, navy_name_pattern)
-        
+        congratulations = get_first_group_in_pattern(
+            nation_txt, congratulations_pattern,
+            error_message=f"The entry {nation_code} file 'library/nations.txt' did not contain an entry for 'CONGRATULATIONS_TEXT:'"
+        )
+        captain_rank = get_first_group_in_pattern(
+            nation_txt, captain_rank_pattern,
+            error_message=f"The entry {nation_code} file 'library/nations.txt' did not contain an entry for 'CAPTAIN_RANK_NAME:'"
+        )
+        admiral_rank = get_first_group_in_pattern(
+            nation_txt, admiral_rank_pattern,
+            error_message=f"The entry {nation_code} file 'library/nations.txt' did not contain an entry for 'ADMIRAL_RANK_NAME:'"
+        )
+        navy_name = get_first_group_in_pattern(
+            nation_txt, navy_name_pattern,
+            error_message=f"The entry {nation_code} file 'library/nations.txt' did not contain an entry for 'NAVY_NAME:'"
+        )
         ship_names_pattern_match = ship_names_pattern.search(nation_txt)
         try:
             ship_names_ = ship_names_pattern_match.group(1)
@@ -101,7 +115,7 @@ def create_nations() -> Dict[str,Nation]:
             ship_names = None
         
         return_this = Nation(
-            nation_color=(int(color_r), int(color_g), int(color_b)),
+            nation_color=colors,
             name_long=name_long,
             name_short=name_short,
             name_possesive=name_possesive,

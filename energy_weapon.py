@@ -87,13 +87,19 @@ def create_energy_weapons() -> Dict[str,EnergyWeapon]:
         
         energy_weapon_txt = energy_weapon.group(2)
         
-        color = color_pattern.search(energy_weapon_txt)
+        #color = color_pattern.search(energy_weapon_txt)
         #get_multiple_groups_in_pattern
-        color_r, color_g, color_b = color.group(1), color.group(2), color.group(3)
+        #color_r, color_g, color_b = color.group(1), color.group(2), color.group(3)
         
-        color_tuple = (int(color_r), int(color_g), int(color_b))
+        #color_tuple = (int(color_r), int(color_g), int(color_b))
         
-        name = get_first_group_in_pattern(energy_weapon_txt, name_pattern)
+        color_tuple = get_multiple_groups_in_pattern(
+            energy_weapon_txt, color_pattern, expected_number_of_groups=3, type_to_convert_to=int
+        )
+        
+        name = get_first_group_in_pattern(
+            energy_weapon_txt, name_pattern, error_message="The entry for 'NAME:' was not found in the string"
+        )
         
         short_name = get_first_group_in_pattern(
             energy_weapon_txt, name_short_pattern,return_aux_if_no_match=True, aux_valute_to_return_if_no_match=name

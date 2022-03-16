@@ -439,16 +439,24 @@ def create_ship_classes():
         
         shipclass_txt = shipclass.group(2)
                 
-        type_ = get_first_group_in_pattern(shipclass_txt, type_pattern)
-
+        type_ = get_first_group_in_pattern(
+            shipclass_txt, type_pattern,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'TYPE:'"
+        )
         assert type_ in VALID_SHIP_TYPES
         
-        symbol = get_first_group_in_pattern(shipclass_txt, symbol_pattern)
-        
-        nation = get_first_group_in_pattern(shipclass_txt, nation_types_pattern)
-        
-        name = get_first_group_in_pattern(shipclass_txt, name_pattern)
-                
+        symbol = get_first_group_in_pattern(
+            shipclass_txt, symbol_pattern,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'SYM:'"
+        )
+        nation = get_first_group_in_pattern(
+            shipclass_txt, nation_types_pattern,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'NATION:'"
+        )
+        name = get_first_group_in_pattern(
+            shipclass_txt, name_pattern,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'NAME:'"
+        )
         shields = get_first_group_in_pattern(
             shipclass_txt, shields_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=0, type_to_convert_to=int
@@ -458,7 +466,8 @@ def create_ship_classes():
             aux_valute_to_return_if_no_match=0, type_to_convert_to=int
         )
         hull = get_first_group_in_pattern(
-            shipclass_txt, hull_pattern, type_to_convert_to=int
+            shipclass_txt, hull_pattern, type_to_convert_to=int,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'HULL:'"
         )
         crew = get_first_group_in_pattern(
             shipclass_txt, crew_pattern, return_aux_if_no_match=True,
@@ -469,13 +478,12 @@ def create_ship_classes():
             aux_valute_to_return_if_no_match=0, type_to_convert_to=int
         )
         energy = get_first_group_in_pattern(
-            shipclass_txt, energy_pattern, type_to_convert_to=int
+            shipclass_txt, energy_pattern, type_to_convert_to=int,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'ENERGY:'"
         )
         torpedos = get_first_group_in_pattern(
             shipclass_txt, torpedos_pattern, return_aux_if_no_match=True
         )
-        torp_dict_ = {}
-        
         if torpedos:
             
             tt = torpedos.split(",")
@@ -486,6 +494,8 @@ def create_ship_classes():
             torp_dict_ = {
                 ALL_TORPEDO_TYPES[k] :int(v) for k,v in zip(t_types, t_numbers)
             }
+        else:
+            torp_dict_ = {}
         
         torp_dict = frozendict(torp_dict_)
         
@@ -499,10 +509,14 @@ def create_ship_classes():
                 f"In the ship class {shipclass_code} there are {len(torp_dict)} items in the torpedo dictionary, but the ship class has {torpedo_tubes} torpedo tubes."
             )
         
-        power_generation = get_first_group_in_pattern(shipclass_txt, power_generation_pattern, type_to_convert_to=int)
-        
-        energy_weapon = get_first_group_in_pattern(shipclass_txt, energy_weapon_pattern)
-        
+        power_generation = get_first_group_in_pattern(
+            shipclass_txt, power_generation_pattern, type_to_convert_to=int,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'POWER:'"
+        )
+        energy_weapon = get_first_group_in_pattern(
+            shipclass_txt, energy_weapon_pattern,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'ENERGY_WEAPON:'"
+        )
         cloak_strength = get_first_group_in_pattern(
             shipclass_txt, cloak_strength_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0,
             type_to_convert_to=float
@@ -512,14 +526,18 @@ def create_ship_classes():
             type_to_convert_to=int
         )
         detection_strength = get_first_group_in_pattern(
-            shipclass_txt, detection_strength_pattern, type_to_convert_to=float
+            shipclass_txt, detection_strength_pattern, type_to_convert_to=float,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'TYPE:'"
         )
         damage_control = get_first_group_in_pattern(
             shipclass_txt, damage_control_pattern, 
-            type_to_convert_to=float
+            type_to_convert_to=float,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'DAMAGE_CONTROL:'"
         )
-        size = get_first_group_in_pattern(shipclass_txt, size_pattern, type_to_convert_to=float)
-        
+        size = get_first_group_in_pattern(
+            shipclass_txt, size_pattern, type_to_convert_to=float,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'SIZE:'"
+        )
         evasion = get_first_group_in_pattern(
             shipclass_txt, evasion_pattern, type_to_convert_to=float, 
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0
@@ -528,8 +546,10 @@ def create_ship_classes():
             shipclass_txt, max_warp_pattern, type_to_convert_to=int, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=0
         )
-        targeting = get_first_group_in_pattern(shipclass_txt, targeting_pattern, type_to_convert_to=float)
-        
+        targeting = get_first_group_in_pattern(
+            shipclass_txt, targeting_pattern, type_to_convert_to=float,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'TARGETING:'"
+        )
         max_beam_energy = get_first_group_in_pattern(
             shipclass_txt, max_beam_energy_pattern, type_to_convert_to=int, 
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0
@@ -543,7 +563,8 @@ def create_ship_classes():
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0
         )
         warp_core_breach_damage = get_first_group_in_pattern(
-            shipclass_txt, warp_core_breach_damage_pattern, type_to_convert_to=int
+            shipclass_txt, warp_core_breach_damage_pattern, type_to_convert_to=int,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'WARP_CORE_BREACH_DAMAGE:'"
         )
         shipclass_dict[shipclass_code] = ShipClass.create_ship_class(
             ship_type=type_,

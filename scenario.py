@@ -178,20 +178,30 @@ def create_sceneraio():
         
         scenario_txt = scenario.group(2)
         
-        name = get_first_group_in_pattern(scenario_txt, name_pattern)
-        
-        scenario_type_ = get_first_group_in_pattern(scenario_txt, scenario_type_pattern)
-        
+        name = get_first_group_in_pattern(
+            scenario_txt, name_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'NAME_LONG:'"
+        )
+        scenario_type_ = get_first_group_in_pattern(
+            scenario_txt, scenario_type_pattern, 
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'SCENARIO_TYPE:'"
+        )
         scenario_type = SCENARIO_TYPES[scenario_type_]
     
-        description = get_first_group_in_pattern(scenario_txt, description_pattern)
-
-        your_ship_ = get_first_group_in_pattern(scenario_txt, your_ship_pattern)
-        
+        description = get_first_group_in_pattern(
+            scenario_txt, description_pattern, 
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'DESCRIPTION:'"
+        )
+        your_ship_ = get_first_group_in_pattern(
+            scenario_txt, your_ship_pattern, 
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'YOUR_SHIP:'"
+        )
         your_ship = ALL_SHIP_CLASSES[your_ship_]
         
-        _mission_critical_ships = get_first_group_in_pattern(scenario_txt, mission_critical_ships_pattern)
-        
+        _mission_critical_ships = get_first_group_in_pattern(
+            scenario_txt, mission_critical_ships_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'MISSION_CRITICAL_SHIPS:'"
+        )
         _t_mission_critical_ships = _mission_critical_ships.split(",")
         
         mission_critical_ships = frozenset([
@@ -230,8 +240,10 @@ def create_sceneraio():
                     ships=fd
                 )
         
-        enemy_encounters = get_first_group_in_pattern(scenario_txt, enemy_encounters_pattern)
-        
+        enemy_encounters = get_first_group_in_pattern(
+            scenario_txt, enemy_encounters_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'ENEMY_ENCOUNTERS:'"
+        )
         all_enemy_encounters = tuple(
             create_encounters(enemy_ships_pattern, enemy_encounters)
         )
@@ -239,16 +251,22 @@ def create_sceneraio():
             scenario_txt, allied_encounters_pattern, return_aux_if_no_match=True
         )
         all_allied_encounters = tuple(
-            create_encounters(enemy_ships_pattern, allied_encounters)
+            create_encounters(allied_ships_pattern, allied_encounters)
         ) if allied_encounters else tuple()
         
-        victory_percent = get_first_group_in_pattern(scenario_txt, victory_percent_pattern, type_to_convert_to=float)
-        
-        your_nation_ = get_first_group_in_pattern(scenario_txt, your_nation_pattern)
-        
+        victory_percent = get_first_group_in_pattern(
+            scenario_txt, victory_percent_pattern, type_to_convert_to=float,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'VICTORY_PERCENT:'"
+        )
+        your_nation_ = get_first_group_in_pattern(
+            scenario_txt, your_nation_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'YOUR_NATION:'"
+        )
         your_nation = ALL_NATIONS[your_nation_]
         
-        allied_nations_:str = get_first_group_in_pattern(scenario_txt, allied_nations_pattern, return_aux_if_no_match=True)
+        allied_nations_:str = get_first_group_in_pattern(
+            scenario_txt, allied_nations_pattern, return_aux_if_no_match=True
+        )
         try:
             allied_nations__ = allied_nations_.split(",")
             allied_nations = tuple(
@@ -257,8 +275,10 @@ def create_sceneraio():
         except AttributeError:
             allied_nations = tuple()
         
-        enemy_nation_:str = get_first_group_in_pattern(scenario_txt, enemy_nation_pattern)
-        
+        enemy_nation_:str = get_first_group_in_pattern(
+            scenario_txt, enemy_nation_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'MAIN_ENEMY_NATION:'"
+        )
         enemy_nation = ALL_NATIONS[enemy_nation_]
         
         other_enemy_nations_:str = get_first_group_in_pattern(
@@ -272,8 +292,10 @@ def create_sceneraio():
         except AttributeError:
             other_enemy_nations = tuple()
         
-        your_commanding_officer = get_first_group_in_pattern(scenario_txt, your_commanding_officer_pattern)
-        
+        your_commanding_officer = get_first_group_in_pattern(
+            scenario_txt, your_commanding_officer_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'YOUR_COMMANDING_OFFICER:'"
+        )
         star_generation_:str = get_first_group_in_pattern(
             scenario_txt, star_generation_pattern, return_aux_if_no_match=True
         )
@@ -287,20 +309,26 @@ def create_sceneraio():
         except AttributeError:
             star_generation = stars_gen
             
-        friendly_planets = get_first_group_in_pattern(scenario_txt, friendly_planet_pattern, type_to_convert_to=float)
-        
-        default_ship_name = get_first_group_in_pattern(scenario_txt, default_ship_name_pattern)
-        
-        default_captain_name = get_first_group_in_pattern(scenario_txt, default_captain_name_pattern)
-        
+        friendly_planets = get_first_group_in_pattern(
+            scenario_txt, friendly_planet_pattern, type_to_convert_to=float,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'FRIENDLY_PLANET_PERCENT:'"
+        )
+        default_ship_name = get_first_group_in_pattern(
+            scenario_txt, default_ship_name_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'DEFAULT_SHIP_NAME:'"
+        )
+        default_captain_name = get_first_group_in_pattern(
+            scenario_txt, default_captain_name_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'DEFAULT_CAPTAIN_NAME:'"
+        )
         enemy_give_up_threshold = get_first_group_in_pattern(
             scenario_txt, enemy_give_up_threshold_pattern, 
             return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0, type_to_convert_to=float
         )
-        code = get_first_group_in_pattern(scenario_txt, destruct_code_pattern)
-        
-        #start_date = start_date_pattern.search(scenario_txt)
-        
+        code = get_first_group_in_pattern(
+            scenario_txt, destruct_code_pattern,
+            error_message=f"The entry {scenario_code} file 'library/scenarios.txt' did not contain an entry for 'DESTRUCT_CODE:'"
+        )
         year, mon, day, hour, mini, sec = get_multiple_groups_in_pattern(
             scenario_txt, start_date_pattern,
             expected_number_of_groups=6,
