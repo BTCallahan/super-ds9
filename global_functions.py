@@ -76,10 +76,13 @@ def average(iter:Iterable[float]):
 # pattern getter
 
 def get_first_group_in_pattern(
-    text_to_search:str, pattern:Pattern[str],*, 
+    text_to_search:str, pattern:Pattern[str],
+    *, 
     return_aux_if_no_match:bool=False, 
     aux_valute_to_return_if_no_match=None,
-    type_to_convert_to:type=str
+    type_to_convert_to:type=str,
+    error_type_to_raise:type[BaseException]=AttributeError,
+    error_message:str=""
 ):
     match = pattern.search(text_to_search)
     
@@ -89,6 +92,8 @@ def get_first_group_in_pattern(
             return r
         except AttributeError:
             return aux_valute_to_return_if_no_match
+    if match is None:
+        raise error_type_to_raise(error_message)
     r = type_to_convert_to(match.group(1))
     return r
 
