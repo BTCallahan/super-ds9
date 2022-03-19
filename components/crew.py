@@ -2,6 +2,7 @@ from __future__ import annotations
 from math import ceil, floor
 from typing import TYPE_CHECKING, Dict, List
 from components.starship_system import StarshipSystem
+from data_globals import PRECISION_SCANNING_VALUES
 
 from global_functions import scan_assistant
 
@@ -28,6 +29,16 @@ class Crew(StarshipSystem):
         return self.caluclate_crew_readyness(
             self.able_crew, self.injured_crew
         )
+    
+    @property
+    def has_boarders(self):
+        if self.hostiles_on_board:
+            
+            for v in self.hostiles_on_board.values():
+                
+                if v[0] + v[1] > 0:
+                    return True
+        return False
     
     def scan_crew_readyness(self, precision:int):
         
@@ -93,3 +104,39 @@ class Crew(StarshipSystem):
         elif self.turn_without_lifesupport > 0:
             
             self.turn_without_lifesupport -= 1
+
+    def get_boarding_parties(self, viewer_nation:Nation, precision:int = 1):
+        """This generates the number of boarding parties that the ship has
+
+        Args:
+            precision (int, optional): The precision value. 1 is best, higher values are worse. Must be an intiger that is not less then 0 and not more then 100. Defaults to 1.
+
+        Raises:
+            TypeError: Raised if precision is a float.
+            ValueError: Rasied if precision is lower then 1 or higher then 100
+
+        Yields:
+            [Tuple[Nation, Tuple[int, int]]]: Tuples containing the nation, and a tuple with two intiger values
+        """
+        #scanAssistant = lambda v, p: round(v / p) * p
+        if  isinstance(precision, float):
+            raise TypeError("The value 'precision' MUST be a intiger inbetween 1 and 100")
+        if precision not in PRECISION_SCANNING_VALUES:
+            raise ValueError(
+f"The intiger 'precision' MUST be one of the following: 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, or 500. \
+It's actually value is {precision}."
+            )
+        
+        if precision == 1:
+            
+            for k,v in self.hostiles_on_board.items():
+                
+                yield (k, tuple(v))
+        else:
+            for k,v in self.hostiles_on_board.items():
+                
+                if k == viewer_nation:
+                    
+                    yield (k, tuple(v))
+                else:
+                    yield (k, (scan_assistant(v[0], precision), scan_assistant(v[1], precision)))
