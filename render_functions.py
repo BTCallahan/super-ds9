@@ -1,6 +1,5 @@
 from __future__ import annotations
-from enum import Enum
-from typing import Any, Dict, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, TYPE_CHECKING, Tuple, Union
 import tcod
 
 from coords import Coords
@@ -14,6 +13,7 @@ from torpedo import ALL_TORPEDO_TYPES
 if TYPE_CHECKING:
     from tcod import Console
     from game_data import GameData
+    from nation import Nation
 
 #sys_width = config_object.subsector_width * 2 - 1
 #sys_height = config_object.subsector_height * 2 - 1
@@ -358,6 +358,16 @@ def print_ship_info(
             console.print(x=x+3+16, y=y+add_to_y, string=f"{d_n: =4}", fg=d_c)
             console.print(x=x+3+16+4, y=y+add_to_y, string=f"/{m: =4}", fg=colors.white)
             add_to_y+=1
+        except KeyError:
+            pass
+        try:
+            boarders:Tuple[Nation, Tuple[int,int]] = scan["boarders"]
+            
+            console.print(x=x+3, y=y+add_to_y, string=f"{'-- Boarders --'}", alignment=tcod.CENTER, fg=colors.white)
+            add_to_y+=1
+            for k, v in boarders:
+                console.print(x=x+3, y=y+add_to_y, string=f"{k.name_short}   {v[0]} {v[1]}")
+                add_to_y+=1
         except KeyError:
             pass
         
