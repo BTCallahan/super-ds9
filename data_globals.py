@@ -9,6 +9,7 @@ SMALLEST:Final = 1 / inf
 
 string_or_int = Union[int,str]
 
+PRECISION_SCANNING_VALUES:Final = {1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500}
 @dataclass(frozen=True, eq=True)
 class PlanetHabitation:
     

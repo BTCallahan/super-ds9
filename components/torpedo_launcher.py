@@ -2,6 +2,7 @@ from __future__ import annotations
 from math import ceil
 from typing import TYPE_CHECKING, Dict, Iterable, List
 from components.starship_system import StarshipSystem
+from data_globals import PRECISION_SCANNING_VALUES
 from global_functions import scan_assistant
 
 from torpedo import ALL_TORPEDO_TYPES
@@ -96,7 +97,7 @@ class TorpedoLauncher(StarshipSystem):
         #scanAssistant = lambda v, p: round(v / p) * p
         if  isinstance(precision, float):
             raise TypeError("The value 'precision' MUST be a intiger inbetween 1 and 100")
-        if precision not in {1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500}:
+        if precision not in PRECISION_SCANNING_VALUES:
             raise ValueError(
 f"The intiger 'precision' MUST be one of the following: 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, or 500. \
 It's actually value is {precision}."

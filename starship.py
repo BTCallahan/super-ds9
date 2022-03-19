@@ -24,7 +24,7 @@ from space_objects import SubSector, CanDockWith
 from torpedo import Torpedo
 from coords import Coords, MutableCoords
 import colors
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, STATUS_AT_WARP, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RAMMING, DAMAGE_TORPEDO, PRECISION_SCANNING_VALUES, REPAIR_DEDICATED, REPAIR_DOCKED, REPAIR_PER_TURN, STATUS_AT_WARP, DamageType, RepairStatus, ShipStatus, STATUS_ACTIVE, STATUS_DERLICT, STATUS_CLOAKED, STATUS_CLOAK_COMPRIMISED,STATUS_HULK, STATUS_OBLITERATED, CloakStatus
 
 if TYPE_CHECKING:
     from game_data import GameData
@@ -415,7 +415,7 @@ class Starship(CanDockWith):
         
         if isinstance(precision, float):
             raise TypeError("The value 'precision' MUST be an intiger between 1 amd 100")
-        if precision not in {1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500}:
+        if precision not in PRECISION_SCANNING_VALUES:
             raise ValueError(
                 f"The intiger 'precision' MUST be one of the following: 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, or 500. It's actually value is {precision}."
             )
@@ -556,7 +556,7 @@ class Starship(CanDockWith):
 
         if isinstance(precision, float):
             raise TypeError("The value 'precision' MUST be an intiger between 1 amd 100")
-        if precision not in {1, 2, 5, 10, 15, 20, 25, 50, 100, 200, 500}:
+        if precision not in PRECISION_SCANNING_VALUES:
             raise ValueError(
                 f"The intiger 'precision' MUST be one of the following: 1, 2, 5, 10, 15, 20, 25, 50, 100, 200, or 500. It's actually value is {precision}."
             )
