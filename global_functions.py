@@ -97,6 +97,62 @@ def get_first_group_in_pattern(
     r = type_to_convert_to(match.group(1))
     return r
 
+def get_varrying_number_of_groups_in_pattern(
+    text_to_search:str, pattern:Pattern[str],*, 
+    return_aux_if_no_match:bool=False, aux_valute_to_return_if_no_match=None,
+    type_to_convert_to:type=str, multiple_types_to_convert_to:Optional[Iterable[type]]=None,
+    error_type_to_raise:type[BaseException]=AttributeError,
+    error_message:str="", split_char=","
+):
+    match = pattern.search(text_to_search)
+    
+    if return_aux_if_no_match:
+        try:
+            r = match.group(1)
+            
+            rs = r.split(split_char)
+            
+            if multiple_types_to_convert_to:
+            
+                conversion_types:Iterable[type] = multiple_types_to_convert_to * len(rs)
+                
+                rsc = [
+                    c(re) for re, c in zip(rs, conversion_types)
+                ]
+                return rsc
+            else:
+                rsc = [
+                    type_to_convert_to(re) for re in rs
+                ]
+                return rsc
+            
+        except AttributeError:
+            return aux_valute_to_return_if_no_match
+        
+    if match is None:
+        raise error_type_to_raise(error_message)
+    
+    r = match.group(1)
+    
+    if r is None:
+        raise error_type_to_raise(error_message)
+            
+    rs = r.split(split_char)
+    
+    if multiple_types_to_convert_to:
+    
+        conversion_types:Iterable[type] = multiple_types_to_convert_to * len(rs)
+        
+        rsc = [
+            c(re) for re, c in zip(rs, conversion_types)
+        ]
+        return rsc
+    else:
+        rsc = [
+            type_to_convert_to(re) for re in rs
+        ]
+        return rsc
+        
 def get_multiple_groups_in_pattern(
     text_to_search:str, pattern:Pattern[str],*, expected_number_of_groups:int=1, 
     return_aux_if_no_match:bool=False, aux_valute_to_return_if_no_match=None,
