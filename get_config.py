@@ -70,8 +70,11 @@ class ConfigObject:
             #lines = f.readlines()
             text = f.read()
                     
-        config_file = get_first_group_in_pattern(text, config_file_pattern, return_aux_if_no_match=True)
-        
+        config_file:str = get_first_group_in_pattern(
+            text, config_file_pattern,
+            error_message="The file 'config.ini' did not contain an entry for 'config_file'",
+            error_type_to_raise=OSError
+        )
         if config_file is None:
             raise OSError(
                 "The file 'config.ini' did not contain an entry for 'config_file'"
@@ -82,7 +85,9 @@ class ConfigObject:
         seconds_per_turn_pattern = re.compile(r"seconds_per_turn:([\d]+)\n")
 
         seconds_per_turn = get_first_group_in_pattern(
-            text, seconds_per_turn_pattern, return_aux_if_no_match=True, type_to_convert_to=int
+            text, seconds_per_turn_pattern, type_to_convert_to=int,
+            error_message="The file 'config.ini' did not contain an entry for 'seconds_per_turn'",
+            error_type_to_raise=OSError
         )
         if seconds_per_turn is None:
             
@@ -99,7 +104,9 @@ class ConfigObject:
         chances_to_detect_cloak_pattern = re.compile(r"chances_to_detect_cloak:([\d]+)\n")
         
         chances_to_detect_cloak = get_first_group_in_pattern(
-            text, chances_to_detect_cloak_pattern, return_aux_if_no_match=True, type_to_convert_to=int
+            text, chances_to_detect_cloak_pattern, type_to_convert_to=int,
+            error_message="The file 'config.ini' did not contain an entry for 'chances_to_detect_cloak'",
+            error_type_to_raise=OSError
         )
         if chances_to_detect_cloak is None:
             
@@ -114,7 +121,9 @@ class ConfigObject:
         energy_cost_per_torpedo_patten = re.compile(r"energy_cost_per_torpedo:([\d]+)\n")
         
         energy_cost_per_torpedo = get_first_group_in_pattern(
-            text, energy_cost_per_torpedo_patten, return_aux_if_no_match=True, type_to_convert_to=int
+            text, energy_cost_per_torpedo_patten, type_to_convert_to=int,
+            error_message="The file 'config.ini' did not contain an entry for 'energy_cost_per_torpedo'",
+            error_type_to_raise=OSError
         )
         if energy_cost_per_torpedo is None:
             
