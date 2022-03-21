@@ -318,6 +318,8 @@ def print_ship_info(
         
         add_to_y+=1
         
+        sys_x_position = (width - 2) // 2
+        
         if not self.ship_class.is_automated:
             try:
                 injured_crew_amount = scan['injured_crew'][0]
@@ -363,7 +365,9 @@ def print_ship_info(
         try:
             boarders:Tuple[Nation, Tuple[int,int]] = scan["boarders"]
             
-            console.print(x=x+3, y=y+add_to_y, string=f"{'-- Boarders --'}", alignment=tcod.CENTER, fg=colors.white)
+            add_to_y+=1
+            
+            console.print(x=x+sys_x_position, y=y+add_to_y, string=f"{'-- Boarders --'}", alignment=tcod.CENTER, fg=colors.white)
             add_to_y+=1
             for k, v in boarders:
                 console.print(x=x+3, y=y+add_to_y, string=f"{k.name_short}   {v[0]} {v[1]}")
@@ -403,8 +407,6 @@ def print_ship_info(
         names, keys = self.ship_class.system_names, self.ship_class.system_keys
 
         #add_to_y+=1
-        
-        sys_x_position = (width - 2) // 2
 
         console.print(x=x+sys_x_position, y=y+add_to_y, string="-- Systems --", alignment=tcod.CENTER, fg=colors.white)
         
