@@ -497,8 +497,10 @@ def calc_cloak_medium(
             enemies_in_same_system, enemy_scans
         )
     ]
-    
-    detect_str = sum(detect_strs) / len(detect_strs)
+    try:
+        detect_str = sum(detect_strs) / len(detect_strs)
+    except ZeroDivisionError:
+        detect_str = 0
 
     cloak_str = self.entity.ship_class.cloak_strength * self.entity.cloak.get_effective_value
     
