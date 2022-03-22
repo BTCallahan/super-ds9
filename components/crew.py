@@ -560,12 +560,14 @@ It's actually value is {precision}."
             
             for k,v in self.hostiles_on_board.items():
                 
-                yield (k, tuple(v))
+                if v[0] + v[1] > 0:
+                    yield (k, tuple(v))
         else:
             for k,v in self.hostiles_on_board.items():
                 
-                if k == viewer_nation:
-                    
-                    yield (k, tuple(v))
-                else:
-                    yield (k, (scan_assistant(v[0], precision), scan_assistant(v[1], precision)))
+                if v[0] + v[1] > 0:
+                    if k == viewer_nation:
+                        
+                        yield (k, tuple(v))
+                    else:
+                        yield (k, (scan_assistant(v[0], precision), scan_assistant(v[1], precision)))
