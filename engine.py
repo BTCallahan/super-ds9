@@ -62,6 +62,10 @@ class Engine:
             try:
                 entity.sensors.detect_all_enemy_cloaked_ships_in_system()
             except AttributeError:
+                pass            
+            try:
+                entity.crew.on_turn()
+            except AttributeError:
                 pass
 
             #if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status.is_active:

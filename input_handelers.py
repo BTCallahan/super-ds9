@@ -106,6 +106,10 @@ class EventHandler(BaseEventHandler):
             game_data.player.sensors.detect_all_enemy_cloaked_ships_in_system()
         except AttributeError:
             pass
+        try:
+            game_data.player.crew.on_turn()
+        except AttributeError:
+            pass
         game_data.info_description = game_data.describe_info()
         return True
 
@@ -1847,8 +1851,13 @@ class TransporterHandler(MinMaxInitator):
             title="Transporter Controls:"
         )
         super().on_render(console)
+        self.to_from.render(console)
     
     def ev_mousebuttondown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
+        
+        if self.to_from.cursor_overlap(event):
+            
+            self.to_from.is_active = not self.to_from.is_active
         
         if self.max_button.cursor_overlap(event):
             
@@ -1870,10 +1879,10 @@ class TransporterHandler(MinMaxInitator):
             
             if isinstance(selected, Starship):
                 
-                order = TransportOrder(self.engine.player, selected, self.amount_button.add_up())
-                
+                order = TransportOrder(
+                    self.engine.player, selected, self.amount_button.add_up(), send=self.to_from.is_active
+                )
                 warning = order.raise_warning()
-                
                 try:
                     self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
                 except KeyError:
@@ -1919,8 +1928,9 @@ class TransporterHandler(MinMaxInitator):
             
             if isinstance(selected, Starship):
                 
-                order = TransportOrder(self.engine.player, selected, self.amount_button.add_up())
-                
+                order = TransportOrder(
+                    self.engine.player, selected, self.amount_button.add_up(), send=self.to_from.is_active
+                )
                 warning = order.raise_warning()
                 try:
                     self.engine.message_log.add_message(BLOCKS_ACTION[warning], colors.red)
@@ -2337,7 +2347,8 @@ class TorpedoHandler(HeadingBasedHandler):
                 entity=self.engine.player, 
                 heading=self.heading_button.add_up(), 
                 amount=self.number_button.add_up(),
-                cost=self.energy_cost
+                cost=self.energy_cost,
+                torpedo=self.torpedo_select.index_key
             )
             warning = torpedo_order.raise_warning()
 
@@ -2381,7 +2392,8 @@ class TorpedoHandler(HeadingBasedHandler):
                 entity=self.engine.player, 
                 heading=self.heading_button.add_up(), 
                 amount=self.number_button.add_up(),
-                cost=self.energy_cost
+                cost=self.energy_cost,
+                torpedo=self.torpedo_select.index_key
             )
             warning = torpedo_order.raise_warning()
 
@@ -2480,7 +2492,8 @@ class TorpedoHandlerEasy(CoordBasedHandler):
                 amount=self.number_button.add_up(), 
                 x=self.x_button.add_up(), 
                 y=self.y_button.add_up(),
-                cost=self.energy_cost
+                cost=self.energy_cost,
+                torpedo=self.torpedo_select.index_key
             )
             warning = torpedo_order.raise_warning()
             try:
@@ -2530,7 +2543,8 @@ class TorpedoHandlerEasy(CoordBasedHandler):
                 entity=self.engine.player, 
                 x=self.x_button.add_up(), 
                 y=self.y_button.add_up(),
-                cost=self.energy_cost
+                cost=self.energy_cost,
+                torpedo=self.torpedo_select.index_key
             )
             warning = torpedo_order.raise_warning()
             try:

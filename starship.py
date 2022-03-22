@@ -137,13 +137,13 @@ class Starship(CanDockWith):
     
     @property
     def hull_damage(self):
-        return self._hull_damage
+        return round(self._hull_damage)
     
     @hull_damage.setter
-    def hull_damage(self, value):
-        self._hull_damage = round(value)
-        if self._hull_damage < 0:
-            self._hull_damage = 0
+    def hull_damage(self, value:float):
+        self._hull_damage = value
+        if self._hull_damage < 0.0:
+            self._hull_damage = 0.0
     
     @property
     def get_max_hull(self):
@@ -491,6 +491,11 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
+            if self.crew.has_boarders:
+                d["boarders"] = tuple(self.crew.get_boarding_parties(self.nation, precision))
+        except AttributeError:
+            pass
+        try:
             d["sys_impulse"] = self.impulse_engine.print_info(precision), self.impulse_engine.get_color(), self.impulse_engine.name
         except AttributeError:
             pass
@@ -507,7 +512,7 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
-            d["sys_polarize"] = self.cannons.print_info(precision), self.polarized_hull.get_color(), self.polarized_hull.name
+            d["sys_polarize"] = self.polarized_hull.print_info(precision), self.polarized_hull.get_color(), self.polarized_hull.name
         except AttributeError:
             pass
         try:
@@ -1172,15 +1177,13 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         old_scan = self.scan_this_ship(
             pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player, use_effective_values=True
         )
-        perm_hull_damage = round(hull_dam * 0.15)
         try:
             self.shield_generator.shields = new_shields
         except AttributeError:
             pass
         self.hull = new_hull
         
-        self.hull_damage += perm_hull_damage
-        
+        self.hull_damage += hull_dam * 0.15
         try:
             self.crew.injuries_and_deaths(wounded, killed_outright, killed_in_sickbay)
         except AttributeError:
