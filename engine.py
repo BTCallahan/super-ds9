@@ -53,12 +53,10 @@ class Engine:
             
             if not entity.ship_status.is_active:
                 continue
-            
             try:
                 entity.cloak.handle_cooldown_and_status_recovery()
             except AttributeError:
                 pass
-            
             try:
                 entity.sensors.detect_all_enemy_cloaked_ships_in_system()
             except AttributeError:
@@ -67,9 +65,6 @@ class Engine:
                 entity.crew.on_turn()
             except AttributeError:
                 pass
-
-            #if entity.sector_coords == self.player.sector_coords and entity.ai and entity.ship_status.is_active:
-                        
             entity.ai.perform()
             entity.handle_repair_and_energy_consumption()
         

@@ -279,7 +279,6 @@ class Starship(CanDockWith):
         
         total = (self.hull / self.ship_class.max_hull) * 2
         divisor = 1
-        
         try:
             total += self.crew.crew_readyness
             divisor += 1
@@ -1212,7 +1211,6 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             self.shield_generator.integrety -= shield_sys_damage
         except AttributeError:
             pass
-
         self.sensors.integrety -= sensors_sys_damage
         try:
             self.warp_drive.integrety -= warp_drive_sys_damage

@@ -579,7 +579,6 @@ class EnergyWeaponOrder(Order):
         self.entity.turn_repairing = 0
 
     def raise_warning(self):
-
         if (
             not self.use_cannons and not self.entity.beam_array.is_opperational
         ) or (
@@ -596,7 +595,9 @@ class EnergyWeaponOrder(Order):
         if self.amount == 0:
             return OrderWarning.ZERO_VALUE_ENTERED
         
-        return OrderWarning.NOT_ENOUGHT_ENERGY if self.amount > self.entity.power_generator.energy else OrderWarning.SAFE
+        return (
+            OrderWarning.NOT_ENOUGHT_ENERGY if self.amount > self.entity.power_generator.energy else OrderWarning.SAFE
+        )
       
 class TransportOrder(Order):
     
@@ -754,7 +755,7 @@ class TransportOrder(Order):
                 if describe_player_actions:
                     
                     message.append(
-                        f"We have retrived {self.amount} crew members."
+                        f"We have retrived {self.amount} crew"
                     )
                     if injured_crew_returned > 0:
                         
@@ -850,7 +851,7 @@ class TransportOrder(Order):
                     message_log.add_message(
                         "Our forces have transported over taken control of the ship without meeting any restance."
                     )
-                #if the acting ship is renforcing an existing boardign party
+                #if the acting ship is renforcing an existing boarding party
             elif self.entity.nation in self.target.crew.hostiles_on_board:
                 
                 if describe_player_actions or describe_other_actions:
@@ -895,18 +896,24 @@ class TransportOrder(Order):
                     
                     message_log.add_message(" ".join(message), colors.orange)
                     
-                self.target.crew.hostiles_on_board[self.entity.nation][0] = self.amount
+                self.target.crew.hostiles_on_board[self.entity.nation][0] += self.amount
             else:
                 self.target.crew.hostiles_on_board[self.entity.nation] = [self.amount, 0]
                 
                 if describe_player_actions or describe_other_actions:
                     
-                    we_them = "We have" if describe_player_actions else f"The {self.entity.name} has"
+                    we_them, us_them, our_their = (
+                        "We have", "us", "Our"
+                    ) if describe_player_actions else (
+                        f"The {self.entity.name} has", f"the {self.entity.name}", "Their"
+                    )
                     
-                    us_them = "us" if describe_other_actions else f"the {self.entity.name}"
+                    #us_them = "us" if describe_other_actions else f"the {self.entity.name}"
+                    
+                    #our_their = 'Our' if describe_player_actions else 'Their'
                     
                     message_log.add_message(
-                        f"{we_them} transported {self.amount} of boarders to {us_them}! {'Our' if describe_player_actions else 'Their'} forces are fighting for control of the ship.", 
+f"{we_them} transported {self.amount} of boarders to {us_them}! {our_their} forces are fighting for control of the ship.", 
                         colors.orange
                     )
         else:

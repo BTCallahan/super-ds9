@@ -5,10 +5,9 @@ import tcod
 from coords import Coords
 from space_objects import Planet, Star, SubSector
 from starship import Starship
-from data_globals import STATUS_HULK, CloakStatus
+from data_globals import STATUS_HULK
 import colors
 from get_config import CONFIG_OBJECT
-from torpedo import ALL_TORPEDO_TYPES
 
 if TYPE_CHECKING:
     from tcod import Console
@@ -222,18 +221,9 @@ def print_ship_info(
     width:int, height:int,
     self:Starship, 
     scan:Dict[str,Any],
-    precision:int):
-
-    #scan = self.scan_this_ship(precision)
-
-    #info = OrderedDict()
-
-    #info["shields"]
-    
-    ship_status = self.ship_status
-    
-    #assert ship_status.is_visible
-    
+    precision:int
+):
+    ship_status = self.ship_status    
     try:
         cloak_is_on = self.cloak.cloak_is_turned_on
     except AttributeError:

@@ -80,19 +80,17 @@ class TorpedoLauncher(StarshipSystem):
         return self.is_opperational and self.get_total_number_of_torpedos > 0
     
     def get_number_of_torpedos(self, precision:int = 1):
-        """This generates the number of torpedos that the ship has @ precision - must be an intiger not less then 0 and 
-        not more then 100 
-        Yields tuples containing the torpedo type and the number of torpedos
+        """This generates the number of torpedos that the ship has @ precision
 
         Args:
-            precision (int, optional): The precision value. 1 is best, higher values are worse. Defaults to 1.
+            precision (int, optional): The precision value. 1 is best, higher values are worse. Must be an intiger not less then 0 and not more then 100. Defaults to 1.
 
         Raises:
             TypeError: Raised if precision is a float.
             ValueError: Rasied if precision is lower then 1 or higher then 100
 
         Yields:
-            [type]: [description]
+            [Tuple[Torpdeo, int]]: Tuples containing the torpedo type and the number of torpedos
         """
         #scanAssistant = lambda v, p: round(v / p) * p
         if  isinstance(precision, float):

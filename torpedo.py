@@ -88,8 +88,6 @@ def create_torpedos() -> Dict[str,Torpedo]:
 
 ALL_TORPEDO_TYPES:Final = create_torpedos()
 
-#def find_most_powerful_torpedo_str(iter_torpedo_type:Iterable[Tor])
-
 def find_most_powerful_torpedo(iter_torpedo_type:Iterable[Torpedo]):
 
     torp_type = None
