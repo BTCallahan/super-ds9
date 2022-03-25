@@ -15,6 +15,7 @@ class ConfigObject:
     chances_to_detect_cloak:int
     time_per_turn:int
     energy_cost_per_torpedo:int
+    life_support_offline_turn_limit:int
     
     screen_width:int
     screen_height:int
@@ -129,6 +130,13 @@ class ConfigObject:
             
             raise OSError("The file 'config.ini' did not contain an entry for 'energy_cost_per_torpedo'")
         
+        life_support_offline_turn_limit_pattern = re.compile(r"life_support_offline_turn_limit:([\d]+)\n")
+        
+        life_support_offline_turn_limit = get_first_group_in_pattern(
+            text, life_support_offline_turn_limit_pattern, type_to_convert_to=int,
+            error_message="The file 'config.ini' did not contain an entry for 'life_support_offline_turn_limit'",
+            error_type_to_raise=OSError
+        )
         d:Dict[str,string_or_int] = {}
         
         with open(config_file, "r") as f:
@@ -192,6 +200,7 @@ class ConfigObject:
             chances_to_detect_cloak=chances_to_detect_cloak,
             time_per_turn=time_per_turn,
             energy_cost_per_torpedo=energy_cost_per_torpedo,
+            life_support_offline_turn_limit=life_support_offline_turn_limit,
             screen_width=screen_width,
             screen_height=screen_height,
             sector_width=sector_width,
