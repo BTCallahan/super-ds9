@@ -364,9 +364,14 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         The player may choose to beam a number of uninjured crew members over to another starship. The starship must be a derelict, or it must be a 
         friendly craft. If it is a derelict, then the crew members who beamed aboard will take controll of it, allowing it to aperate as a friendly 
-        spacecraft. If it is not a derelict, but it is an allied ship, they will renforce the existing crew.
+        spacecraft. If it is not a derelict, but it is an allied ship, they will renforce the existing crew.  If it is not a derelict and is an enemy 
+        ship, the boarding party will fight the crew for control of the ship.
 
-        The player cannot transport crew onto an automated spacecraft. Nor can they transport more crew then the spacecraft's maximum crew.
+        The player may wish to beam a boarding party off the ship. This can be done by setting the Boarding Team bolean to Retrive, and then deciding 
+        how many crew members you want to beam back.
+
+        The player cannot transport crew onto an automated spacecraft. Nor can they transport more crew to a friendly spaceship then the spacecraft's 
+        maximum crew.
 
     L. Auto Destruct:
 
@@ -394,7 +399,7 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
             the shields is increased by fifteen percent. And should a torpedo hit a ship with it's shields down, then damge is increased by three 
             quarters. Torpedoes suffer from a small flat accuacy penalty.
 
-        If a ships hull is reduced to less then half its negitive hull strength, then it suffers a warp core breach and is totaly destroyed, damaging 
+        If a ships hull is reduced to less then half its negative hull strength, then it suffers a warp core breach and is totaly destroyed, damaging 
         (and possibly destroying) any ships nearby.
 
         Normaly, a ship's shield will absorb any damage, however once it is below 50% the ship will begin to experince 'bleed through' damage. The 
@@ -403,9 +408,10 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         If the hull is polarized, then damage is reduced by the following formula:
 
-            square root(ship polarization amount * 10) * 0.5 * polarization system effectiveness
+            damage inflicted = max((damage - polarization) + exp(damage / polarization), exp(damage / polarization))
 
-        About 20% of the damage inflicted on a ship will be permanent. What this means is that is to say that it cannot be fixed by normally and must be repaired at a planet.
+        About 15% of the damage inflicted on a ship will be permanent. What this means is that is that it cannot be fixed by normally and must be 
+        repaired by docking with a station or planet.
 
     B. Systems Damage:
 
@@ -427,7 +433,11 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
             Decreases the damage and accuracy of beam attacks.
 
-        iv. Torpedoes:
+        iv. Cannons:
+
+            Decreases the damage and accuracy of cannon attacks.
+        
+        v. Torpedoes:
 
             Decreases the accuracy of torpedoes fired and the number of avaliabe torpedo tubes.
 
@@ -447,9 +457,17 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
             Decreases maximum shield strength.
 
-        viii. Warp Core:
+        viii. Transporters:
 
-            Decreases energy regeneration and increases risk of a warp core breach when hit.
+            Decreases the number of personel who can be transported, as well as decressing the maximum range that they can be transported.
+
+        ix. Life Support:
+
+            Decreases the recovery rate of injured crew. If life support fails, then after several turns crew members will star to die due to exposure.
+
+        x. Warp Core:
+
+            Decreases energy regeneration and the maximum amount of energy that can be stored, and increases the risk of a warp core breach when hit.
 
 7. Bugs: 
 
