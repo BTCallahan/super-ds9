@@ -602,6 +602,7 @@ def calc_auto_destruct_medium(
     self:BaseAi,
     all_nearbye_ships:Iterable[Starship],
     nearbye_enemy_ships:Iterable[Starship],
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]],
     nearbye_allied_ships:Iterable[Starship]
 ):
     user = self.entity
@@ -611,10 +612,8 @@ def calc_auto_destruct_medium(
     enemy_collected_values = [
         user.simulate_self_destruct(
             enemy, 
-            scan=enemy.scan_this_ship(
-                precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
-            )
-        ) for enemy in nearbye_enemy_ships
+            scan=scan
+        ) for enemy, scan in zip(nearbye_enemy_ships, enemy_scans)
     ]
     #averaged_shields = max([value[0] for value in collected_values])
     #averaged_hull = max([value[1] for value in collected_values])
@@ -639,6 +638,7 @@ def calc_auto_destruct_hard(
     self:BaseAi,
     all_nearbye_ships:Iterable[Starship],
     nearbye_enemy_ships:Iterable[Starship],
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]],
     nearbye_allied_ships:Iterable[Starship]
 ):
     user = self.entity
@@ -648,12 +648,10 @@ def calc_auto_destruct_hard(
     enemy_collected_values = [
         user.simulate_self_destruct(
             enemy, 
-            scan=enemy.scan_this_ship(
-                precision, scan_for_crew=True, scan_for_systems=True, use_effective_values=True
-            ),
+            scan=scan,
             number_of_simulations=3, 
             simulate_systems=True, simulate_crew=True,
-        ) for enemy in nearbye_enemy_ships
+        ) for enemy, scan in zip(nearbye_enemy_ships, enemy_scans)
     ]
     #averaged_shields = max([value[0] for value in collected_values])
     #averaged_hull = max([value[1] for value in collected_values])
@@ -884,6 +882,7 @@ class MediumEnemy(BaseAi):
                                 STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED,STATUS_CLOAKED,STATUS_DERLICT,STATUS_HULK
                             }
                         ),
+                        enemy_scans=enemy_scans,
                         nearbye_allied_ships=[], 
                         nearbye_enemy_ships=enemy_ships,
                     )
@@ -970,6 +969,7 @@ class HardEnemy(BaseAi):
                                 STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED,STATUS_CLOAKED,STATUS_DERLICT,STATUS_HULK
                             }
                         ),
+                        enemy_scans=enemy_scans,
                         nearbye_allied_ships=friendly_ships, 
                         nearbye_enemy_ships=enemy_is_present,
                     )
@@ -1068,6 +1068,7 @@ class AllyAI(BaseAi):
                                 STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED,STATUS_CLOAKED,STATUS_DERLICT,STATUS_HULK
                             }
                         ),
+                        enemy_scans=enemy_scans,
                         nearbye_allied_ships=friendly_ships, 
                         nearbye_enemy_ships=enemy_is_present,
                     )
