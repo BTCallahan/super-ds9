@@ -1638,7 +1638,6 @@ class PolarizationHandler(MinMaxInitator):
             gameData=self.engine.game_data,
             title="Input hull polarization"
         )
-        
         super().on_render(console)
 
         self.amount_button.render(console)
@@ -1696,7 +1695,6 @@ class PolarizationHandler(MinMaxInitator):
             recharge_order = RechargeOrder(
                 self.engine.player, self.amount_button.add_up(), self.polarize_status.is_active
             )
-
             warning = recharge_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1744,7 +1742,6 @@ class ShieldsHandler(MinMaxInitator):
             gameData=self.engine.game_data,
             title="Input energy to transfer to shields"
         )
-        
         super().on_render(console)
 
         self.amount_button.render(console)
@@ -1773,7 +1770,6 @@ class ShieldsHandler(MinMaxInitator):
             recharge_order = RechargeOrder(
                 self.engine.player, self.amount_button.add_up(), self.shield_status.is_active
             )
-
             warning = recharge_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1802,7 +1798,6 @@ class ShieldsHandler(MinMaxInitator):
             recharge_order = RechargeOrder(
                 self.engine.player, self.amount_button.add_up(), self.shield_status.is_active
             )
-
             warning = recharge_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -2717,7 +2712,6 @@ class SelfDestructHandler(CancelConfirmHandler):
                     f"Error: The code for the self destruct is not correct.", colors.red
                 )
         else:
-        
             self.code_handler.handle_key(event)
             self.warned_once = False
             #self.code_handler.text = self.code_handler.text_to_print
@@ -3178,8 +3172,9 @@ class ShipPlacement(MainGameEventHandler):
             
             ship_class_nation = self.all_ships.index_key.nation
             
-            self.friendy_hostile.is_active = ship_class_nation in self.engine.game_data.scenerio.get_set_of_allied_nations
-            
+            self.friendy_hostile.is_active = (
+                ship_class_nation in self.engine.game_data.scenerio.get_set_of_allied_nations
+            )
             self.all_ships.is_active = True
             
             self.system_x.is_active = False
@@ -3360,7 +3355,8 @@ class ShipPlacement(MainGameEventHandler):
             if ship.local_coords.x == l_x and ship.local_coords.y == l_y:
                 
                 self.engine.message_log.add_message(
-                    f"The selected ship spawn spot {l_x}, {l_y} in sector {s_x}, {s_y} is blocked by the ship {ship.name}.", colors.red
+f"The selected ship spawn spot {l_x}, {l_y} in sector {s_x}, {s_y} is blocked by the ship {ship.name}.", 
+                    colors.red
                 )
                 return
         
@@ -3721,4 +3717,3 @@ class ShipEditing(MainGameEventHandler):
             self.engine.game_data.player_scan = self.ship.scan_for_print(1)
         else:
             self.engine.game_data.ship_scan = self.ship.scan_for_print(1)
-        

@@ -764,20 +764,6 @@ def reactivate_derelict_hard(self:BaseAi):
                     stragic_value = derelict.calculate_ship_stragic_value(value_multiplier_for_derlict=1)
                     
                     self.order_dict[order] = average(stragic_value) / crew_to_send
-            """
-            derelicts_in_system.sort(key=lambda ship: ship.local_coords.distance(self.entity.local_coords), reverse=True)
-            
-            adjacent = [ship for ship in derelicts_in_system if ship.local_coords.is_adjacent(self.entity.local_coords)]
-
-            if adjacent:
-                
-                adjacent.sort(
-                    key=lambda ship: ship.ship_class.max_crew, reverse=True
-                )
-                able_crew -= adjacent[0].ship_class.max_crew
-            else:
-                able_crew -= self.entity.local_coords.distance(derelicts_in_system[0].local_coords)
-            """
         else:
             
             for derelict in all_derelicts:
@@ -1146,9 +1132,7 @@ class MissionCriticalAllyAI(BaseAi):
             precision = self.entity.sensors.determin_precision
             
             enemy_ships = self.get_player_enemies_in_same_system()
-            
-            #friendly_ships = self.get_player_allies_in_same_system()
-            
+                        
             enemy_scans = [
                 ship.scan_this_ship(
                     precision=precision, scan_for_crew=False, scan_for_systems=False
@@ -1200,7 +1184,3 @@ ALL_DIFFICULTIES = {
     MediumEnemy,
     HardEnemy
 }
-
-def aaaaa(t:type[BaseAi]):
-    
-    a = t()
