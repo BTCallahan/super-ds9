@@ -7,7 +7,7 @@ from frozendict import frozendict
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Final, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, LOCAL_ENERGY_COST, PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from nation import ALL_NATIONS
 from space_objects import Planet, SubSector
 from get_config import CONFIG_OBJECT
@@ -140,7 +140,7 @@ class WarpOrder(Order):
         assert speed > 0
         self.speed = speed
         self.warp_speed, cost = WARP_FACTOR[speed]
-        self.cost = ceil(self.distance * SECTOR_ENERGY_COST * cost)
+        self.cost = ceil(self.distance * CONFIG_OBJECT.sector_energy_cost * cost)
         self.x, self.y = x,y
     
     def __hash__(self):

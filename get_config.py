@@ -16,6 +16,8 @@ class ConfigObject:
     time_per_turn:int
     energy_cost_per_torpedo:int
     life_support_offline_turn_limit:int
+    local_energy_cost:int
+    sector_energy_cost:int
     
     screen_width:int
     screen_height:int
@@ -137,6 +139,20 @@ class ConfigObject:
             error_message="The file 'config.ini' did not contain an entry for 'life_support_offline_turn_limit'",
             error_type_to_raise=OSError
         )
+        local_energy_cost_pattern = re.compile(r"local_energy_cost:([\d]+)\n")
+        
+        local_energy_cost = get_first_group_in_pattern(
+            text, local_energy_cost_pattern, type_to_convert_to=int,
+            error_message="The file 'config.ini' did not contain an entry for 'local_energy_cost'",
+            error_type_to_raise=OSError
+        )
+        sector_energy_cost_pattern = re.compile(r"sector_energy_cost:([\d]+)\n")
+        
+        sector_energy_cost = get_first_group_in_pattern(
+            text, sector_energy_cost_pattern, type_to_convert_to=int,
+            error_message="The file 'config.ini' did not contain an entry for 'sector_energy_cost'",
+            error_type_to_raise=OSError
+        )
         d:Dict[str,string_or_int] = {}
         
         with open(config_file, "r") as f:
@@ -201,6 +217,8 @@ class ConfigObject:
             time_per_turn=time_per_turn,
             energy_cost_per_torpedo=energy_cost_per_torpedo,
             life_support_offline_turn_limit=life_support_offline_turn_limit,
+            local_energy_cost=local_energy_cost,
+            sector_energy_cost=sector_energy_cost,
             screen_width=screen_width,
             screen_height=screen_height,
             sector_width=sector_width,

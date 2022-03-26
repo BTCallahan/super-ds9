@@ -72,9 +72,6 @@ PLANET_NEUTRAL:Final = PlanetHabitation(
 )
 PLANET_TYPES:Final = (PLANET_BARREN, PLANET_PREWARP, PLANET_WARP_CAPABLE)
 
-LOCAL_ENERGY_COST:Final = 50
-SECTOR_ENERGY_COST:Final = 250
-
 @dataclass(eq=True, frozen=True)
 class Condition:
     

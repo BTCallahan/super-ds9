@@ -2,8 +2,9 @@ from __future__ import annotations
 from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
+from get_config import CONFIG_OBJECT
 from global_functions import average
-from data_globals import LOCAL_ENERGY_COST, PLANET_FRIENDLY, PLANET_NEUTRAL, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
+from data_globals import PLANET_FRIENDLY, PLANET_NEUTRAL, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
 
 from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, PolarizeOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, TransportOrder, WarpOrder, WarpTravelOrder
 
@@ -547,7 +548,7 @@ def calc_oppress_hard(self:BaseAi):
             self.entity.game_data, self.entity
         ) if self.entity.sector_coords.distance(
             coords=planet
-        ) * SECTOR_ENERGY_COST * affect_cost_multiplier <= self.entity.power_generator.energy
+        ) * CONFIG_OBJECT.sector_energy_cost * affect_cost_multiplier <= self.entity.power_generator.energy
     )
 
     number_of_unoppressed_planets = len(unopressed_planets)
@@ -556,7 +557,9 @@ def calc_oppress_hard(self:BaseAi):
         
         planet = unopressed_planets[0]
         
-        energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier
+        energy_cost = self.entity.sector_coords.distance(
+            coords=planet
+        ) * CONFIG_OBJECT.sector_energy_cost * self.entity.warp_drive.affect_cost_multiplier
             
         warp_to = WarpOrder.from_coords(self.entity, planet.x, planet.y)
         
@@ -581,7 +584,9 @@ def calc_oppress_hard(self:BaseAi):
             self.entity, planet.x, planet.y, speed=WARP_FACTOR[1], 
             start_x=self.entity.sector_coords.x, start_y=self.entity.sector_coords.y
         )
-        energy_cost = self.entity.sector_coords.distance(coords=planet) * SECTOR_ENERGY_COST * self.entity.warp_drive.affect_cost_multiplier
+        energy_cost = self.entity.sector_coords.distance(
+            coords=planet
+        ) * CONFIG_OBJECT.sector_energy_cost * self.entity.warp_drive.affect_cost_multiplier
         
         self.order_dict[warp_to] = self.entity.power_generator.energy - round(energy_cost)
         
@@ -698,8 +703,7 @@ def calc_ram_hard(
         energy_cost = round(
             self.entity.local_coords.distance(
                 x=ship.local_coords.x, y=ship.local_coords.y
-            ) * LOCAL_ENERGY_COST * 
-            self.entity.impulse_engine.affect_cost_multiplier
+            ) * CONFIG_OBJECT.local_energy_cost * self.entity.impulse_engine.affect_cost_multiplier
         )
         if energy_cost > self.entity.power_generator.energy:
             

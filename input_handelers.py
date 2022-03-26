@@ -2,7 +2,7 @@ from __future__ import annotations
 from random import choice
 from textwrap import wrap
 from coords import Coords
-from data_globals import LOCAL_ENERGY_COST, SECTOR_ENERGY_COST, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, WARP_FACTOR, CloakStatus
+from data_globals import STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, WARP_FACTOR, CloakStatus
 from engine import CONFIG_OBJECT
 from typing import TYPE_CHECKING, Any, Iterable, List, Optional, Tuple, Union
 from order import CloakOrder, SelfDestructOrder, TransportOrder, WarpTravelOrder, BLOCKS_ACTION, \
@@ -1132,7 +1132,7 @@ class WarpHandler(HeadingBasedHandler):
             min_value=1
         )
         self.energy_cost = round(
-            self.distance.add_up() * SECTOR_ENERGY_COST * WARP_FACTOR[1][1]
+            self.distance.add_up() * CONFIG_OBJECT.sector_energy_cost * WARP_FACTOR[1][1]
         )
         self.cost_button:SimpleElement = cost_button(cost=f"{self.energy_cost}")
         
@@ -1245,7 +1245,7 @@ class WarpHandler(HeadingBasedHandler):
                     warp_speed, cost =  WARP_FACTOR[self.warp_speed.add_up()]
                     
                     self.energy_cost = round(
-                        self.distance.add_up() * cost * SECTOR_ENERGY_COST
+                        self.distance.add_up() * cost * CONFIG_OBJECT.sector_energy_cost
                     )
                     self.cost_button.text = f"{self.energy_cost}"
                 
@@ -1263,7 +1263,7 @@ class WarpHandlerEasy(CoordBasedHandler):
         )
         self.energy_cost = round(
             self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-            self.engine.player.warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+            self.engine.player.warp_drive.affect_cost_multiplier * CONFIG_OBJECT.sector_energy_cost
         )
         self.cost_button:SimpleElement = cost_button(f"{self.energy_cost}")
         
@@ -1345,7 +1345,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                     
                     self.energy_cost = round(
                         self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-                        self.engine.player.warp_drive.affect_cost_multiplier * SECTOR_ENERGY_COST
+                        self.engine.player.warp_drive.affect_cost_multiplier * CONFIG_OBJECT.sector_energy_cost
                     )
                     self.cost_button.text = f"{self.energy_cost}"
                 else:
@@ -1387,7 +1387,7 @@ class WarpHandlerEasy(CoordBasedHandler):
                 _distance = self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up())
                 warp_speed, cost =  WARP_FACTOR[self.warp_speed.add_up()]
                 self.energy_cost = round(
-                    cost * _distance * SECTOR_ENERGY_COST
+                    cost * _distance * CONFIG_OBJECT.sector_energy_cost
                 )
                 self.cost_button.text = f"{self.energy_cost}"
 
@@ -1403,7 +1403,8 @@ class MoveHandler(HeadingBasedHandler):
             limit=3, max_value=CONFIG_OBJECT.max_move_distance, min_value=1,
         )
         self.energy_cost = round(
-            self.distance_button.add_up() * LOCAL_ENERGY_COST * player.impulse_engine.affect_cost_multiplier
+            self.distance_button.add_up() * CONFIG_OBJECT.local_energy_cost * 
+            player.impulse_engine.affect_cost_multiplier
         )
         self.cost_button = cost_button(f"{self.energy_cost}")
         
@@ -1488,7 +1489,7 @@ class MoveHandler(HeadingBasedHandler):
             if self.selected_handeler is self.distance_button:
             
                 self.energy_cost = round(
-                    self.distance_button.add_up() * LOCAL_ENERGY_COST * 
+                    self.distance_button.add_up() * CONFIG_OBJECT.local_energy_cost * 
                     self.engine.player.impulse_engine.affect_cost_multiplier
                 )
                 self.cost_button.text = f"{self.energy_cost}"
@@ -1507,8 +1508,8 @@ class MoveHandlerEasy(CoordBasedHandler):
             max_y=CONFIG_OBJECT.sector_height
         )
         self.energy_cost = round(
-            player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST * 
-            player.impulse_engine.affect_cost_multiplier
+            player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * 
+            CONFIG_OBJECT.local_energy_cost * player.impulse_engine.affect_cost_multiplier
         )
         self.cost_button = cost_button(cost=f"{self.energy_cost}")
         
@@ -1566,7 +1567,7 @@ class MoveHandlerEasy(CoordBasedHandler):
                 self.warned_once = False
                 self.energy_cost = round(
                     self.engine.player.local_coords.distance(x=self.x_button.add_up(), y=self.y_button.add_up()) * 
-                    LOCAL_ENERGY_COST * self.engine.player.impulse_engine.affect_cost_multiplier
+                    CONFIG_OBJECT.local_energy_cost * self.engine.player.impulse_engine.affect_cost_multiplier
                 )
                 self.cost_button.text = f"{self.energy_cost}"
             else:
@@ -1601,7 +1602,7 @@ class MoveHandlerEasy(CoordBasedHandler):
             self.selected_handeler.handle_key(event)
             self.energy_cost = round(
                 self.engine.player.local_coords.distance(
-                    x=self.x_button.add_up(), y=self.y_button.add_up()) * LOCAL_ENERGY_COST
+                    x=self.x_button.add_up(), y=self.y_button.add_up()) * CONFIG_OBJECT.local_energy_cost
             )
             self.cost_button.text = f"{self.energy_cost}"
             
