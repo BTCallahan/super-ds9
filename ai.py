@@ -3,7 +3,7 @@ from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
 from get_config import CONFIG_OBJECT
-from global_functions import average
+from global_functions import ajust_system_integrity, average
 from data_globals import PLANET_FRIENDLY, PLANET_NEUTRAL, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
 
 from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, PolarizeOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, TransportOrder, WarpOrder, WarpTravelOrder
@@ -468,11 +468,15 @@ def calc_shields_hard(
     
     def evaluate_scan(scan: Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]):
         try:
-            max_beam_energy = min(scan["class"].max_beam_energy, scan["energy"]) * scan["sys_beam_array"]
+            max_beam_energy = round(
+                min(scan["class"].max_beam_energy, scan["energy"]) * ajust_system_integrity(scan["sys_beam_array"])
+            )
         except KeyError:
             max_beam_energy = 0
         try:
-            max_cannon_energy = min(scan["class"].max_cannon_energy, scan["energy"]) * scan["sys_cannon"]
+            max_cannon_energy = round(
+                min(scan["class"].max_cannon_energy, scan["energy"]) * ajust_system_integrity(scan["sys_cannon"])
+            )
         except KeyError:
             max_cannon_energy = 0
         
@@ -521,7 +525,9 @@ def calc_cloak_hard(
     cloaking_ability = self.entity.get_cloak_power
     
     cloak_strengths = [
-        cloaking_ability - scan["sys_sensors"] * ship.ship_class.detection_strength for ship, scan in zip(
+        cloaking_ability - min(
+            ajust_system_integrity(scan["sys_sensors"]), 1
+        ) * ship.ship_class.detection_strength for ship, scan in zip(
             enemies_in_same_system, enemy_scans
         )
     ]
