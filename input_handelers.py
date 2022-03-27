@@ -856,7 +856,9 @@ class CommandEventHandler(MainGameEventHandler):
     def cloak(self):
         
         player = self.engine.player
+        
         cloak_order = CloakOrder(player, player.cloak.cloak_is_turned_on)
+        
         warning = cloak_order.raise_warning()
 
         if warning == OrderWarning.SAFE:
@@ -1465,7 +1467,10 @@ class MoveHandler(HeadingBasedHandler):
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
-        if event.sym in confirm and not self.heading_button.is_empty and not self.distance_button.is_empty and self.can_render_confirm_button:
+        if (
+            event.sym in confirm and not self.heading_button.is_empty and 
+            not self.distance_button.is_empty and self.can_render_confirm_button
+        ):
             move_order = MoveOrder.from_heading(
                 entity=self.engine.player, heading=self.heading_button.add_up(), 
                 distance=self.distance_button.add_up(), cost=self.energy_cost
@@ -1668,7 +1673,6 @@ class PolarizationHandler(MinMaxInitator):
             recharge_order = RechargeOrder(
                 self.engine.player, self.amount_button.add_up(), self.polarize_status.is_active
             )
-
             warning = recharge_order.raise_warning()
 
             if warning == OrderWarning.SAFE:
@@ -1693,6 +1697,7 @@ class PolarizationHandler(MinMaxInitator):
 
         if event.sym == tcod.event.K_ESCAPE:
             return CommandEventHandler(self.engine)
+        
         if event.sym in confirm:
             recharge_order = RechargeOrder(
                 self.engine.player, self.amount_button.add_up(), self.polarize_status.is_active
@@ -2363,11 +2368,14 @@ class TorpedoHandler(HeadingBasedHandler):
                 self.warned_once = True
         else:
             game_data = self.engine.game_data
+            
             ship_planet_or_star = select_ship_planet_star(game_data, event)
             
             if ship_planet_or_star:
                 if isinstance(ship_planet_or_star, (Planet, Star)):
+                    
                     game_data.selected_ship_planet_or_star = ship_planet_or_star
+                    
                 elif isinstance(ship_planet_or_star, Starship):
                     if (
                         ship_planet_or_star is not self.engine.player and 
@@ -2514,15 +2522,20 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             ship_planet_or_star = select_ship_planet_star(game_data, event)
             
             if ship_planet_or_star:
+                
                 if isinstance(ship_planet_or_star, (Planet, Star)):
+                    
                     game_data.selected_ship_planet_or_star = ship_planet_or_star
+                    
                 elif isinstance(ship_planet_or_star, Starship):
                     
                     if (
                         ship_planet_or_star is not self.engine.player and 
                         ship_planet_or_star is not game_data.selected_ship_planet_or_star
                     ):
-                        game_data.ship_scan = ship_planet_or_star.scan_for_print(game_data.player.sensors.determin_precision)
+                        game_data.ship_scan = ship_planet_or_star.scan_for_print(
+                            game_data.player.sensors.determin_precision
+                        )
                         game_data.selected_ship_planet_or_star = ship_planet_or_star
                 else:
                     game_data.selected_ship_planet_or_star = None

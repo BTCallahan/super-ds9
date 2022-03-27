@@ -195,7 +195,7 @@ def calc_torpedos_hard(
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
     
         chance_of_hit = self.entity.check_torpedo_los(ship)
-            
+        
         if chance_of_hit > 0.0:
             
             averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
@@ -270,7 +270,6 @@ def calc_beam_weapon_hard(
     user = self.entity
             
     max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
-    
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:
