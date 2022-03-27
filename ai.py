@@ -120,9 +120,9 @@ def calc_torpedos_easy(
         if chance_of_hit > 0:
             
             torpedo_order = TorpedoOrder.from_coords(
-                self.entity, times_to_fire, 
-                torpedo,
-                ship.local_coords.x, ship.local_coords.y
+                entity=self.entity, amount=times_to_fire, 
+                torpedo=torpedo,
+                x=ship.local_coords.x, y=ship.local_coords.y
             )
             self.order_dict[torpedo_order] = 1000
             self.order_dict_size+=1
@@ -157,9 +157,9 @@ def calc_torpedos_medium(
                 target_scan=scan
             )
             torpedo_order = TorpedoOrder.from_coords(
-                self.entity, times_to_fire, 
-                torpedo,
-                ship.local_coords.x, ship.local_coords.y
+                entity=self.entity, amount=times_to_fire, 
+                torpedo=torpedo,
+                x=ship.local_coords.x, y=ship.local_coords.y
             )
             warning = torpedo_order.raise_warning()
             
@@ -203,10 +203,11 @@ def calc_torpedos_hard(
                 times_to_fire=times_to_fire,
                 simulate_systems=True, simulate_crew=True, target_scan=scan
             )
-            torpedo = TorpedoOrder.from_coords(
-                self.entity, torpedos_to_fire, ship.local_coords.x, ship.local_coords.y
+            torpedo_order = TorpedoOrder.from_coords(
+                entity=self.entity, amount=times_to_fire, 
+                x=ship.local_coords.x, y=ship.local_coords.y
             )
-            warning = torpedo.raise_warning()
+            warning = torpedo_order.raise_warning()
             
             if warning not in {
                 OrderWarning.NO_TORPEDOS_LEFT, 
@@ -215,7 +216,7 @@ def calc_torpedos_hard(
                 OrderWarning.TORPEDO_WILL_HIT_PLANET_OR_FRIENDLY_SHIP,
                 OrderWarning.TORPEDO_WILL_MISS
             }:
-                self.order_dict[torpedo] = (
+                self.order_dict[torpedo_order] = (
                     c_value
                 ) * (total_shield_dam + total_hull_dam + (1000 * ship_kills) + (1000 * crew_kills))
                 

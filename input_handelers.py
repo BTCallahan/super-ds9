@@ -1179,7 +1179,7 @@ class WarpHandler(HeadingBasedHandler):
                     pass
                 
                 warp_order = WarpOrder.from_heading(
-                    self.engine.player, heading=self.heading_button.add_up(), distance=self.distance.add_up(),
+                    entity=self.engine.player, heading=self.heading_button.add_up(), distance=self.distance.add_up(),
                     speed=self.warp_speed.add_up(), 
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
@@ -1223,7 +1223,7 @@ class WarpHandler(HeadingBasedHandler):
                     return CommandEventHandler(self.engine)
                 
                 warp_order = WarpOrder.from_heading(
-                    self.engine.player, self.heading_button.add_up(), self.distance.add_up(),
+                    entity=self.engine.player, heading=self.heading_button.add_up(), distance=self.distance.add_up(),
                     speed=self.warp_speed.add_up(), 
                     start_x=self.engine.player.sector_coords.x, start_y=self.engine.player.sector_coords.y
                 )
@@ -1440,7 +1440,8 @@ class MoveHandler(HeadingBasedHandler):
         elif self.confirm_button.cursor_overlap(event) and self.can_render_confirm_button:
             
             move_order = MoveOrder.from_heading(
-                self.engine.player, self.heading_button.add_up(), self.distance_button.add_up(), self.energy_cost
+                entity=self.engine.player, heading=self.heading_button.add_up(), 
+                distance=self.distance_button.add_up(), cost=self.energy_cost
             )
             warning = move_order.raise_warning()
 
@@ -1466,7 +1467,8 @@ class MoveHandler(HeadingBasedHandler):
             return CommandEventHandler(self.engine)
         if event.sym in confirm and not self.heading_button.is_empty and not self.distance_button.is_empty and self.can_render_confirm_button:
             move_order = MoveOrder.from_heading(
-                self.engine.player, self.heading_button.add_up(), self.distance_button.add_up(), self.energy_cost
+                entity=self.engine.player, heading=self.heading_button.add_up(), 
+                distance=self.distance_button.add_up(), cost=self.energy_cost
             )
             warning = move_order.raise_warning()
 
@@ -2027,15 +2029,15 @@ class BeamArrayHandler(MinMaxInitator):
                     accptable_ship_statuses={STATUS_ACTIVE}
                 )
                 fire_order = EnergyWeaponOrder.multiple_targets(
-                    self.engine.player,
-                    self.amount_button.add_up(),
-                    ships_in_same_sub_sector
+                    entity=self.engine.player,
+                    amount=self.amount_button.add_up(),
+                    targets=ships_in_same_sub_sector
                 )
             else:
                 fire_order = EnergyWeaponOrder.single_target_beam(
-                    self.engine.player,
-                    self.amount_button.add_up(),
-                    self.engine.game_data.selected_ship_planet_or_star
+                    entity=self.engine.player,
+                    amount=self.amount_button.add_up(),
+                    target=self.engine.game_data.selected_ship_planet_or_star
                 )
             warning = fire_order.raise_warning()
             try:
@@ -2099,15 +2101,15 @@ class BeamArrayHandler(MinMaxInitator):
                     accptable_ship_statuses={STATUS_ACTIVE}
                 )
                 fire_order = EnergyWeaponOrder.multiple_targets(
-                    self.engine.player,
-                    self.amount_button.add_up(),
-                    ships_in_same_sub_sector
+                    entity=self.engine.player,
+                    amount=self.amount_button.add_up(),
+                    targets=ships_in_same_sub_sector
                 )
             else:
                 fire_order = EnergyWeaponOrder.single_target_beam(
-                    self.engine.player,
-                    self.amount_button.add_up(),
-                    self.engine.game_data.selected_ship_planet_or_star
+                    entity=self.engine.player,
+                    amount=self.amount_button.add_up(),
+                    target=self.engine.game_data.selected_ship_planet_or_star
                 )
             warning = fire_order.raise_warning()
             try:
@@ -2194,9 +2196,9 @@ class CannonHandler(MinMaxInitator):
         elif self.confirm_button.cursor_overlap(event):
 
             fire_order = EnergyWeaponOrder.cannon(
-                self.engine.player,
-                self.amount_button.add_up(),
-                self.engine.game_data.selected_ship_planet_or_star
+                entity=self.engine.player,
+                amount=self.amount_button.add_up(),
+                target=self.engine.game_data.selected_ship_planet_or_star
             )
             warning = fire_order.raise_warning()
             try:
@@ -2251,8 +2253,8 @@ class CannonHandler(MinMaxInitator):
         if event.sym in confirm:
             
             fire_order = EnergyWeaponOrder.cannon(
-                self.engine.player,
-                self.amount_button.add_up(),
+                entity=self.engine.player,
+                amount=self.amount_button.add_up(),
                 target=self.engine.game_data.selected_ship_planet_or_star
             )
             warning = fire_order.raise_warning()
@@ -2339,7 +2341,8 @@ class TorpedoHandler(HeadingBasedHandler):
             self.number_button.is_active = True
             
         elif self.confirm_button.cursor_overlap(event):
-            torpedo_order:TorpedoOrder = TorpedoOrder.from_heading(
+            
+            torpedo_order = TorpedoOrder.from_heading(
                 entity=self.engine.player, 
                 heading=self.heading_button.add_up(), 
                 amount=self.number_button.add_up(),
@@ -2382,9 +2385,12 @@ class TorpedoHandler(HeadingBasedHandler):
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
+            
             return CommandEventHandler(self.engine)
+        
         if event.sym in confirm:
-            torpedo_order:TorpedoOrder = TorpedoOrder.from_heading(
+            
+            torpedo_order = TorpedoOrder.from_heading(
                 entity=self.engine.player, 
                 heading=self.heading_button.add_up(), 
                 amount=self.number_button.add_up(),
@@ -2483,7 +2489,7 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             
         elif self.confirm_button.cursor_overlap(event) and self.engine.player.ship_can_fire_torps:
             
-            torpedo_order:TorpedoOrder = TorpedoOrder.from_coords(
+            torpedo_order = TorpedoOrder.from_coords(
                 entity=self.engine.player, 
                 amount=self.number_button.add_up(), 
                 x=self.x_button.add_up(), 
@@ -2533,10 +2539,14 @@ class TorpedoHandlerEasy(CoordBasedHandler):
     def ev_keydown(self, event: "tcod.event.KeyDown") -> Optional[OrderOrHandler]:
 
         if event.sym == tcod.event.K_ESCAPE:
+            
             return CommandEventHandler(self.engine)
+        
         if event.sym in confirm:
-            torpedo_order:TorpedoOrder = TorpedoOrder.from_coords(
+            
+            torpedo_order = TorpedoOrder.from_coords(
                 entity=self.engine.player, 
+                amount=self.number_button.add_up(),
                 x=self.x_button.add_up(), 
                 y=self.y_button.add_up(),
                 cost=self.energy_cost,
