@@ -107,10 +107,11 @@ def calc_torpedos_easy(
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):
     torpedo, number_of_torps = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable()
-            
+        
     times_to_fire=min(
-        self.entity.torpedo_launcher.get_avaliable_torpedo_tubes, 
-        number_of_torps
+        self.entity.power_generator.energy // CONFIG_OBJECT.energy_cost_per_torpedo, 
+        number_of_torps,
+        self.entity.torpedo_launcher.get_avaliable_torpedo_tubes
     )
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
@@ -136,10 +137,11 @@ def calc_torpedos_medium(
         c_value = 100
     
     torpedo, number_of_torps = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable()
-        
+    
     times_to_fire=min(
-        self.entity.torpedo_launcher.get_avaliable_torpedo_tubes, 
-        number_of_torps
+        self.entity.power_generator.energy // CONFIG_OBJECT.energy_cost_per_torpedo, 
+        number_of_torps,
+        self.entity.torpedo_launcher.get_avaliable_torpedo_tubes
     )
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
@@ -151,7 +153,7 @@ def calc_torpedos_medium(
                 ship, 
                 torpedo,
                 5,
-                times_to_fire=times_to_fire,
+                times_to_fire=number_of_torps,
                 target_scan=scan
             )
             torpedo_order = TorpedoOrder.from_coords(
@@ -185,8 +187,9 @@ def calc_torpedos_hard(
         
     torpedo, number_of_torps = self.entity.torpedo_launcher.get_most_powerful_torp_avaliable()
     
-    torpedos_to_fire = min(
-        number_of_torps, 
+    times_to_fire=min(
+        self.entity.power_generator.energy // CONFIG_OBJECT.energy_cost_per_torpedo, 
+        number_of_torps,
         self.entity.torpedo_launcher.get_avaliable_torpedo_tubes
     )
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
@@ -196,7 +199,8 @@ def calc_torpedos_hard(
         if chance_of_hit > 0.0:
             
             averaged_shields, averaged_hull, total_shield_dam, total_hull_dam, ship_kills, crew_kills, averaged_crew_readyness = self.entity.simulate_torpedo_hit(
-                ship, 10,
+                ship, torpedo, 10,
+                times_to_fire=times_to_fire,
                 simulate_systems=True, simulate_crew=True, target_scan=scan
             )
             torpedo = TorpedoOrder.from_coords(
