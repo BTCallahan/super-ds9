@@ -738,8 +738,10 @@ def reactivate_derelict_hard(self:BaseAi):
     if self.game_data.player.sector_coords == self.entity.sector_coords or self.entity.ship_class.is_automated:
         return
     try:
-        able_crew = self.entity.crew.able_crew
+        able_crew = min(self.entity.crew.able_crew-1, self.entity.transporter.get_max_number)
     except AttributeError:
+        return
+    if able_crew < 1:
         return
     try:
         transport_power = self.entity.transporter.get_effective_value
@@ -750,8 +752,12 @@ def reactivate_derelict_hard(self:BaseAi):
     
     if all_derelicts:
         
-        derelicts_in_system = [ship for ship in all_derelicts if ship.sector_coords == self.entity.sector_coords]
+        transport_range = self.entity.transporter.get_range
         
+        derelicts_in_system = [
+            ship for ship in all_derelicts if ship.sector_coords == self.entity.sector_coords and 
+            ship.local_coords.distance(self.entity.local_coords) <= transport_range
+        ]
         if derelicts_in_system:
             
             if transport_power > 0:
