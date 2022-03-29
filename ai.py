@@ -39,7 +39,6 @@ class BaseAi(Order):
         self.order_dict_size = 0
         
         self.precision = self.entity.sensors.determin_precision
-        
         try:
             if self.entity.warp_drive.is_at_warp:
                 wto = WarpTravelOrder(self.entity)
@@ -260,7 +259,6 @@ def calc_beam_weapon_medium(
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):    
     energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
-    
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:
@@ -390,7 +388,6 @@ def calc_cannon_weapon_hard(
     user = self.entity
     
     max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
-    
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:
@@ -618,7 +615,6 @@ def calc_oppress_hard(self:BaseAi):
             coords=planet
         ) * CONFIG_OBJECT.sector_energy_cost * affect_cost_multiplier <= self.entity.power_generator.energy
     )
-
     number_of_unoppressed_planets = len(unopressed_planets)
     
     if number_of_unoppressed_planets == 1:
@@ -837,7 +833,6 @@ def reactivate_derelict_hard(self:BaseAi):
                     
                     self.order_dict[order] = average(stragic_value) / crew_to_send
         else:
-            
             for derelict in all_derelicts:
                 
                 order = WarpOrder.from_coords(
