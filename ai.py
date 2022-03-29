@@ -88,6 +88,24 @@ class BaseAi(Order):
             self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED}
         ) if ship.nation in self.game_data.scenerio.get_set_of_allied_nations]
     
+def evaluate_scan(scan: Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]):
+    try:
+        max_beam_energy = round(
+            min(scan["class"].max_beam_energy, scan["energy"]) * ajust_system_integrity(scan["sys_beam_array"])
+        )
+    except KeyError:
+        max_beam_energy = 0
+    try:
+        max_cannon_energy = round(
+            min(scan["class"].max_cannon_energy, scan["energy"]) * ajust_system_integrity(scan["sys_cannon"])
+        )
+    except KeyError:
+        max_cannon_energy = 0
+    
+    max_torpedo_damage = scan["class"].get_most_powerful_torpedo_type.damage
+    
+    return max(max_beam_energy, max_cannon_energy, max_torpedo_damage)
+    
 def find_unopressed_planets(game_data:GameData, ship:Starship):
 
     for y in game_data.grid:
@@ -159,6 +177,7 @@ def calc_torpedos_medium(
             torpedo_order = TorpedoOrder.from_coords(
                 entity=self.entity, amount=times_to_fire, 
                 torpedo=torpedo,
+                cost=times_to_fire * CONFIG_OBJECT.energy_cost_per_torpedo,
                 x=ship.local_coords.x, y=ship.local_coords.y
             )
             warning = torpedo_order.raise_warning()
@@ -405,14 +424,71 @@ def calc_polarize_easy(
     
     polarize_hull = bool(number_of_hostile_ships)
     
-    polarize_amount = self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull
-    
-    if polarize_hull == self.entity.polarized_hull.is_polarized and polarize_amount == self.entity.polarized_hull.polarization_amount:
+    enemies_present = self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull
+    if (
+        polarize_hull == self.entity.polarized_hull.is_polarized and 
+        enemies_present == self.entity.polarized_hull.polarization_amount
+    ):
         return
     
-    recharge = PolarizeOrder(self.entity, polarize_amount, polarize_hull)
+    recharge = PolarizeOrder(self.entity, enemies_present, polarize_hull)
+                    
+    self.order_dict[recharge] = enemies_present * 10 * (1 + number_of_hostile_ships)
+    
+    self.order_dict_size += 1
+
+def calc_polarize_medium(
+    self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
+    number_of_hostile_ships = len(hostile_ships_in_same_system)
+    
+    enemies_present = bool(number_of_hostile_ships)
+    
+    energy_percentage = self.entity.power_generator.energy_percentage
+    
+    polarize_amount = (
+        self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull * 0.1
+        if energy_percentage < 0.25 and not enemies_present else 
+        self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull
+    )
+    if (
+        polarize_amount == self.entity.polarized_hull.polarization_amount
+    ):
+        return
+    
+    recharge = PolarizeOrder(self.entity, polarize_amount, True)
                     
     self.order_dict[recharge] = polarize_amount * 10 * (1 + number_of_hostile_ships)
+    
+    self.order_dict_size += 1
+
+def calc_polarize_hard(
+    self:BaseAi, hostile_ships_in_same_system:Iterable[Starship], 
+    enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
+):    
+    number_of_hostile_ships = len(hostile_ships_in_same_system)
+    
+    enemies_present = bool(number_of_hostile_ships)
+    
+    energy_percentage = self.entity.power_generator.energy_percentage
+    
+    polarize_amount = (
+        self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull * 0.1
+        if energy_percentage < 0.25 and not enemies_present else 
+        self.entity.polarized_hull.get_effective_value * self.entity.ship_class.polarized_hull
+    )
+    if (
+        polarize_amount == self.entity.polarized_hull.polarization_amount
+    ):
+        return
+    
+    attacks = [
+        evaluate_scan(a) for a in enemy_scans
+    ]
+    recharge = PolarizeOrder(self.entity, polarize_amount, True)
+                    
+    self.order_dict[recharge] = polarize_amount * 10 * max(attacks + [1])
     
     self.order_dict_size += 1
 
@@ -469,24 +545,6 @@ def calc_shields_hard(
     )
     if raise_shields == self.entity.shield_generator.shields_up and recharge_amount == self.entity.shield_generator.shields:
         return
-    
-    def evaluate_scan(scan: Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]):
-        try:
-            max_beam_energy = round(
-                min(scan["class"].max_beam_energy, scan["energy"]) * ajust_system_integrity(scan["sys_beam_array"])
-            )
-        except KeyError:
-            max_beam_energy = 0
-        try:
-            max_cannon_energy = round(
-                min(scan["class"].max_cannon_energy, scan["energy"]) * ajust_system_integrity(scan["sys_cannon"])
-            )
-        except KeyError:
-            max_cannon_energy = 0
-        
-        max_torpedo_damage = scan["class"].get_most_powerful_torpedo_type.damage
-        
-        return max(max_beam_energy, max_cannon_energy, max_torpedo_damage)
     
     attacks = [
         evaluate_scan(a) for a in enemy_scans
