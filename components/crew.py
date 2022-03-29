@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from ship_class import ShipClass
     from nation import Nation
 
-class Crew(StarshipSystem):
+class LifeSupport(StarshipSystem):
         
     def __init__(self, ship_class:ShipClass) -> None:
         super().__init__("Life Support:")

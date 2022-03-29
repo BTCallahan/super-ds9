@@ -7,7 +7,7 @@ from math import ceil
 from components.beam_array import BeamArray
 from components.cannon import Cannon
 from components.cloak import Cloak
-from components.crew import Crew
+from components.crew import LifeSupport
 from components.impulse_ingine import ImpulseEngine
 from components.polarized_hull import PolarizedHull
 from components.power_generator import PowerGenerator
@@ -87,7 +87,7 @@ class Starship(CanDockWith):
 
         if ship_class.max_crew:#if has crew
             
-            self.crew = Crew(ship_class)
+            self.crew = LifeSupport(ship_class)
             self.crew.starship = self
             
             self.transporter = Transporter()
