@@ -503,11 +503,11 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                         try:
                             ship = shipsInArea[co]
                             try:
-                                crew_readyness = shipThatFired.crew.crew_readyness
+                                crew_readyness = shipThatFired.life_support.crew_readyness
                             except AttributeError:
                                 crew_readyness = 1
                             try:
-                                target_crew_readyness = ship.crew.crew_readyness
+                                target_crew_readyness = ship.life_support.crew_readyness
                             except AttributeError:
                                 target_crew_readyness = 1
                             

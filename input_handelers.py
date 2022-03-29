@@ -107,7 +107,7 @@ class EventHandler(BaseEventHandler):
         except AttributeError:
             pass
         try:
-            game_data.player.crew.on_turn()
+            game_data.player.life_support.on_turn()
         except AttributeError:
             pass
         game_data.info_description = game_data.describe_info()
@@ -1826,7 +1826,7 @@ class ShieldsHandler(MinMaxInitator):
 class TransporterHandler(MinMaxInitator):
     
     def __init__(self, engine: Engine) -> None:
-        max_value=min(engine.player.crew.able_crew - 1, engine.player.transporter.get_max_number)
+        max_value=min(engine.player.life_support.able_crew - 1, engine.player.transporter.get_max_number)
         super().__init__(
             engine, can_render_confirm_button=engine.player.transporter.is_opperational,
             max_value=max_value, 
@@ -3523,8 +3523,8 @@ class ShipEditing(MainGameEventHandler):
                 height=3,
                 width=7,
                 title="A. Crew:",
-                starting_value=ship.crew.able_crew,
-                max_value=ship.ship_class.max_crew - ship.crew.injured_crew,
+                starting_value=ship.life_support.able_crew,
+                max_value=ship.ship_class.max_crew - ship.life_support.injured_crew,
                 min_value=0,
                 active_fg=colors.white,
                 inactive_fg=colors.grey,
@@ -3538,8 +3538,8 @@ class ShipEditing(MainGameEventHandler):
                 height=3,
                 width=7,
                 title="I. Crew:",
-                starting_value=ship.crew.injured_crew,
-                max_value=ship.ship_class.max_crew - ship.crew.able_crew,
+                starting_value=ship.life_support.injured_crew,
+                max_value=ship.ship_class.max_crew - ship.life_support.able_crew,
                 min_value=0,
                 active_fg=colors.white,
                 inactive_fg=colors.grey,
@@ -3723,8 +3723,8 @@ class ShipEditing(MainGameEventHandler):
         self.ship.power_generator.energy = self.ship_energy.add_up()
         self.ship.name = self.ship_name.send()
         try:
-            self.ship.crew.able_crew = self.ship_able_crew.add_up()
-            self.ship.crew.injured_crew = self.ship_injured_crew.add_up()
+            self.ship.life_support.able_crew = self.ship_able_crew.add_up()
+            self.ship.life_support.injured_crew = self.ship_injured_crew.add_up()
         except AttributeError:
             pass
         try:

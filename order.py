@@ -373,11 +373,11 @@ class MoveOrder(Order):
                     try:
                         ship = self.ships[co]
                         try:
-                            crew_readyness = self.entity.crew.crew_readyness
+                            crew_readyness = self.entity.life_support.crew_readyness
                         except AttributeError:
                             crew_readyness = 1
                         try:
-                            target_crew_readyness = ship.crew.crew_readyness
+                            target_crew_readyness = ship.life_support.crew_readyness
                         except AttributeError:
                             target_crew_readyness = 1
                         
@@ -408,11 +408,11 @@ class MoveOrder(Order):
                         try:
                             ship = self.ships[co]
                             try:
-                                crew_readyness = self.entity.crew.crew_readyness
+                                crew_readyness = self.entity.life_support.crew_readyness
                             except AttributeError:
                                 crew_readyness = 1
                             try:
-                                target_crew_readyness = ship.crew.crew_readyness
+                                target_crew_readyness = ship.life_support.crew_readyness
                             except AttributeError:
                                 target_crew_readyness = 1
                             hit = self.entity.roll_to_hit(
@@ -619,7 +619,7 @@ class TransportOrder(Order):
         except AttributeError:
             pass
         try:
-            total_crew = self.target.crew.able_crew + self.target.crew.injured_crew
+            total_crew = self.target.life_support.able_crew + self.target.life_support.injured_crew
         except AttributeError:
             
             return OrderWarning.TRANSPORT_CANNOT_RECREW
@@ -627,7 +627,7 @@ class TransportOrder(Order):
         if self.target.is_automated:
             return OrderWarning.TRANSPORT_CANNOT_RECREW
         
-        if self.amount >= self.entity.crew.able_crew:
+        if self.amount >= self.entity.life_support.able_crew:
             return OrderWarning.TRANSPORT_NOT_ENOUGHT_CREW
         
         if self.amount > self.entity.transporter.get_max_number:
@@ -663,14 +663,14 @@ class TransportOrder(Order):
             
             return (
                 OrderWarning.TRANSPORT_CREW_NOT_ABOARD if 
-                self.entity.nation not in self.target.crew.hostiles_on_board else 
+                self.entity.nation not in self.target.life_support.hostiles_on_board else 
                 OrderWarning.SAFE
             )
         else:
             if self.target.ship_status.is_recrewable or (
                 (self.entity.nation in set_of_allied_nations) == (self.target.nation in set_of_allied_nations)
             ):
-                free = self.target.crew.get_total_crew - self.target.ship_class.max_crew
+                free = self.target.life_support.get_total_crew - self.target.ship_class.max_crew
             
                 return OrderWarning.TRANSPORT_NOT_ENOUGH_SPACE if free <= self.amount else OrderWarning.SAFE
         
@@ -696,7 +696,7 @@ class TransportOrder(Order):
             
             nation = self.entity.nation
             
-            crew = self.target.crew.hostiles_on_board[nation]
+            crew = self.target.life_support.hostiles_on_board[nation]
             
             able_crew, injured_crew = crew[0], crew[1]
             
@@ -738,14 +738,14 @@ class TransportOrder(Order):
             
             total_crew_returned = self.amount
             
-            self.entity.crew.able_crew += able_crew_returned
-            self.entity.crew.injured_crew += injured_crew_returned
+            self.entity.life_support.able_crew += able_crew_returned
+            self.entity.life_support.injured_crew += injured_crew_returned
             
             if crew_left_behind == 0:
-                del self.target.crew.hostiles_on_board[nation]
+                del self.target.life_support.hostiles_on_board[nation]
             else:
-                self.target.crew.hostiles_on_board[nation][0] = able_crew_left_behind
-                self.target.crew.hostiles_on_board[nation][1] = injured_crew_left_behind
+                self.target.life_support.hostiles_on_board[nation][0] = able_crew_left_behind
+                self.target.life_support.hostiles_on_board[nation][1] = injured_crew_left_behind
             
             if describe_actions and (
                 describe_player_actions or describe_other_actions
@@ -845,18 +845,18 @@ class TransportOrder(Order):
                 
                 self.target.ai = difficulty
                 
-                self.target.crew.able_crew += self.amount
+                self.target.life_support.able_crew += self.amount
                 
                 if describe_player_actions:
                     message_log.add_message(
                         "Our forces have transported over taken control of the ship without meeting any restance."
                     )
                 #if the acting ship is renforcing an existing boarding party
-            elif self.entity.nation in self.target.crew.hostiles_on_board:
+            elif self.entity.nation in self.target.life_support.hostiles_on_board:
                 
                 if describe_player_actions or describe_other_actions:
                         
-                    attackers = self.target.crew.hostiles_on_board[self.entity.nation]
+                    attackers = self.target.life_support.hostiles_on_board[self.entity.nation]
                     
                     able_attackers = attackers[0]
                     injured_attackers = attackers[1]
@@ -896,9 +896,9 @@ class TransportOrder(Order):
                     
                     message_log.add_message(" ".join(message), colors.orange)
                     
-                self.target.crew.hostiles_on_board[self.entity.nation][0] += self.amount
+                self.target.life_support.hostiles_on_board[self.entity.nation][0] += self.amount
             else:
-                self.target.crew.hostiles_on_board[self.entity.nation] = [self.amount, 0]
+                self.target.life_support.hostiles_on_board[self.entity.nation] = [self.amount, 0]
                 
                 if describe_player_actions or describe_other_actions:
                     
@@ -927,9 +927,9 @@ f"{we_them} transported {self.amount} of boarders to {us_them}! {our_their} forc
                     f"{we_them} renforced {us_them} with {self.amount} fresh crew members."
                 )
             
-            self.target.crew.able_crew += self.amount
+            self.target.life_support.able_crew += self.amount
         
-        self.entity.crew.able_crew -= self.amount
+        self.entity.life_support.able_crew -= self.amount
     
 class TorpedoOrder(Order):
 

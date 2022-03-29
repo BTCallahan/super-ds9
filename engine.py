@@ -62,7 +62,7 @@ class Engine:
             except AttributeError:
                 pass            
             try:
-                entity.crew.on_turn()
+                entity.life_support.on_turn()
             except AttributeError:
                 pass
             entity.ai.perform()

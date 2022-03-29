@@ -7,7 +7,7 @@ from math import ceil
 from components.beam_array import BeamArray
 from components.cannon import Cannon
 from components.cloak import Cloak
-from components.crew import LifeSupport
+from components.life_support import LifeSupport
 from components.impulse_ingine import ImpulseEngine
 from components.polarized_hull import PolarizedHull
 from components.power_generator import PowerGenerator
@@ -87,8 +87,8 @@ class Starship(CanDockWith):
 
         if ship_class.max_crew:#if has crew
             
-            self.crew = LifeSupport(ship_class)
-            self.crew.starship = self
+            self.life_support = LifeSupport(ship_class)
+            self.life_support.starship = self
             
             self.transporter = Transporter()
             self.transporter.starship = self
@@ -280,7 +280,7 @@ class Starship(CanDockWith):
         total = (self.hull / self.ship_class.max_hull) * 2
         divisor = 1
         try:
-            total += self.crew.crew_readyness
+            total += self.life_support.crew_readyness
             divisor += 1
         except AttributeError:
             pass
@@ -321,7 +321,7 @@ class Starship(CanDockWith):
             
         energy_value = energy * self.power_generator.get_effective_value
         try:
-            crew_value = self.crew.crew_readyness
+            crew_value = self.life_support.crew_readyness
         except AttributeError:
             crew_value = 1
         try:
@@ -372,7 +372,7 @@ class Starship(CanDockWith):
             hull_value = hull * self.hull_percentage
             shields_value = shields * self.shield_generator.get_effective_value
             energy_value = energy * self.power_generator.get_effective_value
-            crew_value = crew * self.crew.crew_readyness
+            crew_value = crew * self.life_support.crew_readyness
             dodge_value = self.impulse_engine.get_effective_value * self.ship_class.evasion
             weapon_energy_value = beam_energy * self.beam_array.get_effective_value if beam_energy else 0
             cannon_energy_value = cannon_energy * self.cannons.get_effective_value if cannon_energy else 0
@@ -476,8 +476,8 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
-            able_crew = scan_assistant(self.crew.able_crew, precision)
-            injured_crew = scan_assistant(self.crew.injured_crew, precision)
+            able_crew = scan_assistant(self.life_support.able_crew, precision)
+            injured_crew = scan_assistant(self.life_support.injured_crew, precision)
             d["able_crew"] = (able_crew, print_color(able_crew, ship_class.max_crew))
             if injured_crew:
                 d["injured_crew"] = (injured_crew, print_color(injured_crew, ship_class.max_crew, True))
@@ -490,8 +490,8 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         try:
-            if self.crew.has_boarders:
-                d["boarders"] = tuple(self.crew.get_boarding_parties(self.nation, precision))
+            if self.life_support.has_boarders:
+                d["boarders"] = tuple(self.life_support.get_boarding_parties(self.nation, precision))
         except AttributeError:
             pass
         try:
@@ -588,8 +588,8 @@ class Starship(CanDockWith):
             pass
         if scan_for_crew:
             try:
-                able_crew = scan_assistant(self.crew.able_crew, precision)
-                injured_crew = scan_assistant(self.crew.injured_crew, precision)
+                able_crew = scan_assistant(self.life_support.able_crew, precision)
+                injured_crew = scan_assistant(self.life_support.injured_crew, precision)
                 d["able_crew"] = able_crew
                 d["injured_crew"] = injured_crew
                 
@@ -678,8 +678,8 @@ class Starship(CanDockWith):
         if self.is_controllable:
             self.game_data.cause_of_damage = cause
         try:
-            self.crew.able_crew = 0
-            self.crew.injured_crew = 0
+            self.life_support.able_crew = 0
+            self.life_support.injured_crew = 0
         except AttributeError:
             pass
         try:
@@ -818,7 +818,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             
             if scan_target_crew:
                 
-                averaged_crew_readyness += target.crew.caluclate_crew_readyness(
+                averaged_crew_readyness += target.life_support.caluclate_crew_readyness(
                     scan["able_crew"], scan["injured_crew"]
                 )
         averaged_shield /= number_of_simulations
@@ -854,7 +854,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         if self.hull <= 0:
             return STATUS_HULK
         try:            
-            if self.crew.get_total_crew < 1:
+            if self.life_support.get_total_crew < 1:
                 return STATUS_DERLICT
         except AttributeError:
             pass
@@ -889,11 +889,11 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         self_damage = self_hp + self.ship_class.max_hull * 0.5
         #other_damage = other_hp + other_ship.ship_class.max_hull * 0.5
         try:
-            crew_readyness = self.crew.crew_readyness
+            crew_readyness = self.life_support.crew_readyness
         except AttributeError:
             crew_readyness = 1
         try:
-            target_crew_readyness = other_ship.crew.crew_readyness
+            target_crew_readyness = other_ship.life_support.crew_readyness
         except AttributeError:
             target_crew_readyness = 1
 
@@ -1080,9 +1080,9 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                 percentage_of_able_crew_wounded = _able_crew_percentage * (percentage_of_crew_killed * (wounded_fac))
                 percentage_of_injured_crew_killed = (injured_crew / total_crew) * percentage_of_crew_killed
                 
-                killed_outright = round(self.crew.able_crew * percentage_of_able_crew_killed)
-                killed_in_sickbay = round(0.5 * self.crew.able_crew * percentage_of_injured_crew_killed)
-                wounded = round(self.crew.able_crew * percentage_of_able_crew_wounded)
+                killed_outright = round(self.life_support.able_crew * percentage_of_able_crew_killed)
+                killed_in_sickbay = round(0.5 * self.life_support.able_crew * percentage_of_injured_crew_killed)
+                wounded = round(self.life_support.able_crew * percentage_of_able_crew_wounded)
         
         shield_sys_damage = 0
         energy_weapons_sys_damage = 0
@@ -1184,7 +1184,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         self.hull_damage += hull_dam * 0.15
         try:
-            self.crew.injuries_and_deaths(wounded, killed_outright, killed_in_sickbay)
+            self.life_support.injuries_and_deaths(wounded, killed_outright, killed_in_sickbay)
         except AttributeError:
             pass            
         try:
@@ -1452,7 +1452,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         except AttributeError:
             pass
         try:
-            crew_readyness = self.crew.crew_readyness
+            crew_readyness = self.life_support.crew_readyness
         except AttributeError:
             crew_readyness = 1
 
@@ -1470,7 +1470,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         self.power_generator.energy += energy_rengerated_this_turn
 
         if not self.ship_class.is_automated:
-            self.crew.heal_crew(0.2, randint(2, 5))
+            self.life_support.heal_crew(0.2, randint(2, 5))
             
         repair_amount = hull_repair_factor * uniform(0.5, 1.25) * self.ship_class.max_hull
         
@@ -1593,11 +1593,11 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             f"The {self.name} has fired on {'us' if target_is_player else f'the {enemy.name}'}!"
         )
         try:
-            crew_readyness=self.crew.crew_readyness
+            crew_readyness=self.life_support.crew_readyness
         except AttributeError:
             crew_readyness=1
         try:
-            target_crew_readyness=enemy.crew.crew_readyness
+            target_crew_readyness=enemy.life_support.crew_readyness
         except AttributeError:
             target_crew_readyness=1
         
@@ -1636,11 +1636,11 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         gd = self.game_data
         
         try:
-            crew_readyness = self.crew.crew_readyness
+            crew_readyness = self.life_support.crew_readyness
         except AttributeError:
             crew_readyness = 1
         try:
-            target_crew_readyness = enemy.crew.crew_readyness
+            target_crew_readyness = enemy.life_support.crew_readyness
         except AttributeError:
             target_crew_readyness = 1
         
@@ -1702,7 +1702,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         number_of_crew_kills = 0
         try:
-            crew_readyness = self.crew.crew_readyness
+            crew_readyness = self.life_support.crew_readyness
         except AttributeError:
             crew_readyness = 1
         
@@ -1720,7 +1720,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             
             for attack in range(times_to_fire):
                 try:
-                    target_crew_readyness = target.crew.caluclate_crew_readyness(
+                    target_crew_readyness = target.life_support.caluclate_crew_readyness(
                         new_scan["able_crew"], new_scan["injured_crew"]
                     ) if scan_target_crew else 1.0
                 except AttributeError:
@@ -1768,7 +1768,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                         new_scan["able_crew"] -= wounded + killed_outright
                         new_scan["injured_crew"] += wounded - killed_in_sickbay
                         
-                        target_crew_readyness = target.crew.caluclate_crew_readyness(
+                        target_crew_readyness = target.life_support.caluclate_crew_readyness(
                             new_scan["able_crew"], new_scan["injured_crew"]
                         )
             total_shield_dam += shield_dam
@@ -1781,7 +1781,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             averaged_shields += new_scan["shields"]
             
             if scan_target_crew:
-                _crew_readyness = target.crew.caluclate_crew_readyness(
+                _crew_readyness = target.life_support.caluclate_crew_readyness(
                     new_scan["able_crew"], new_scan["injured_crew"]
                 )
                 if _crew_readyness == 0.0:
@@ -1852,13 +1852,13 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
 
         amount = min(self.power_generator.energy, self.get_max_effective_beam_firepower, energy)
         try:
-            crew_readyness = self.crew.crew_readyness
+            crew_readyness = self.life_support.crew_readyness
         except AttributeError:
             crew_readyness = 1
         
         scan_target_crew = not target.ship_class.is_automated and simulate_crew
         try:
-            target_crew_readyness = target.crew.caluclate_crew_readyness(
+            target_crew_readyness = target.life_support.caluclate_crew_readyness(
                 target_scan["able_crew"], target_scan["injured_crew"]
             ) if scan_target_crew else 1.0
         except AttributeError:
@@ -1903,7 +1903,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     able_crew = target_scan["able_crew"] - (wounded + killed_outright)
                     injured_crew = target_scan["injured_crew"] - killed_in_sickbay
                     try:
-                        averaged_crew_readyness += target.crew.caluclate_crew_readyness(able_crew, injured_crew)
+                        averaged_crew_readyness += target.life_support.caluclate_crew_readyness(able_crew, injured_crew)
                     except AttributeError:
                         averaged_crew_readyness += 1
                     
@@ -1967,11 +1967,11 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         self_damage = self_hp + self.ship_class.max_hull * 0.5
         try:
-            crew_readyness = self.crew.crew_readyness
+            crew_readyness = self.life_support.crew_readyness
         except AttributeError:
             crew_readyness = 1
         try:
-            target_crew_readyness = target.crew.caluclate_crew_readyness(
+            target_crew_readyness = target.life_support.caluclate_crew_readyness(
                 target_scan["able_crew"], target_scan["injured_crew"]
             ) if scan_target_crew else 1.0
         except AttributeError:
@@ -2016,7 +2016,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     able_crew = target_scan["able_crew"] - (wounded + killed_outright)
                     injured_crew = target_scan["injured_crew"] - killed_in_sickbay
                     
-                    averaged_crew_readyness += target.crew.caluclate_crew_readyness(able_crew, injured_crew)
+                    averaged_crew_readyness += target.life_support.caluclate_crew_readyness(able_crew, injured_crew)
                     
                     if able_crew + injured_crew == 0:
                         

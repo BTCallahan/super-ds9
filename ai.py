@@ -796,7 +796,7 @@ def reactivate_derelict_hard(self:BaseAi):
     if self.game_data.player.sector_coords == self.entity.sector_coords or self.entity.ship_class.is_automated:
         return
     try:
-        able_crew = min(self.entity.crew.able_crew-1, self.entity.transporter.get_max_number)
+        able_crew = min(self.entity.life_support.able_crew-1, self.entity.transporter.get_max_number)
     except AttributeError:
         return
     if able_crew < 1:
