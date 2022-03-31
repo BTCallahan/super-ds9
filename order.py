@@ -1385,7 +1385,7 @@ class CloakOrder(Order):
             if self.entity.cloak.cloak_cooldown > 0:
                 return OrderWarning.CLOAK_COOLDOWN
             
-            if not self.entity.ship_can_cloak:
+            if not self.entity.cloak.is_opperational:
                 return OrderWarning.SYSTEM_INOPERATIVE
         
         return super().raise_warning()

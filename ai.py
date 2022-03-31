@@ -249,7 +249,7 @@ def calc_beam_weapon_easy(
         energy_weapon=EnergyWeaponOrder.single_target_beam(
             entity=self.entity,
             target=ship,
-            amount=min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
+            amount=min(self.entity.beam_array.get_max_effective_beam_firepower, self.entity.power_generator.energy)
         )
         self.order_dict[energy_weapon] = 1000
         self.order_dict_size+=1
@@ -258,7 +258,7 @@ def calc_beam_weapon_medium(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):    
-    energy_to_use = min(self.entity.get_max_effective_beam_firepower, self.entity.power_generator.energy)
+    energy_to_use = min(self.entity.beam_array.get_max_effective_beam_firepower, self.entity.power_generator.energy)
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:
@@ -286,7 +286,7 @@ def calc_beam_weapon_hard(
 ):    
     user = self.entity
             
-    max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
+    max_energy = min(user.power_generator.energy, user.beam_array.get_max_effective_beam_firepower)
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:
@@ -354,7 +354,7 @@ def calc_cannon_weapon_easy(
         cannon_weapon = EnergyWeaponOrder.cannon(
             entity=self.entity,
             target=ship,
-            amount=min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
+            amount=min(self.entity.cannons.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
         )
         self.order_dict[cannon_weapon] = 1000
         self.order_dict_size+=1
@@ -363,7 +363,7 @@ def calc_cannon_weapon_medium(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):
-    energy_to_use = min(self.entity.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
+    energy_to_use = min(self.entity.cannons.get_max_effective_cannon_firepower, self.entity.power_generator.energy)
     
     for ship, scan in zip(enemies_in_same_system, enemy_scans):
         
@@ -387,7 +387,7 @@ def calc_cannon_weapon_hard(
 ):
     user = self.entity
     
-    max_energy = min(user.power_generator.energy, user.get_max_effective_beam_firepower)
+    max_energy = min(user.power_generator.energy, user.beam_array.get_max_effective_beam_firepower)
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:
@@ -498,7 +498,8 @@ def calc_shields_easy(
     raise_shields = bool(number_of_hostile_ships)
     
     recharge_amount = min(
-        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
+        self.entity.shield_generator.get_max_effective_shields, 
+        self.entity.power_generator.energy + self.entity.shield_generator.shields
     )
     if raise_shields == self.entity.shield_generator.shields_up and recharge_amount == self.entity.shield_generator.shields:
         return
@@ -518,7 +519,8 @@ def calc_shields_medium(
     raise_shields = bool(number_of_hostile_ships)
     
     recharge_amount = min(
-        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
+        self.entity.shield_generator.get_max_effective_shields, 
+        self.entity.power_generator.energy + self.entity.shield_generator.shields
     )
     if raise_shields == self.entity.shield_generator.shields_up and recharge_amount == self.entity.shield_generator.shields:
         return
@@ -538,7 +540,8 @@ def calc_shields_hard(
     raise_shields = bool(number_of_hostile_ships)
     
     recharge_amount = min(
-        self.entity.get_max_effective_shields, self.entity.power_generator.energy + self.entity.shield_generator.shields
+        self.entity.shield_generator.get_max_effective_shields, 
+        self.entity.power_generator.energy + self.entity.shield_generator.shields
     )
     if raise_shields == self.entity.shield_generator.shields_up and recharge_amount == self.entity.shield_generator.shields:
         return
@@ -581,7 +584,7 @@ def calc_cloak_hard(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
 ):      
-    cloaking_ability = self.entity.get_cloak_power
+    cloaking_ability = self.entity.cloak.get_cloak_power
     
     cloak_strengths = [
         cloaking_ability - min(

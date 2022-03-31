@@ -171,104 +171,30 @@ class Starship(CanDockWith):
         return self.game_data.grid[self.sector_coords.y][self.sector_coords.x]
 
     @property
-    def ship_type_can_fire_torps(self):
-        return self.ship_class.ship_type_can_fire_torps
-
-    @property
-    def ship_can_fire_torps(self):
-        return (
-            self.ship_class.ship_type_can_fire_torps and self.torpedo_launcher.can_fire_torpedos
-        )
-
-    @property
-    def ship_type_can_fire_beam_arrays(self):
-        return self.ship_class.ship_type_can_fire_beam_arrays
-
-    @property
-    def ship_can_fire_beam_arrays(self):
-        return self.ship_class.ship_type_can_fire_beam_arrays and self.beam_array.is_opperational
-
-    @property
-    def ship_type_can_fire_cannons(self):
-        return self.ship_class.ship_type_can_fire_cannons
-
-    @property
-    def ship_can_fire_cannons(self):
-        return self.ship_class.ship_type_can_fire_cannons and self.cannons.is_opperational
-
-    @property
-    def ship_can_transport(self):
-        return not self.is_automated and self.transporter.is_opperational
-
-    @property
     def is_automated(self):
         return self.ship_class.is_automated
 
     @property
-    def is_mobile(self):
-        return self.ship_class.evasion > 0.0
-
-    @property
     def can_be_docked_with(self):
-        return not self.is_mobile and not self.ship_class.is_automated
+        return not self.ship_class.is_mobile and not self.ship_class.is_automated
 
     def can_dock_with(self, starship: Starship, require_adjacent:bool=True):
         
         return (
-            not self.is_mobile and not self.ship_class.is_automated and starship.nation is self.nation and 
+            not self.ship_class.is_mobile and not self.ship_class.is_automated and starship.nation is self.nation and 
             starship.local_coords.is_adjacent(other=self.local_coords)
         ) if require_adjacent else (
-            not self.is_mobile and not self.ship_class.is_automated and starship.nation is self.nation
+            not self.ship_class.is_mobile and not self.ship_class.is_automated and starship.nation is self.nation
         )
     
     @property
     def get_dock_repair_factor(self):
         
         return self.ship_class.damage_control
-
-    @property
-    def can_move_stl(self):
-        return self.is_mobile and self.impulse_engine.is_opperational
-    
-    @property
-    def ship_type_can_cloak(self):
-        return self.ship_class.ship_type_can_cloak
-
-    @property
-    def ship_can_cloak(self):
-        return self.ship_class.ship_type_can_cloak and self.cloak.ship_can_cloak
-
-    @property
-    def get_cloak_power(self):
-        return self.cloak.get_cloak_power
-
-    @property
-    def get_total_torpedos(self):
-        return self.torpedo_launcher.get_total_number_of_torpedos
-
-    @property
-    def get_max_shields(self):
-        return self.ship_class.max_shields
-
-    @property
-    def get_max_effective_shields(self):
-        return self.shield_generator.get_max_effective_shields
-
-    @property
-    def get_max_beam_firepower(self):
-        return self.ship_class.max_beam_energy
     
     @property
     def ship_color(self):
         return self.ship_class.nation.nation_color
-
-    @property
-    def get_max_effective_beam_firepower(self):
-        return self.beam_array.get_max_effective_beam_firepower
-
-    @property
-    def get_max_effective_cannon_firepower(self):
-        return self.cannons.get_max_effective_cannon_firepower
 
     @property
     def is_enemy(self):
@@ -1132,7 +1058,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                 if chance_of_system_damage():
                     sensors_sys_damage = random_system_damage()
                     
-                if self.ship_type_can_fire_torps and chance_of_system_damage():
+                if self.ship_class.max_torpedos and chance_of_system_damage():
                     torpedo_sys_damage = random_system_damage()
                     
                 if chance_of_system_damage():
@@ -1392,10 +1318,10 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                 if warp_core_sys_damage > 0:
                     message_log.add_message('Warp core damaged.')
                             
-                if self.ship_type_can_fire_torps and torpedo_sys_damage > 0:
+                if torpedo_sys_damage > 0:
                     message_log.add_message('Torpedo launcher damaged.')
                 
-                if self.ship_class.ship_type_can_cloak and cloak_sys_damage > 0:
+                if cloak_sys_damage > 0:
                     message_log.add_message("Cloaking device damaged.")
                 
         elif not ship_originaly_destroyed:
@@ -1848,9 +1774,12 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         number_of_crew_kills = 0
         
-        damage_type = DAMAGE_CANNON if cannon else DAMAGE_BEAM
-
-        amount = min(self.power_generator.energy, self.get_max_effective_beam_firepower, energy)
+        damage_type, _amount = (
+            DAMAGE_CANNON, self.cannons.get_max_effective_cannon_firepower
+        ) if cannon else (
+            DAMAGE_BEAM, self.beam_array.get_max_effective_beam_firepower
+        )
+        amount = min(self.power_generator.energy, _amount, energy)
         try:
             crew_readyness = self.life_support.crew_readyness
         except AttributeError:

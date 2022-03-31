@@ -362,6 +362,16 @@ to one.'''
 
     @property
     @lru_cache
+    def is_mobile(self):
+        return self.evasion > 0.0
+
+    @property
+    @lru_cache
+    def can_be_docked_with(self):
+        return not self.is_mobile and self.is_automated
+
+    @property
+    @lru_cache
     def get_stragic_values(self):
         """Determins the stragic value of the ship class for scoring purpousess.
 

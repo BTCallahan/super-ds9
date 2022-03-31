@@ -535,13 +535,13 @@ class CommandEventHandler(MainGameEventHandler):
         #print("CommandEventHandler")
         super().__init__(engine)
         
-        self.ship_type_can_fire_beam_arrays = self.engine.player.ship_type_can_fire_beam_arrays
-        self.ship_type_can_fire_cannons = self.engine.player.ship_type_can_fire_cannons
+        self.ship_type_can_fire_beam_arrays = bool(self.engine.player.ship_class.max_beam_energy)
+        self.ship_type_can_fire_cannons = bool(self.engine.player.ship_class.max_cannon_energy)
         self.ship_type_can_polarize_hull = bool(self.engine.player.ship_class.polarized_hull)
         self.ship_type_can_use_shields = bool(self.engine.player.ship_class.max_shields)
-        self.ship_type_can_cloak = self.engine.player.ship_type_can_cloak
-        self.ship_type_can_fire_torps = self.engine.player.ship_type_can_fire_torps
-        self.is_mobile = self.engine.player.is_mobile
+        self.ship_type_can_cloak = bool(self.engine.player.ship_class.cloak_strength)
+        self.ship_type_can_fire_torps = bool(self.engine.player.ship_class.max_torpedos)
+        self.is_mobile = bool(self.engine.player.ship_class.evasion)
         self.ship_type_can_go_to_warp = bool(self.engine.player.ship_class.max_warp)
         self.ship_is_not_automated = not self.engine.player.is_automated
         
@@ -937,7 +937,12 @@ class CommandEventHandler(MainGameEventHandler):
     def torpedos(self, captain:str):
         
         self.warned_once = False
-        if not self.engine.player.ship_can_fire_torps:
+        try:
+            ship_can_fire_torps = self.engine.player.torpedo_launcher.can_fire_torpedos
+        except AttributeError:
+            ship_can_fire_torps = False
+        
+        if not ship_can_fire_torps:
             self.engine.message_log.add_message(
                 text=f"Error: Torpedo systems are inoperative, {captain}." 
                 if not self.engine.player.torpedo_launcher.is_opperational else 
@@ -1064,7 +1069,7 @@ class CommandEventHandler(MainGameEventHandler):
             
     def transporters(self):
         
-        if not self.engine.player.ship_can_transport:
+        if not self.engine.player.transporter.is_opperational:
                 
             self.engine.message_log.add_message(
                 f"Transporters are offline, {self.engine.player.nation.captain_rank_name}", fg=colors.red
@@ -1958,9 +1963,14 @@ class BeamArrayHandler(MinMaxInitator):
 
     def __init__(self, engine: Engine) -> None:
         player = engine.player
+        try:
+            ship_can_fire_beam_arrays = self.engine.player.beam_array.is_opperational
+        except AttributeError:
+            ship_can_fire_beam_arrays = False
+        
         super().__init__(
-            engine, can_render_confirm_button=player.ship_can_fire_beam_arrays,
-            max_value=player.get_max_effective_beam_firepower,
+            engine, can_render_confirm_button=ship_can_fire_beam_arrays,
+            max_value=player.beam_array.get_max_effective_beam_firepower,
             starting_value=0
         )
         self.auto_target_button = auto_target_button()
@@ -2052,13 +2062,17 @@ class BeamArrayHandler(MinMaxInitator):
             except KeyError:
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.power_generator.energy
+                        self.engine.player.beam_array.get_max_effective_beam_firepower, 
+                        self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
                     return fire_order
             finally:
-                self.can_render_confirm_button = self.engine.player.ship_can_fire_beam_arrays
+                try:
+                    self.can_render_confirm_button = self.engine.player.beam_array.is_opperational
+                except AttributeError:
+                    self.can_render_confirm_button = False
             
         elif self.fire_all_button.cursor_overlap(event):
             
@@ -2124,13 +2138,17 @@ class BeamArrayHandler(MinMaxInitator):
             except KeyError:
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_beam_firepower, self.engine.player.power_generator.energy
+                        self.engine.player.beam_array.get_max_effective_beam_firepower, 
+                        self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
                     return fire_order
             finally:
-                self.can_render_confirm_button = self.engine.player.ship_can_fire_beam_arrays
+                try:
+                    self.can_render_confirm_button = self.engine.player.beam_array.is_opperational
+                except AttributeError:
+                    self.can_render_confirm_button = False
         else:
             self.amount_button.handle_key(event)
 
@@ -2139,10 +2157,14 @@ class CannonHandler(MinMaxInitator):
     def __init__(self, engine: Engine) -> None:
         
         player = engine.player
+        try:
+            ship_can_fire_cannons = self.engine.player.cannons.is_opperational
+        except AttributeError:
+            ship_can_fire_cannons = False
         
         super().__init__(
-            engine, can_render_confirm_button=player.ship_can_fire_cannons,
-            max_value=min(player.get_max_effective_cannon_firepower, player.power_generator.energy),
+            engine, can_render_confirm_button=ship_can_fire_cannons,
+            max_value=min(player.cannons.get_max_effective_cannon_firepower, player.power_generator.energy),
             starting_value=0
         )
         self.auto_target_button = SimpleElement(
@@ -2213,13 +2235,17 @@ class CannonHandler(MinMaxInitator):
             except:
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.power_generator.energy
+                        self.engine.player.cannons.get_max_effective_cannon_firepower, 
+                        self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
                     return fire_order
             finally:
-                self.can_render_confirm_button = self.engine.player.ship_can_fire_cannons
+                try:
+                    self.can_render_confirm_button = self.engine.player.cannons.is_opperational
+                except AttributeError:
+                    self.can_render_confirm_button = False
             
         elif self.cancel_button.cursor_overlap(event):
 
@@ -2270,13 +2296,17 @@ class CannonHandler(MinMaxInitator):
             except:
                 if warning == OrderWarning.SAFE:
                     self.amount_button.max_value = min(
-                        self.engine.player.get_max_effective_cannon_firepower, self.engine.player.power_generator.energy
+                        self.engine.player.cannons.get_max_effective_cannon_firepower, 
+                        self.engine.player.power_generator.energy
                     )
                     if self.amount_button.add_up() > self.amount_button.max_value:
                         self.amount_button.set_text(self.amount_button.max_value)
                     return fire_order
             finally:
-                self.can_render_confirm_button = self.engine.player.ship_can_fire_cannons
+                try:
+                    self.can_render_confirm_button = self.engine.player.cannons.is_opperational
+                except AttributeError:
+                    self.can_render_confirm_button = False
         else:
             self.amount_button.handle_key(event)
 
@@ -2430,9 +2460,13 @@ class TorpedoHandlerEasy(CoordBasedHandler):
         
         local_coords = engine.game_data.player.local_coords
         player = engine.player
+        try:
+            ship_can_fire_torps = engine.player.torpedo_launcher.can_fire_torpedos
+        except AttributeError:
+            ship_can_fire_torps = False
 
         super().__init__(
-            engine, can_render_confirm_button=player.ship_can_fire_torps,
+            engine, can_render_confirm_button=ship_can_fire_torps,
             max_x=CONFIG_OBJECT.subsector_width,
             max_y=CONFIG_OBJECT.subsector_height,
             starting_x=local_coords.x,
@@ -2495,7 +2529,7 @@ class TorpedoHandlerEasy(CoordBasedHandler):
             self.y_button.is_active = False
             self.number_button.is_active = True
             
-        elif self.confirm_button.cursor_overlap(event) and self.engine.player.ship_can_fire_torps:
+        elif self.confirm_button.cursor_overlap(event) and self.engine.player.torpedo_launcher.can_fire_torpedos:
             
             torpedo_order = TorpedoOrder.from_coords(
                 entity=self.engine.player, 
@@ -2516,7 +2550,10 @@ class TorpedoHandlerEasy(CoordBasedHandler):
                 self.engine.message_log.add_message(TORPEDO_WARNINGS[warning], fg=colors.orange)
                 self.warned_once = True
             finally:
-                self.can_render_confirm_button = self.engine.player.ship_can_fire_torps
+                try:
+                    self.can_render_confirm_button = self.engine.player.torpedo_launcher.can_fire_torpedos
+                except AttributeError:
+                    self.can_render_confirm_button = False
         else:
             game_data = self.engine.game_data
             ship_planet_or_star = select_ship_planet_star(game_data, event)
@@ -2576,7 +2613,10 @@ class TorpedoHandlerEasy(CoordBasedHandler):
                 self.engine.message_log.add_message(TORPEDO_WARNINGS[warning], fg=colors.orange)
                 self.warned_once = True
             finally:
-                self.can_render_confirm_button = self.engine.player.ship_can_fire_torps
+                try:
+                    self.can_render_confirm_button = self.engine.player.torpedo_launcher.can_fire_torpedos
+                except AttributeError:
+                    self.can_render_confirm_button = False
         else:
             self.selected_handeler.handle_key(event)
             

@@ -410,7 +410,7 @@ class Planet(InterstellerObject, CanDockWith):
         
         planet_relation = self.enemy_planet_relation if ship.is_enemy else self.player_planet_relation
         
-        if ship.ship_type_can_fire_torps and planet_relation == PlanetRelation.FRIENDLY:
+        if ship.ship_class.max_torpedos and planet_relation == PlanetRelation.FRIENDLY:
             
             supply = ship.ship_class.max_torpedos - ship.torpedo_launcher.get_total_number_of_torpedos
             

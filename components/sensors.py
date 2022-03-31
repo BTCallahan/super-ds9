@@ -83,7 +83,7 @@ class Sensors(StarshipSystem):
             
             detection_strength = self.starship.ship_class.detection_strength * self.get_effective_value
             
-            cloak_strength = ship.get_cloak_power
+            cloak_strength = ship.cloak.get_cloak_power
 
             for i in range(CONFIG_OBJECT.chances_to_detect_cloak):
 
@@ -118,7 +118,7 @@ f'{f"{cr}, we have" if self is player else f"The {self.name} has"} detected {"us
         
         detection_strength = self.starship.ship_class.detection_strength * self.get_effective_value
         
-        cloak_strength = ship.get_cloak_power
+        cloak_strength = ship.cloak.get_cloak_power
 
         for i in range(CONFIG_OBJECT.chances_to_detect_cloak):
 
