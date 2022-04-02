@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from ai import BaseAi
 from coords import Coords
-from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, ShipStatus
+from data_globals import CONDITION_BLUE, CONDITION_GREEN, CONDITION_RED, CONDITION_YELLOW, DAMAGE_TORPEDO, PLANET_FRIENDLY, PLANET_HOSTILE, PLANET_NEUTRAL, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, PlanetHabitation, ShipStatus
 from random import choice, choices, shuffle
 from typing import Any, Dict, FrozenSet, List, Optional, TYPE_CHECKING, Tuple, Type, Union, Set, OrderedDict
 
@@ -13,7 +13,7 @@ from nation import Nation
 from scenario import Scenerio
 from starship import Starship
 from ship_class import ALL_SHIP_CLASSES
-from space_objects import Star, SubSector, Planet
+from space_objects import Star, SubSector, Planet, SubSectorInfo
 import colors
 from torpedo import Torpedo
 
@@ -61,7 +61,9 @@ class GameData:
 
         self.grid:List[List[SubSector]] = []
         
-        self.secInfo = []
+        self.player_subsector_info:List[List[SubSectorInfo]] = []
+        self.enemy_subsector_info:List[List[SubSectorInfo]] = []
+        
         self.scenerio = scenerio
                 
         self.date_time:Optional[datetime] = current_datetime
@@ -163,6 +165,9 @@ class GameData:
         self.captain_name = captain_name
 
         self.grid = [[SubSector(self, x, y) for x in self.subsecs_range_x] for y in self.subsecs_range_y]
+        
+        self.player_subsector_info = [[SubSectorInfo(x, y) for x in self.subsecs_range_x] for y in self.subsecs_range_y]
+        self.enemy_subsector_info = [[SubSectorInfo(x, y) for x in self.subsecs_range_x] for y in self.subsecs_range_y]
         
         # create stars and planets
         for x in self.subsec_size_range_x:
