@@ -176,6 +176,25 @@ class Star(InterstellerObject):
     def hit_by_torpedo(self, is_player:bool, game_data:GameData, message_log:MessageLog, torpedo:Torpedo):
         pass
 
+class SubSectorInfo:
+    
+    def __init__(self, x:int, y:int) -> None:
+        self.coords = Coords(x=x,y=y)
+        self.total_stars = 0
+        
+        self.planets_dict:Dict[Coords, Planet] = {}
+        self.friendly_planets = 0
+        self.neutral_planets = 0
+        self.unfriendly_planets = 0
+        self.barren_planets = 0
+    
+        self.objectives = 0
+        
+        self.hostile_ships = 0
+        self.allied_ships = 0
+        
+        self.needs_updating = True
+
 class SubSector:
     """A SubSector is a region of space that contains stars and planets. 
 
