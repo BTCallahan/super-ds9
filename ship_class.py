@@ -6,9 +6,9 @@ import re
 from string import digits
 from typing import Dict, Final, Optional, Tuple, List
 from frozendict import frozendict
-from energy_weapon import ALL_ENERGY_WEAPONS
+from energy_weapon import ALL_ENERGY_WEAPONS, EnergyWeapon
 from global_functions import get_first_group_in_pattern
-from nation import ALL_NATIONS
+from nation import ALL_NATIONS, Nation
 
 from torpedo import ALL_TORPEDO_TYPES, Torpedo
 
@@ -104,8 +104,9 @@ class ShipClass:
     max_energy:int
     power_generated_per_turn:int
     damage_control:float
-    energy_weapon_code:str
-    nation_code:str
+    energy_weapon:EnergyWeapon
+    #nation_code:str
+    nation:Nation
     system_names:Tuple[str]
     system_keys:Tuple[str]
     detection_strength:float
@@ -203,8 +204,8 @@ to one.'''
         max_beam_targets:int=1,
         max_cannon_energy:int=0, 
         warp_breach_damage:int=2, 
-        energy_weapon_code:str,
-        nation_code:str,
+        energy_weapon:EnergyWeapon,
+        nation:Nation,
         cloak_strength:float=0.0,
         detection_strength:float,
         size:float,
@@ -217,9 +218,9 @@ to one.'''
         except AttributeError:
             max_torpedos = 0
         
-        short_beam_name_cap = ALL_ENERGY_WEAPONS[energy_weapon_code].short_beam_name_cap if max_beam_energy else ""
+        short_beam_name_cap = energy_weapon.short_beam_name_cap if max_beam_energy else ""
         
-        short_can_name_cap = ALL_ENERGY_WEAPONS[energy_weapon_code].short_cannon_name_cap if max_cannon_energy else ""
+        short_can_name_cap = energy_weapon.short_cannon_name_cap if max_cannon_energy else ""
         
         system_names, system_keys = get_system_names(
             has_torpedo_launchers=max_torpedos > 0 and torp_tubes > 0,
@@ -254,8 +255,8 @@ to one.'''
             max_beam_targets=max_beam_targets,
             max_cannon_energy=max_cannon_energy,
             warp_breach_damage=warp_breach_damage,
-            energy_weapon_code=energy_weapon_code,
-            nation_code=nation_code,
+            energy_weapon=energy_weapon,
+            nation=nation,
             system_names=system_names, 
             system_keys=system_keys,
             cloak_strength=cloak_strength,
@@ -271,23 +272,6 @@ to one.'''
         return {
             k:v for k,v in self.torp_dict
         }
-
-    @property
-    @lru_cache
-    def nation(self):
-        if self.nation_code not in ALL_NATIONS:
-            raise KeyError(
-                f"The nation code {self.nation_code} was not found in the dictionary of nations. Valid code are: {ALL_NATIONS.keys()}")
-    
-        return ALL_NATIONS[self.nation_code]
-        
-    @property
-    @lru_cache
-    def get_energy_weapon(self):
-        if self.energy_weapon_code not in ALL_ENERGY_WEAPONS:
-            raise KeyError(
-                f"The energy weapon code {self.energy_weapon_code} was not found in the dictionary of energy weapons. Valid code are: {ALL_ENERGY_WEAPONS.keys()}")
-        return ALL_ENERGY_WEAPONS[self.energy_weapon_code]
 
     def create_name(self):
         has_proper_name = self.has_proper_name
@@ -459,10 +443,16 @@ def create_ship_classes():
             shipclass_txt, symbol_pattern,
             error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'SYM:'"
         )
-        nation = get_first_group_in_pattern(
+        nation_ = get_first_group_in_pattern(
             shipclass_txt, nation_types_pattern,
             error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'NATION:'"
         )
+        if nation_ not in ALL_NATIONS:
+            raise KeyError(
+                f"The nation code {nation_} was not found in the dictionary of nations. Valid code are: {ALL_NATIONS.keys()}")
+        else:
+            nation = ALL_NATIONS[nation_]
+        
         name = get_first_group_in_pattern(
             shipclass_txt, name_pattern,
             error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'NAME:'"
@@ -523,10 +513,16 @@ def create_ship_classes():
             shipclass_txt, power_generation_pattern, type_to_convert_to=int,
             error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'POWER:'"
         )
-        energy_weapon = get_first_group_in_pattern(
+        energy_weapon_ = get_first_group_in_pattern(
             shipclass_txt, energy_weapon_pattern,
             error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'ENERGY_WEAPON:'"
         )
+        if energy_weapon_ not in ALL_ENERGY_WEAPONS:
+            raise KeyError(
+                f"The energy weapon code {energy_weapon_} was not found in the dictionary of energy weapons. Valid code are: {ALL_ENERGY_WEAPONS.keys()}")
+        else:
+            energy_weapon = ALL_ENERGY_WEAPONS[energy_weapon_]
+        
         cloak_strength = get_first_group_in_pattern(
             shipclass_txt, cloak_strength_pattern, return_aux_if_no_match=True, aux_valute_to_return_if_no_match=0.0,
             type_to_convert_to=float
@@ -601,8 +597,8 @@ def create_ship_classes():
             evasion=evasion,
             max_warp=max_warp,
             warp_breach_damage=warp_core_breach_damage,
-            nation_code=nation,
-            energy_weapon_code=energy_weapon
+            nation=nation,
+            energy_weapon=energy_weapon
         )
         
     return frozendict(shipclass_dict)
