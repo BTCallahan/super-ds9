@@ -27,6 +27,11 @@ class LifeSupport(StarshipSystem):
         self.hostiles_on_board: Dict[Nation, List[int,int]] = {}
     
     @property
+    def is_derlict(self):
+        
+        return self.able_crew < 1 and self.injured_crew < 1
+    
+    @property
     def crew_readyness(self):
         
         return self.caluclate_crew_readyness(
@@ -66,6 +71,16 @@ class LifeSupport(StarshipSystem):
         heal_crew = min(self.injured_crew, ceil(self.injured_crew * p) + minimal_crew_to_heal)
         self.able_crew+= heal_crew
         self.injured_crew-= heal_crew
+    
+    def take_control_of_ship(
+        self,        
+        *, 
+        able_crew:int, injured_crew:int=0, nation:Nation
+    ):    
+        self.able_crew = able_crew
+        self.injured_crew = injured_crew
+        
+        self.starship.nation = nation
     
     def injuries_and_deaths(self, injured:int, killed_outright:int, killed_in_sickbay:int):
         
