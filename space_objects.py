@@ -452,15 +452,9 @@ class Planet(InterstellerObject, CanDockWith):
                 
         return None, 0
 
-    def get_habbitation(self, ship:Starship):
+    def get_habbitation(self, ship_is_enemy:bool):
         
-        if self.planet_habbitation.has_disposition_towards_warp_capiable_civs:
-            
-            disp = self.enemy_planet_relation if ship.is_enemy else self.player_planet_relation
-            
-            return PLANET_RELATION_DICT[disp]
-        
-        return self.planet_habbitation
+        return self.enemy_display_status if ship_is_enemy else self.player_display_status
 
     def hit_by_torpedo(
         self, 

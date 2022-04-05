@@ -116,7 +116,7 @@ def find_unopressed_planets(game_data:GameData, ship:Starship):
 
                 for planet in sector.planets_dict.values():
 
-                    if planet.get_habbitation(ship) in {PLANET_FRIENDLY, PLANET_NEUTRAL}:
+                    if planet.get_habbitation(ship.is_enemy) in {PLANET_FRIENDLY, PLANET_NEUTRAL}:
                         yield planet.sector_coords
 
 def calc_torpedos_easy(

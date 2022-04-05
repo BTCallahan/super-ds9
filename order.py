@@ -1121,7 +1121,7 @@ class DockOrder(Order):
         if not self.planet.local_coords.is_adjacent(other=self.entity.local_coords):
             return OrderWarning.PLANET_TOO_DISTANT
         
-        planet_habbitation = self.planet.get_habbitation(self.entity)
+        planet_habbitation = self.planet.get_habbitation(self.entity.is_enemy)
 
         if planet_habbitation in {PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_PREWARP}:
             return OrderWarning.PLANET_TOO_PRIMITIVE
