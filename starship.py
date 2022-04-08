@@ -117,7 +117,7 @@ class Starship(CanDockWith):
             self.warp_drive = WarpDrive()
             self.warp_drive.starship = self
 
-        self.override_nation_code = override_nation_code
+        self.override_nation = override_nation
         
         self.docked = False
 
@@ -129,11 +129,20 @@ class Starship(CanDockWith):
     
     @property
     def nation(self):
-        return ALL_NATIONS[self.override_nation_code] if self.override_nation_code else self.ship_class.nation
+        return self.override_nation if self.override_nation else self.ship_class.nation
+    
+    @nation.setter
+    def nation(self, value:Nation):
+        
+        if value != self.ship_class.nation:
+            
+            self.override_nation = value
+        else:
+            self.override_nation = None
     
     @property
     def ship_is_captured(self):
-        return self.override_nation_code and self.override_nation_code is not self.ship_class.nation_code
+        return self.override_nation and self.override_nation is not self.ship_class.nation
     
     @property
     def hull_damage(self):
