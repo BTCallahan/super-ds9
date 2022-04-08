@@ -625,3 +625,13 @@ class Planet(InterstellerObject, CanDockWith):
                     self.system.count_planets()
                     
                 raise ValueError("You should not see this ")
+        
+    def set_planet_disposition(self):
+        
+        self.player_display_status = PLANET_RELATION_DICT[
+            self.player_planet_relation
+        ] if self.planet_habbitation.has_disposition_towards_warp_capiable_civs else self.planet_habbitation
+        
+        self.enemy_display_status = PLANET_RELATION_DICT[
+            self.enemy_planet_relation
+        ] if self.planet_habbitation.has_disposition_towards_warp_capiable_civs else self.planet_habbitation
