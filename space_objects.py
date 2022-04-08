@@ -239,6 +239,14 @@ class SubSector:
         self.neutral_planets = 0
         self.unfriendly_planets = 0
         self.barren_planets = 0
+        
+        self.planets_friendly_to_player = 0
+        self.planets_neutral_to_player = 0
+        self.planets_hostile_to_player = 0
+        
+        self.planets_friendly_to_enemy = 0
+        self.planets_neutral_to_enemy = 0
+        self.planets_hostile_to_enemy = 0
     
         self.objectives = 0
         
