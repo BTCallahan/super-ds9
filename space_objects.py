@@ -193,7 +193,12 @@ class SubSectorInfo:
         self.hostile_ships = 0
         self.allied_ships = 0
         
-        self.needs_updating = True
+        self.planet_count_needs_updating = True
+        self.ship_count_needs_updating = True
+            
+    @property
+    def needs_updating(self):
+        return self.planet_count_needs_updating or self.ship_count_needs_updating
 
 class SubSector:
     """A SubSector is a region of space that contains stars and planets. 
