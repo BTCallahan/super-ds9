@@ -335,19 +335,36 @@ class SubSector:
 
     def count_planets(self):
         
-        planet_habitations = [
-            planet.get_habbitation(self.game_data.player) for planet in self.planets_dict.values()
+        planet_habitations_for_player = [
+            planet.player_display_status for planet in self.planets_dict.values()
         ]
+        total_planets = len(planet_habitations_for_player)
         
-        total_planets = len(planet_habitations)
+        self.planets_friendly_to_player = len(
+            [planet for planet in planet_habitations_for_player if planet == PLANET_FRIENDLY]
+        )
+        self.planets_neutral_to_player = len(
+            [planet for planet in planet_habitations_for_player if planet == PLANET_NEUTRAL]
+        )
+        self.planets_hostile_to_player = total_planets - (
+            self.planets_friendly_to_player + self.planets_neutral_to_player
+        )
+        planet_habitations_for_enemy = [
+            planet.enemy_display_status for planet in self.planets_dict.values()
+        ]
+        self.planets_friendly_to_enemy = len(
+            [planet for planet in planet_habitations_for_enemy if planet == PLANET_FRIENDLY]
+        )
+        self.planets_neutral_to_enemy = len(
+            [planet for planet in planet_habitations_for_enemy if planet == PLANET_NEUTRAL]
+        )
+        self.planets_hostile_to_enemy = total_planets - (
+            self.planets_friendly_to_enemy + self.planets_neutral_to_enemy
+        )
+        x, y = self.coords.x, self.coords.y
         
-        self.friendly_planets = len(
-            [planet for planet in planet_habitations if planet == PLANET_FRIENDLY]
-        )
-        self.neutral_planets = len(
-            [planet for planet in planet_habitations if planet == PLANET_NEUTRAL]
-        )
-        self.unfriendly_planets = total_planets - (self.friendly_planets + self.neutral_planets)
+        self.game_data.player_subsector_info[y][x].planet_count_needs_updating = True
+        self.game_data.enemy_subsector_info[y][x].planet_count_needs_updating = True
     
     @property
     def number_of_planets(self):
@@ -378,20 +395,44 @@ class SubSector:
         return choices(self.safe_spots, k=how_many)
     
     def add_ship_to_sec(self, ship:Starship):
-        if ship is ship.game_data.player:
-            self.player_present = True
-        elif ship.ship_class.ship_type == "ESCORT":
-            self.allied_ships+= 1
-        else:
+        
+        x, y = self.coords.x, self.coords.y
+        
+        if ship.is_enemy:
+            
             self.hostile_ships+= 1
+            
+            self.game_data.player_subsector_info[y][x].ship_count_needs_updating = True
+            self.game_data.enemy_subsector_info[y][x].allied_ships += 1
+        else:
+            if ship is ship.game_data.player:
+                
+                self.player_present = True
+            else:
+                self.allied_ships+= 1
+                
+            self.game_data.player_subsector_info[y][x].allied_ships += 1
+            self.game_data.enemy_subsector_info[y][x].ship_count_needs_updating = True
 
     def remove_ship_from_sec(self, ship:Starship):
-        if ship is ship.game_data.player:
-            self.player_present = False
-        elif ship.ship_class.ship_type == "ESCORT":
-            self.allied_ships-= 1
-        else:
+        
+        x, y = self.coords.x, self.coords.y
+        
+        if ship.is_enemy:
+            
             self.hostile_ships-= 1
+            
+            self.game_data.player_subsector_info[y][x].ship_count_needs_updating = True
+            self.game_data.enemy_subsector_info[y][x].allied_ships -= 1
+        else:    
+            if ship is ship.game_data.player:
+                
+                self.player_present = False
+            else:
+                self.allied_ships-= 1
+        
+            self.game_data.player_subsector_info[y][x].allied_ships -= 1
+            self.game_data.enemy_subsector_info[y][x].ship_count_needs_updating = True
 
 class Planet(InterstellerObject, CanDockWith):
 
