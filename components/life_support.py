@@ -92,7 +92,13 @@ class LifeSupport(StarshipSystem):
         
         if self.injured_crew < 0:
             self.injured_crew = 0
-    
+        
+        if self.is_derlict:
+                        
+            subsector = self.starship.get_sub_sector
+            
+            subsector.remove_ship_from_sec(self.starship)
+
     def on_turn(self):
         
         are_hostiles_on_board = self.hostiles_on_board
@@ -220,7 +226,7 @@ class LifeSupport(StarshipSystem):
                                 injured, killed_outright,
                                 killed_in_sickbay
                             )
-                            all_defenders_died = self.able_crew + self.injured_crew <= 0
+                            all_defenders_died = self.is_derlict
                             
                             new_injured_boarders = round(
                                 defender_firepower_vs_able_boarders * 0.4
@@ -426,7 +432,7 @@ f"During the fighting with {self.starship.nation.name_short} forces, our boardin
                 
                     self.injuries_and_deaths(0, able_crew_deaths, injured_crew_deaths)
                 
-                    all_defenders_died = self.able_crew + self.injured_crew
+                    all_defenders_died = self.is_derlict
                 
                     if defender_is_player:
                         
