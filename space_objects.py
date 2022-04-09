@@ -443,16 +443,20 @@ class Planet(InterstellerObject, CanDockWith):
         enemy_planet_relation:PlanetRelation,
         local_coords:Coords, sector_coords:Coords, 
         system:SubSector
-    ):    
+    ):
         super().__init__(local_coords, sector_coords, system)
-        self.planet_habbitation = planet_habbitation
+        self.planet_habbitation:PlanetHabitation = planet_habbitation
         self.player_planet_relation = player_planet_relation
         self.enemy_planet_relation = enemy_planet_relation
 
         self.infastructure = self.planet_habbitation.generate_development()
         
-        self.display_status = PLANET_RELATION_DICT[
+        self.player_display_status:PlanetHabitation = PLANET_RELATION_DICT[
             self.player_planet_relation
+        ] if planet_habbitation.has_disposition_towards_warp_capiable_civs else planet_habbitation
+        
+        self.enemy_display_status:PlanetHabitation = PLANET_RELATION_DICT[
+            self.enemy_planet_relation
         ] if planet_habbitation.has_disposition_towards_warp_capiable_civs else planet_habbitation
 
     def __lt__(self, p:"Planet"):
@@ -574,7 +578,9 @@ class Planet(InterstellerObject, CanDockWith):
                 
                 self.planet_habbitation = PLANET_BOMBED_OUT
                 
-                self.display_status = PLANET_BOMBED_OUT
+                #self.player_display_status = PLANET_BOMBED_OUT
+                
+                self.set_planet_disposition()
                 self.system.count_planets()
 
             elif self.planet_habbitation is PLANET_WARP_CAPABLE:
@@ -608,10 +614,11 @@ class Planet(InterstellerObject, CanDockWith):
                             )
                             game_data.player_record['planets_aggravated'] += 1
                             game_data.player_record['times_hit_poipulated_planet'] += 1
-                    self.display_status = PLANET_RELATION_DICT[
+                    self.player_display_status = PLANET_RELATION_DICT[
                         self.player_planet_relation
                     ] if self.planet_habbitation.has_disposition_towards_warp_capiable_civs else self.planet_habbitation
                     
+                    self.set_planet_disposition()
                     self.system.count_planets()
                             
                 elif planet_disposition == PlanetRelation.NEUTRAL:
@@ -634,7 +641,7 @@ class Planet(InterstellerObject, CanDockWith):
                             game_data.player_record['planets_angered'] += 1
                             game_data.player_record['times_hit_poipulated_planet'] += 1
                             
-                    self.display_status = PLANET_RELATION_DICT[
+                    self.player_display_status = PLANET_RELATION_DICT[
                         self.player_planet_relation
                     ] if self.planet_habbitation.has_disposition_towards_warp_capiable_civs else self.planet_habbitation
                     
@@ -656,6 +663,7 @@ class Planet(InterstellerObject, CanDockWith):
                     game_data.player_record['times_hit_poipulated_planet'] += 1
 
                     message_log.add_message('This is a grevous viloation of the prime directive!', colors.red)
+                    self.set_planet_disposition()
                     self.system.count_planets()
             else:
                 if player_is_in_same_system:
@@ -663,6 +671,7 @@ class Planet(InterstellerObject, CanDockWith):
                 if is_player:
                     
                     message_log.add_message('You will probably be charged with a war crime.', colors.red)
+                    self.set_planet_disposition()
                     self.system.count_planets()
                     
                 raise ValueError("You should not see this ")
