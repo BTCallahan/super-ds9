@@ -634,7 +634,7 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-        beam_name_cap = self.engine.player.ship_class.get_energy_weapon.beam_name_cap
+        beam_name_cap = self.engine.player.ship_class.energy_weapon.beam_name_cap
 
         self.beam_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -646,7 +646,7 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-        cannon_name_cap = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
+        cannon_name_cap = self.engine.player.ship_class.energy_weapon.cannon_name_cap
         
         self.cannons_buttons = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -959,7 +959,7 @@ class CommandEventHandler(MainGameEventHandler):
             
         if not self.engine.player.beam_array.is_opperational:
             
-            p = self.engine.player.ship_class.get_energy_weapon.beam_name
+            p = self.engine.player.ship_class.energy_weapon.beam_name
             self.engine.message_log.add_message(f"Error: {p} systems are inoperative, {captain}.", fg=colors.red)
 
         elif self.engine.player.power_generator.energy <= 0:
@@ -978,7 +978,7 @@ class CommandEventHandler(MainGameEventHandler):
             
         if not self.engine.player.cannons.is_opperational:
             
-            p = self.engine.player.ship_class.get_energy_weapon.cannon_name_cap
+            p = self.engine.player.ship_class.energy_weapon.cannon_name_cap
             
             self.engine.message_log.add_message(
                 f"Error: {p} systems are inoperative, {captain}.", fg=colors.red
