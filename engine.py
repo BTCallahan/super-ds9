@@ -65,6 +65,7 @@ class Engine:
                 entity.life_support.on_turn()
             except AttributeError:
                 pass
+            self.game_data.run_update_for_ship(entity)
             entity.ai.perform()
             entity.handle_repair_and_energy_consumption()
         

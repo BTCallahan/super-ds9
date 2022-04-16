@@ -110,6 +110,7 @@ class EventHandler(BaseEventHandler):
             game_data.player.life_support.on_turn()
         except AttributeError:
             pass
+        game_data.run_update_for_ship(game_data.player)
         game_data.info_description = game_data.describe_info()
         return True
 
@@ -3472,7 +3473,9 @@ f"The selected ship spawn spot {l_x}, {l_y} in sector {s_x}, {s_y} is blocked by
             game_data.all_other_ships.append(new_ship)
             game_data.total_starships.append(new_ship)
             
-            game_data.update_mega_sector_display()
+            game_data.run_update_for_ship(game_data.player)
+            
+            #game_data.update_mega_sector_display()
             
             if s_x == game_data.player.sector_coords.x and s_y == game_data.player.sector_coords.y:
                 

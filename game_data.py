@@ -329,6 +329,10 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
             ship for ship in self.ships_in_same_sub_sector_as_player if ship.ship_status.is_visible
         ]
         self.set_condition()
+                
+        for ship in self.total_starships:
+            
+            self.run_update_for_ship(ship)
         
         self.engine.message_log.add_message(
             f"Welcome aboard, {self.player.ship_class.nation.captain_rank_name} {self.captain_name}."
@@ -460,7 +464,72 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                 if ship.is_mission_critical:
                 
                     subsec.objectives += 1
-
+    
+    def run_update_for_ship(self, ship:Starship):
+        
+        ship_is_enemy = ship.is_enemy
+        
+        subsector_infos = self.enemy_subsector_info if ship_is_enemy else self.player_subsector_info
+        
+        scan_distance = 5
+                
+        for y in range(ship.sector_coords.y - scan_distance, ship.sector_coords.y + scan_distance):
+            
+            for x in range(
+                ship.sector_coords.x - scan_distance, ship.sector_coords.x + scan_distance
+            ):
+                try:
+                    subsec_info = subsector_infos[y][x]
+                    
+                    if subsec_info.needs_updating and (
+                        ship.sector_coords == subsec_info.coords or 
+                        ship.sector_coords.distance(coords=subsec_info.coords) <= scan_distance
+                    ):
+                        if subsec_info.planet_count_needs_updating:
+                            
+                            subsector = self.grid[y][x]
+                            
+                            subsec_info.barren_planets = subsector.barren_planets
+                            
+                            subsec_info.total_stars = subsector.total_stars
+                            
+                            planets:List[PlanetHabitation] = [
+                                (
+                                    planet.enemy_display_status if ship_is_enemy else planet.player_display_status
+                                ) for planet in subsector.planets_dict.values() if 
+                                planet.planet_habbitation.has_disposition_towards_warp_capiable_civs
+                            ]
+                            subsec_info.friendly_planets = len(
+                                [planet for planet in planets if planet == PLANET_FRIENDLY]
+                            )
+                            subsec_info.neutral_planets = len(
+                                [planet for planet in planets if planet == PLANET_NEUTRAL]
+                            )
+                            subsec_info.unfriendly_planets = len(
+                                [planet for planet in planets if planet == PLANET_HOSTILE]
+                            )
+                            subsec_info.planet_count_needs_updating = False
+                        
+                        if subsec_info.ship_count_needs_updating:
+                            
+                            ships_in_subsector = [
+                                ship for ship in self.total_starships if 
+                                ship.sector_coords.x == x and ship.sector_coords.y == y and 
+                                ship.ship_status in {STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_DERLICT}
+                            ]
+                            subsec_info.hostile_ships = len([
+                                ship for ship in ships_in_subsector if
+                                ship.ship_status != STATUS_DERLICT and
+                                ship.is_enemy != ship_is_enemy
+                            ])
+                            subsec_info.derelicts = len([
+                                ship for ship in ships_in_subsector if
+                                ship.ship_status == STATUS_DERLICT
+                            ])
+                            subsec_info.ship_count_needs_updating = False
+                except IndexError:
+                    pass
+        
     def handle_torpedo(
         self, *, shipThatFired:Starship, torpsFired:int, heading:int, coords:Tuple[Coords], 
         torpedo_type:Torpedo, ships_in_area:Dict[Coords, Starship]
