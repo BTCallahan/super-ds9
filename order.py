@@ -838,14 +838,12 @@ class TransportOrder(Order):
         if hostile_takeover:
             
             if is_derlict:
-                
-                self.target.override_nation_code = self.entity.ship_class.nation_code
-            
+                            
                 difficulty = self.game_data.allied_ai if target_in_allied_nation else self.game_data.difficulty
                 
                 self.target.ai = difficulty
-                
-                self.target.life_support.able_crew += self.amount
+                                
+                self.target.life_support.take_control_of_ship(able_crew=self.amount, nation=self.entity.nation)
                 
                 if describe_player_actions:
                     message_log.add_message(
