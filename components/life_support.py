@@ -135,6 +135,8 @@ class LifeSupport(StarshipSystem):
             
             if are_hostiles_on_board:
                 
+                all_defenders_died = False
+                
                 for k,v in self.hostiles_on_board.items():
                     
                     boarders_are_from_player = k == self.starship.game_data.scenerio.your_nation
@@ -258,6 +260,12 @@ class LifeSupport(StarshipSystem):
                                 injured_boarders_killed + able_boarders_killed + new_injured_boarders > 0
                             )
                             all_boarders_died = injured_boarders + able_boarders <= 0
+                            
+                            if all_defenders_died:
+                                self.take_control_of_ship(
+                                    able_crew=able_boarders, injured_crew=injured_boarders, nation=k
+                                )
+                                keys_to_remove.append(k)
                             
                             if defender_is_player and not all_defenders_died:
                                 
