@@ -200,8 +200,7 @@ class DestroyEvaluation(ScenerioEvaluation):
         #total_ships = len(gameDataGlobal.total_starships) - 1
         
         all_enemy_ships = [
-            ship for ship in game_data.all_enemy_ships if 
-            ship.ship_class not in game_data.scenerio.mission_critical_ships
+            ship for ship in game_data.all_enemy_ships if not ship.is_mission_critical
         ]
         all_mission_critical_enemy_ships = game_data.target_enemy_ships
         

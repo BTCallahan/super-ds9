@@ -210,6 +210,10 @@ class Starship(CanDockWith):
         return self.nation in self.game_data.scenerio.get_set_of_enemy_nations
 
     @property
+    def is_mission_critical(self):
+        return self.ship_class in self.game_data.scenerio.mission_critical_ships
+
+    @property
     def get_combat_effectivness(self):
         
         total = (self.hull / self.ship_class.max_hull) * 2

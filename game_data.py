@@ -278,7 +278,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
             )
         )
         self.target_enemy_ships = [
-            ship for ship in self.all_enemy_ships if ship.ship_class in self.scenerio.mission_critical_ships
+            ship for ship in self.all_enemy_ships if ship.is_mission_critical
         ]
         self.all_allied_ships = list(
             generate_ships(
@@ -289,7 +289,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
             )
         )
         self.target_allied_ships = [
-            ship for ship in self.all_allied_ships if ship.ship_class in self.scenerio.mission_critical_ships
+            ship for ship in self.all_allied_ships if ship.is_mission_critical
         ]
         randXsec = player_starting_coord.x
         randYsec = player_starting_coord.y
@@ -310,7 +310,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
         
         for ship in all_other_ships:
             
-            if ship.ship_class in self.scenerio.mission_critical_ships:
+            if ship.is_mission_critical:
                 
                 x, y = ship.sector_coords.x, ship.sector_coords.y
                 
@@ -443,7 +443,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                 
                 subsec.hostile_ships += 1
                 
-                if ship.ship_class in self.scenerio.mission_critical_ships:
+                if ship.is_mission_critical:
                 
                     subsec.objectives += 1
                 
@@ -457,7 +457,7 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
                 
                 subsec.allied_ships += 1
                 
-                if ship.ship_class in self.scenerio.mission_critical_ships:
+                if ship.is_mission_critical:
                 
                     subsec.objectives += 1
 
