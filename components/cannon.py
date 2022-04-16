@@ -13,7 +13,7 @@ class Cannon(StarshipSystem):
     starship:Starship
     
     def __init__(self, shipclass:ShipClass) -> None:
-        super().__init__(f"{shipclass.get_energy_weapon.short_cannon_name_cap}s:")
+        super().__init__(f"{shipclass.energy_weapon.short_cannon_name_cap}s:")
         
     @property
     def ship_can_fire_cannons(self):
