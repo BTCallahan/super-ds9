@@ -260,14 +260,6 @@ class SubSector:
         self.hostile_ships = 0
         self.allied_ships = 0
         self.player_present = False
-
-    @property
-    def display_hostile_ships(self):
-        return min(9, self.hostile_ships)
-    
-    @property
-    def display_allied_ships(self):
-        return min(9, self.allied_ships)
     
     @property
     def get_player_subsector_info(self):
