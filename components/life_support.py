@@ -146,7 +146,7 @@ class LifeSupport(StarshipSystem):
                     total_borders = able_boarders + injured_boarders
                     
                     if total_borders > 0:
-                                                                        
+                        
                         # if the boarding party is on the same side as the ships crew:
                         if ship_is_on_players_side == (
                             k in set_of_allied_nations

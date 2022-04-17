@@ -88,7 +88,6 @@ class Engine:
             self.game_data.selected_ship_planet_or_star = None
         
         self.game_data.set_condition()
-        self.game_data.update_mega_sector_display()
 
     def get_lookup_table(
         self, *, direction_x:float, direction_y:float, normalise_direction:bool=True, no_dups:bool=True

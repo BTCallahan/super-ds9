@@ -236,11 +236,9 @@ class GameData:
                     all_ships.extend(
                         [k] * v
                     )
-                
                 safe_spots = star_system.find_random_safe_spots(
                     how_many=len(all_ships)
                 )
-                
                 for k, local_co in zip(all_ships, safe_spots):
                     
                     ship_class = ALL_SHIP_CLASSES[k]

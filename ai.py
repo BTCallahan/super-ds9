@@ -149,7 +149,7 @@ def calc_torpedos_easy(
 def calc_torpedos_medium(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
     enemy_scans:Iterable[Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]]
-):    
+):
     try:
         c_value = 300 if self.entity.cloak.cloak_status != CloakStatus.INACTIVE else 100
     except AttributeError:

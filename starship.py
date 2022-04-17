@@ -18,7 +18,6 @@ from components.transporter import Transporter
 from components.warp_drive import WarpDrive
 
 from global_functions import ajust_system_integrity, calculate_polarization, inverse_square_law, scan_assistant
-from nation import ALL_NATIONS
 from ship_class import ShipClass
 from space_objects import SubSector, CanDockWith
 from torpedo import Torpedo
@@ -1187,12 +1186,13 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             self.turn_repairing -= 1
         
         if not ship_destroyed:
-            
             try:
                 old_shields = old_scan["shields"] if old_ship_status.do_shields_work else 0
             
                 newer_shields = new_scan['shields'] if new_ship_status.do_shields_work else 0
+                
             except KeyError:
+                
                 old_shields = 0
                 
                 newer_shields = 0
@@ -1200,7 +1200,6 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             old_hull = old_scan["hull"]
             
             newer_hull = new_scan["hull"]
-            
             try:
                 scaned_shields_percentage = newer_shields / self.ship_class.max_shields
             except ZeroDivisionError:
@@ -1347,7 +1346,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     message_log.add_message('Torpedo launcher damaged.')
                 
                 if cloak_sys_damage > 0:
-                    message_log.add_message("Cloaking device damaged.")
+                    message_log.add_message("Cloaking device damaged.")    
                 
         elif not ship_originaly_destroyed:
             wc_breach = ((not old_ship_status.is_destroyed and new_ship_status is STATUS_OBLITERATED) or (
