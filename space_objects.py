@@ -3,7 +3,7 @@ from typing import Dict, Iterable, List, Optional,  Tuple, TYPE_CHECKING
 from random import choice, choices, randint, uniform, random
 from itertools import accumulate
 from coords import Coords
-from data_globals import PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_RELATIONS, PLANET_TYPES, PLANET_WARP_CAPABLE, PlanetHabitation, PlanetRelation, PLANET_RELATION_DICT
+from data_globals import PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_FRIENDLY, PLANET_PREWARP, PLANET_RELATIONS, PLANET_TYPES, PLANET_WARP_CAPABLE, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, STATUS_OBLITERATED, PlanetHabitation, PlanetRelation, PLANET_RELATION_DICT
 import colors
 from nation import Nation
 from torpedo import ALL_TORPEDO_TYPES, Torpedo
@@ -193,6 +193,8 @@ class SubSectorInfo:
         self.hostile_ships = 0
         self.allied_ships = 0
         
+        self.derelicts = 0
+        
         self.planet_count_needs_updating = True
         self.ship_count_needs_updating = True
             
@@ -266,7 +268,15 @@ class SubSector:
     @property
     def display_allied_ships(self):
         return min(9, self.allied_ships)
-
+    
+    @property
+    def get_player_subsector_info(self):
+        return self.game_data.player_subsector_info[self.coords.y][self.coords.x]
+    
+    @property
+    def get_enemy_subsector_info(self):
+        return self.game_data.enemy_subsector_info[self.coords.y][self.coords.x]
+        
     def random_setup(self, star_number_weights:Iterable[int], star_number_weights_len:int):
 
         stars = choices(range(star_number_weights_len), cum_weights=star_number_weights)[0]
@@ -417,7 +427,10 @@ class SubSector:
     def remove_ship_from_sec(self, ship:Starship):
         
         x, y = self.coords.x, self.coords.y
-        
+
+        player_subsector_info = self.get_player_subsector_info
+        enemy_subsector_info = self.get_enemy_subsector_info
+
         if ship.is_enemy:
             
             self.hostile_ships-= 1
