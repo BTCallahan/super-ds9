@@ -255,10 +255,6 @@ class SubSector:
         self.planets_neutral_to_enemy = 0
         self.planets_hostile_to_enemy = 0
     
-        self.objectives = 0
-        
-        self.hostile_ships = 0
-        self.allied_ships = 0
         self.player_present = False
     
     @property
