@@ -81,6 +81,8 @@ class LifeSupport(StarshipSystem):
         self.injured_crew = injured_crew
         
         self.starship.nation = nation
+        
+        self.starship.get_sub_sector.enable_ship(self.starship)
     
     def injuries_and_deaths(self, injured:int, killed_outright:int, killed_in_sickbay:int):
         
@@ -95,9 +97,7 @@ class LifeSupport(StarshipSystem):
         
         if self.is_derlict:
                         
-            subsector = self.starship.get_sub_sector
-            
-            subsector.remove_ship_from_sec(self.starship)
+            self.starship.get_sub_sector.disable_ship(self.starship)
 
     def on_turn(self):
         

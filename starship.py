@@ -679,6 +679,8 @@ class Starship(CanDockWith):
         if self is self.game_data.selected_ship_planet_or_star:
             self.game_data.selected_ship_planet_or_star = None
         
+        self.get_sub_sector.destroy_ship(self)
+        
     def warp_core_breach(self, self_destruct=False):
 
         shipList = self.game_data.grab_ships_in_same_sub_sector(self)

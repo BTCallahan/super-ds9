@@ -392,6 +392,98 @@ class SubSector:
             return choices(okay_spots, k=how_many)
         return choices(self.safe_spots, k=how_many)
     
+    def destroy_ship(self, ship:Starship):
+        """This should be called only when a ship is destroyed
+
+        Args:
+            ship (Starship): The ship in question
+        """
+        
+        player_subsector_info = self.get_player_subsector_info
+        enemy_subsector_info = self.get_enemy_subsector_info
+
+        if ship.ship_status == STATUS_DERLICT:
+                        
+            player_subsector_info.needs_updating = True
+            enemy_subsector_info.needs_updating = True
+            
+        elif ship.is_enemy:
+                        
+            player_subsector_info.ship_count_needs_updating = True
+            enemy_subsector_info.allied_ships -= 1
+            
+            if ship.is_mission_critical:
+                
+                enemy_subsector_info.objectives -= 1
+        else:    
+            if ship is ship.game_data.player:
+                
+                self.player_present = False
+        
+            player_subsector_info.allied_ships -= 1
+            
+            if ship.is_mission_critical:
+                
+                player_subsector_info.objectives -= 1
+            
+            enemy_subsector_info.ship_count_needs_updating = True
+    
+    def disable_ship(self, ship:Starship):
+                
+        player_subsector_info = self.get_player_subsector_info
+        
+        enemy_subsector_info = self.get_enemy_subsector_info
+                
+        player_subsector_info.ship_count_needs_updating = True
+            
+        enemy_subsector_info.ship_count_needs_updating = True
+            
+        if ship.is_enemy:
+                        
+            enemy_subsector_info.allied_ships -= 1
+            
+            if ship.is_mission_critical:
+                
+                enemy_subsector_info.objectives -= 1
+        else:            
+            player_subsector_info.allied_ships -= 1
+            
+            if ship.is_mission_critical:
+                
+                player_subsector_info.objectives -= 1
+    
+    def enable_ship(self, ship:Starship):
+        
+        assert ship.ship_status != STATUS_DERLICT
+        
+        is_mission_critical = ship.is_mission_critical
+                
+        enemy_subsector_info = ship.get_sub_sector.get_enemy_subsector_info
+        
+        player_subsector_info = ship.get_sub_sector.get_player_subsector_info
+        
+        if ship.is_enemy:
+            
+            enemy_subsector_info.allied_ships += 1
+            
+            enemy_subsector_info.derelicts -= 1
+            
+            player_subsector_info.ship_count_needs_updating = True
+            
+            if is_mission_critical:
+                
+                enemy_subsector_info.objectives += 1
+        else:
+            player_subsector_info.allied_ships += 1
+            
+            player_subsector_info.derelicts -= 1
+            
+            enemy_subsector_info.ship_count_needs_updating = True
+            
+            if is_mission_critical:
+                
+                player_subsector_info.objectives += 1
+    
     def add_ship_to_sec(self, ship:Starship):
         
         x, y = self.coords.x, self.coords.y
