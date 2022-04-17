@@ -2,15 +2,18 @@ from __future__ import annotations
 from collections import Counter
 from random import choices
 from typing import TYPE_CHECKING, Dict, Iterable, Optional, Tuple, Union
+from itertools import chain
+
 from get_config import CONFIG_OBJECT
 from global_functions import ajust_system_integrity, average
 from data_globals import PLANET_FRIENDLY, PLANET_NEUTRAL, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus, ShipStatus
 
 from order import CloakOrder, MoveOrder, Order, EnergyWeaponOrder, OrderWarning, PolarizeOrder, RechargeOrder, RepairOrder, SelfDestructOrder, TorpedoOrder, TransportOrder, WarpOrder, WarpTravelOrder
+#from space_objects import SubSectorInfo
 
 if TYPE_CHECKING:
     from starship import Starship
-    from space_objects import SubSector
+    from space_objects import SubSectorInfo
     from game_data import GameData
     from ship_class import ShipClass
 
@@ -107,17 +110,16 @@ def evaluate_scan(scan: Dict[str, Union[int, Tuple, ShipStatus, ShipClass]]):
     
 def find_unopressed_planets(game_data:GameData, ship:Starship):
 
-    for y in game_data.grid:
+    sub_sector_info = game_data.enemy_subsector_info if ship.is_enemy else game_data.player_subsector_info
+
+    for y in sub_sector_info:
         for x in y:
             
-            sector:SubSector = x
+            sector:SubSectorInfo = x
 
-            if sector.coords != ship.sector_coords:
+            if sector.coords != ship.sector_coords and sector.allied_ships < 1 and sector.unfriendly_planets:
 
-                for planet in sector.planets_dict.values():
-
-                    if planet.get_habbitation(ship.is_enemy) in {PLANET_FRIENDLY, PLANET_NEUTRAL}:
-                        yield planet.sector_coords
+                yield sector.coords
 
 def calc_torpedos_easy(
     self:BaseAi, enemies_in_same_system:Iterable[Starship], 
@@ -809,46 +811,51 @@ def reactivate_derelict_hard(self:BaseAi):
     except AttributeError:
         transport_power = -1
     
-    all_derelicts = [ship for ship in self.game_data.total_starships if ship.ship_status.is_recrewable]
+    self.entity.get_sub_sector.get_enemy_subsector_info
     
-    if all_derelicts:
+    if self.entity.get_sub_sector.get_enemy_subsector_info.derelicts > 0:
         
         transport_range = self.entity.transporter.get_range
         
-        derelicts_in_system = [
-            ship for ship in all_derelicts if ship.sector_coords == self.entity.sector_coords and 
-            ship.local_coords.distance(self.entity.local_coords) <= transport_range
-        ]
-        if derelicts_in_system:
+        ships_in_same_sector = self.game_data.grab_ships_in_same_sub_sector(
+            self.entity, accptable_ship_statuses={STATUS_DERLICT}
+        )
+        ships_in_same_sector.sort(
+            key=lambda a: a.local_coords.distance(coords=self.entity.local_coords)
+        )
+        nearest = ships_in_same_sector[0]
+        
+        if self.entity.local_coords.distance(coords=nearest.local_coords) <= transport_range:
             
-            if transport_power > 0:
-                
-                for derelict in derelicts_in_system:
-                    
-                    crew_to_send = min(derelict.ship_class.max_crew, able_crew)
-                
-                    order = TransportOrder(
-                        self.entity,
-                        derelict,
-                        crew_to_send
-                    )
-                    stragic_value = derelict.calculate_ship_stragic_value(value_multiplier_for_derlict=1)
-                    
-                    self.order_dict[order] = average(stragic_value) / crew_to_send
+            crew_to_send = max(min(nearest.ship_class.max_crew, able_crew - 1), 0)
+            
+            order = TransportOrder(
+                self.entity, nearest, crew_to_send
+            )
+            self.order_dict[order] = nearest.calculate_ship_stragic_value()
+            
+            self.order_dict_size += 1
         else:
-            for derelict in all_derelicts:
+            # find a way to move towards the derlict
+            pass
+    else:            
+        all_subsectors_with_derelicts = [
+            sub for sub in list(chain.from_iterable(self.game_data.enemy_subsector_info)) if sub.derelicts > 0
+        ]
+        sector_coords = self.entity.sector_coords
                 
-                order = WarpOrder.from_coords(
-                    self.entity, 
-                    x=derelict.sector_coords.x,
-                    y=derelict.sector_coords.y,
-                    start_x=self.entity.sector_coords.x,
-                    start_y=self.entity.sector_coords.y,
-                    speed=1
-                )
-                dist = derelict.sector_coords.distance(self.entity.sector_coords)
-                
-                self.order_dict[order] = derelict.get_ship_value / dist
+        for subsector in all_subsectors_with_derelicts:
+            
+            dist = self.entity.sector_coords.distance(coords=subsector.coords)
+        
+            order = WarpOrder.from_coords(
+                entity=self.entity, x=subsector.coords.x, y=subsector.coords.y,
+                start_x=sector_coords.x, start_y=sector_coords.y,
+                speed=1
+            )
+            self.order_dict[order] = subsector.derelicts / dist
+            
+            self.order_dict_size += 1
 
 class EasyEnemy(BaseAi):
         
@@ -1072,9 +1079,9 @@ class HardEnemy(BaseAi):
             else:
                 # if the player is not present:
                 
-                system = self.entity.get_sub_sector
+                system = self.entity.get_sub_sector.get_enemy_subsector_info
                 
-                if friendly_ships or system.friendly_planets == 0:
+                if friendly_ships or system.unfriendly_planets == 0:
                 
                     calc_oppress_hard(self)            
             try:
