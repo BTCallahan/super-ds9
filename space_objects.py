@@ -485,47 +485,71 @@ class SubSector:
                 player_subsector_info.objectives += 1
     
     def add_ship_to_sec(self, ship:Starship):
+        """This should be called only when a ship is warping from one are to another
+
+        Args:
+            ship (Starship): The ship in question
+        """
+                
+        is_mission_critical = ship.is_mission_critical
         
-        x, y = self.coords.x, self.coords.y
+        is_cloaked = ship.ship_status == STATUS_CLOAKED
+        
+        player_subsector_info = self.get_player_subsector_info
+        enemy_subsector_info = self.get_enemy_subsector_info
         
         if ship.is_enemy:
             
-            self.hostile_ships+= 1
+            enemy_subsector_info.allied_ships += 1
             
-            self.game_data.player_subsector_info[y][x].ship_count_needs_updating = True
-            self.game_data.enemy_subsector_info[y][x].allied_ships += 1
+            if is_mission_critical:
+                enemy_subsector_info.objectives += 1
+            
+            if not is_cloaked:
+                player_subsector_info.ship_count_needs_updating = True
         else:
-            if ship is ship.game_data.player:
+            if ship.is_controllable:
                 
                 self.player_present = True
-            else:
-                self.allied_ships+= 1
-                
-            self.game_data.player_subsector_info[y][x].allied_ships += 1
-            self.game_data.enemy_subsector_info[y][x].ship_count_needs_updating = True
+                            
+            player_subsector_info.allied_ships += 1
+            
+            if is_mission_critical:
+                player_subsector_info.objectives += 1
+            
+            if not is_cloaked:
+                enemy_subsector_info.ship_count_needs_updating = True
 
     def remove_ship_from_sec(self, ship:Starship):
-        
-        x, y = self.coords.x, self.coords.y
+        """This should be called only when a ship is warping from one are to another
 
+        Args:
+            ship (Starship): The ship in question
+        """
+        
         player_subsector_info = self.get_player_subsector_info
         enemy_subsector_info = self.get_enemy_subsector_info
 
         if ship.is_enemy:
+                        
+            player_subsector_info.ship_count_needs_updating = True
+            enemy_subsector_info.allied_ships -= 1
             
-            self.hostile_ships-= 1
-            
-            self.game_data.player_subsector_info[y][x].ship_count_needs_updating = True
-            self.game_data.enemy_subsector_info[y][x].allied_ships -= 1
+            if ship.is_mission_critical:
+                
+                enemy_subsector_info.objectives -= 1
         else:    
             if ship is ship.game_data.player:
                 
                 self.player_present = False
-            else:
-                self.allied_ships-= 1
         
-            self.game_data.player_subsector_info[y][x].allied_ships -= 1
-            self.game_data.enemy_subsector_info[y][x].ship_count_needs_updating = True
+            player_subsector_info.allied_ships -= 1
+            
+            if ship.is_mission_critical:
+                
+                player_subsector_info.objectives -= 1
+            
+            enemy_subsector_info.ship_count_needs_updating = True
 
 class Planet(InterstellerObject, CanDockWith):
 
