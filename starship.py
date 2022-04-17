@@ -29,6 +29,7 @@ from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_EXPLOSION, DAMAGE_RA
 if TYPE_CHECKING:
     from game_data import GameData
     from ai import BaseAi
+    from nation import Nation
 
 def randomNeumeral(n:int) -> str:
     for i in range(n):
@@ -47,7 +48,7 @@ class Starship(CanDockWith):
         secXCo, secYCo,
         *,
         name:Optional[str]=None,
-        override_nation_code:Optional[str]=None
+        override_nation:Optional[Nation]=None
     ):
         self.local_coords:MutableCoords = MutableCoords(xCo, yCo)
         self.sector_coords:MutableCoords = MutableCoords(secXCo, secYCo)
@@ -1319,10 +1320,10 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     message_log.add_message('Warp drive damaged.')
                     
                 if energy_weapons_sys_damage > 0:
-                    message_log.add_message(f'{self.ship_class.get_energy_weapon.beam_name} emitters damaged.')
+                    message_log.add_message(f'{self.ship_class.energy_weapon.beam_name} emitters damaged.')
                     
                 if cannon_sys_damage > 0:
-                    message_log.add_message(f'{self.ship_class.get_energy_weapon.cannon_name} damaged.')
+                    message_log.add_message(f'{self.ship_class.energy_weapon.cannon_name} damaged.')
                     
                 if sensors_sys_damage > 0:
                     message_log.add_message('Sensors damaged.')
@@ -1563,7 +1564,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             )
             enemy.take_damage(
                 amount * self.beam_array.get_effective_value, 
-                f'Destroyed by a {self.ship_class.get_energy_weapon.beam_name} hit from the {self.name}.', 
+                f'Destroyed by a {self.ship_class.energy_weapon.beam_name} hit from the {self.name}.', 
                 damage_type=damage_type
             )
             return True
