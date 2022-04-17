@@ -796,7 +796,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         if self.hull <= 0:
             return STATUS_HULK
         try:            
-            if self.life_support.get_total_crew < 1:
+            if self.life_support.is_derlict:
                 return STATUS_DERLICT
         except AttributeError:
             pass
@@ -1111,13 +1111,16 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         ship_destroyed = new_hull < 0
         
-        ship_is_player = self is self.game_data.player
+        ship_is_player = self.is_controllable
 
         pre = 1 if ship_is_player else self.game_data.player.sensors.determin_precision
         
         old_scan = self.scan_this_ship(
             pre, scan_for_systems=ship_is_player, scan_for_crew=ship_is_player, use_effective_values=True
         )
+        originally_derlict = old_ship_status == STATUS_DERLICT
+        
+        is_derlict = originally_derlict
         try:
             self.shield_generator.shields = new_shields
         except AttributeError:
@@ -1127,6 +1130,10 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         self.hull_damage += hull_dam * 0.15
         try:
             self.life_support.injuries_and_deaths(wounded, killed_outright, killed_in_sickbay)
+            
+            if self.life_support.is_derlict:
+                is_derlict = True
+            
         except AttributeError:
             pass            
         try:

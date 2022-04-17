@@ -248,24 +248,7 @@ class GameData:
                     starship = Starship(
                         ship_class, self.difficulty, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
                     )
-
                     starship.game_data = self
-
-                    if starship.nation in player_nation:
-                        
-                        star_system.allied_ships+=1
-                        
-                    elif starship.nation in enemy_nation:
-                        
-                        star_system.hostile_ships+=1
-                    else:
-                        raise ValueError(
-f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.name_long}, but it is not in either the enemy nations ({enemy_nation}), or the allied nations ({player_nation})"
-                        )
-                    
-                    if ship_class in self.scenerio.mission_critical_ships:
-                        
-                        star_system.objectives += 1
                     
                     yield starship
             
@@ -307,16 +290,6 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
         shuffle(all_other_ships)
         
         self.all_other_ships = all_other_ships
-        
-        for ship in all_other_ships:
-            
-            if ship.is_mission_critical:
-                
-                x, y = ship.sector_coords.x, ship.sector_coords.y
-                
-                sub_sector:SubSector = self.grid[y][x]
-                
-                sub_sector.objectives += 1
 
         self.total_starships = [self.player] + self.all_other_ships
 

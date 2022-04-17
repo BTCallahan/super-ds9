@@ -183,14 +183,25 @@ class SubSectorInfo:
         self.total_stars = 0
         
         self.planets_dict:Dict[Coords, Planet] = {}
+        """This value refers to planets that are allied to the ship in question, and not nescaraly to the player
+        """
         self.friendly_planets = 0
+        """This value refers to planets that are neutral to the ship in question, and not nescaraly to the player
+        """
         self.neutral_planets = 0
+        """This value refers to planets that are hostile to the ship in question, and not nescaraly to the player
+        """
         self.unfriendly_planets = 0
         self.barren_planets = 0
     
         self.objectives = 0
         
+        """This value refers to ships that are hostile to the ship in question, and not nescaraly to the player
+        """
         self.hostile_ships = 0
+        
+        """This value refers to ships that are allied to the ship in question, and not nescaraly to the player
+        """
         self.allied_ships = 0
         
         self.derelicts = 0
@@ -219,7 +230,7 @@ class SubSector:
         return r
 
     @staticmethod
-    def __gen_safe_spot_list(x_range, y_range):
+    def __gen_safe_spot_list(x_range:range, y_range:range):
 
         for y in y_range:
             for x in x_range:
