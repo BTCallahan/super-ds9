@@ -177,6 +177,8 @@ class WarpOrder(Order):
 
     def perform(self) -> None:
         
+        self.entity.get_sub_sector.remove_ship_from_sec(self.entity)
+        
         x_aim = self.x - self.start_x
         y_aim = self.y - self.start_y
         co_tuple = tuple(
@@ -252,7 +254,9 @@ class WarpTravelOrder(Order):
         
         self.entity.warp_drive.current_warp_factor = 0
         
-        subsector: SubSector = self.entity.game_data.grid[self.entity.sector_coords.y][self.entity.sector_coords.x]
+        subsector = self.entity.get_sub_sector
+        
+        subsector.add_ship_to_sec(self.entity)
 
         safe_spots = subsector.safe_spots.copy()
 
