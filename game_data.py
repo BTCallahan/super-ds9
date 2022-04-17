@@ -425,46 +425,6 @@ f"For sceneraio {self.scenerio.name}, the starship nation is {starship.nation.na
         
         return True
     
-    def update_mega_sector_display(self):
-        
-        for y in self.subsec_size_range_y:
-            
-            for x in self.subsec_size_range_x:
-                
-                subsec = self.grid[y][x]
-                
-                subsec.hostile_ships = 0
-                subsec.allied_ships = 0
-                subsec.objectives = 0
-                
-        for ship in self.all_enemy_ships:
-            
-            status = ship.ship_status
-            
-            if status.is_active and status.is_visible:
-                x,y = ship.sector_coords.x, ship.sector_coords.y
-                subsec:SubSector = self.grid[y][x]
-                
-                subsec.hostile_ships += 1
-                
-                if ship.is_mission_critical:
-                
-                    subsec.objectives += 1
-                
-        for ship in self.all_allied_ships:
-            
-            status = ship.ship_status
-            
-            if status.is_active:# and status.is_visible:
-                x,y = ship.sector_coords.x, ship.sector_coords.y
-                subsec:SubSector = self.grid[y][x]
-                
-                subsec.allied_ships += 1
-                
-                if ship.is_mission_critical:
-                
-                    subsec.objectives += 1
-    
     def run_update_for_ship(self, ship:Starship):
         
         ship_is_enemy = ship.is_enemy
