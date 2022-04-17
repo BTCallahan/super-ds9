@@ -103,7 +103,7 @@ def print_system(console:Console, gamedata:GameData):
             x=x + (c.x * 2) + 1, 
             y=y + (c.y * 2) + 1, 
             string="#", 
-            fg=planet.display_status.color
+            fg=planet.player_display_status.color
         )
 
     for s in ships:
@@ -153,7 +153,7 @@ def print_mega_sector(console:Console, gamedata:GameData):
 
     console.draw_frame(x=player_coords.x * 5, y=player_coords.y * 4, width=6, height=5)
 
-    for i, sector_y in enumerate(gamedata.grid):
+    for i, sector_y in enumerate(gamedata.player_subsector_info):
         for j, sector_x in enumerate(sector_y):
             i2 = i * 4 + 1
             j2 = j * 5 + 1
@@ -172,14 +172,14 @@ def print_mega_sector(console:Console, gamedata:GameData):
                     x=x+j2, y=y+i2+2,
                     string=f"+{sector_x.friendly_planets+sector_x.neutral_planets}", fg=colors.planet_allied
                 )
-            hostile_ships = sector_x.display_hostile_ships
+            hostile_ships = sector_x.hostile_ships
             
             if hostile_ships > 0:
                 console.print(
                     x=x+j2+2, y=y+i2,
                     string=f"E{hostile_ships}", fg=colors.red if hostile_ships > 0 else colors.cyan
                 )
-            allied_ships = sector_x.display_allied_ships
+            allied_ships = sector_x.allied_ships - (1 if gamedata.grid[i][j].player_present else 0)
 
             if allied_ships > 0:
                 console.print(
