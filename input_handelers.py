@@ -536,15 +536,15 @@ class CommandEventHandler(MainGameEventHandler):
         #print("CommandEventHandler")
         super().__init__(engine)
         
-        self.ship_type_can_fire_beam_arrays = bool(self.engine.player.ship_class.max_beam_energy)
-        self.ship_type_can_fire_cannons = bool(self.engine.player.ship_class.max_cannon_energy)
-        self.ship_type_can_polarize_hull = bool(self.engine.player.ship_class.polarized_hull)
-        self.ship_type_can_use_shields = bool(self.engine.player.ship_class.max_shields)
-        self.ship_type_can_cloak = bool(self.engine.player.ship_class.cloak_strength)
-        self.ship_type_can_fire_torps = bool(self.engine.player.ship_class.max_torpedos)
-        self.is_mobile = bool(self.engine.player.ship_class.evasion)
-        self.ship_type_can_go_to_warp = bool(self.engine.player.ship_class.max_warp)
-        self.ship_is_not_automated = not self.engine.player.is_automated
+        self.ship_type_can_fire_beam_arrays = bool(engine.player.ship_class.max_beam_energy)
+        self.ship_type_can_fire_cannons = bool(engine.player.ship_class.max_cannon_energy)
+        self.ship_type_can_polarize_hull = bool(engine.player.ship_class.polarized_hull)
+        self.ship_type_can_use_shields = bool(engine.player.ship_class.max_shields)
+        self.ship_type_can_cloak = bool(engine.player.ship_class.cloak_strength)
+        self.ship_type_can_fire_torps = bool(engine.player.ship_class.max_torpedos)
+        self.is_mobile = bool(engine.player.ship_class.evasion)
+        self.ship_type_can_go_to_warp = bool(engine.player.ship_class.max_warp)
+        self.ship_is_not_automated = not engine.player.is_automated
         
         self.warp_travel = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -597,7 +597,7 @@ class CommandEventHandler(MainGameEventHandler):
             alignment=tcod.CENTER
         )
         try:
-            cloak_status = self.engine.player.cloak.cloak_is_turned_on
+            cloak_status = engine.player.cloak.cloak_is_turned_on
         except AttributeError:
             cloak_status = False
         
@@ -623,7 +623,7 @@ class CommandEventHandler(MainGameEventHandler):
             inactive_fg=colors.white,
             bg=colors.black,
             alignment=tcod.CENTER,
-            initally_active= not self.engine.player.docked
+            initally_active = not engine.player.docked
         )
         self.polarize_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -635,7 +635,7 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-        beam_name_cap = self.engine.player.ship_class.energy_weapon.beam_name_cap
+        beam_name_cap = engine.player.ship_class.energy_weapon.beam_name_cap
 
         self.beam_button = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -647,7 +647,7 @@ class CommandEventHandler(MainGameEventHandler):
             bg=colors.black,
             alignment=tcod.CENTER
         )
-        cannon_name_cap = self.engine.player.ship_class.energy_weapon.cannon_name_cap
+        cannon_name_cap = engine.player.ship_class.energy_weapon.cannon_name_cap
         
         self.cannons_buttons = SimpleElement(
             x=2+CONFIG_OBJECT.command_display_x,
@@ -1144,9 +1144,9 @@ class WarpHandler(HeadingBasedHandler):
         )
         self.cost_button:SimpleElement = cost_button(cost=f"{self.energy_cost}")
         
-        self.warp_speed = speed_button(round(9 * self.engine.player.warp_drive.get_effective_value))
+        self.warp_speed = speed_button(round(9 * engine.player.warp_drive.get_effective_value))
         
-        self.is_at_warp = self.engine.player.warp_drive.is_at_warp
+        self.is_at_warp = engine.player.warp_drive.is_at_warp
         
     def on_render(self, console: tcod.Console) -> None:
                 
@@ -1270,15 +1270,15 @@ class WarpHandlerEasy(CoordBasedHandler):
             starting_y=sector_coords.y
         )
         self.energy_cost = round(
-            self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-            self.engine.player.warp_drive.affect_cost_multiplier * CONFIG_OBJECT.sector_energy_cost
+            engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
+            engine.player.warp_drive.affect_cost_multiplier * CONFIG_OBJECT.sector_energy_cost
         )
         self.cost_button:SimpleElement = cost_button(f"{self.energy_cost}")
         
         self.warp_speed = speed_button(
-            round(9 * self.engine.player.warp_drive.get_effective_value)
+            round(9 * engine.player.warp_drive.get_effective_value)
         )
-        self.is_at_warp = self.engine.player.warp_drive.is_at_warp
+        self.is_at_warp = engine.player.warp_drive.is_at_warp
         
     def on_render(self, console: tcod.Console) -> None:
         
@@ -1965,7 +1965,7 @@ class BeamArrayHandler(MinMaxInitator):
     def __init__(self, engine: Engine) -> None:
         player = engine.player
         try:
-            ship_can_fire_beam_arrays = self.engine.player.beam_array.is_opperational
+            ship_can_fire_beam_arrays = player.beam_array.is_opperational
         except AttributeError:
             ship_can_fire_beam_arrays = False
         
@@ -2962,7 +2962,7 @@ class DebugHandler(MainGameEventHandler):
             active_fg=colors.white,
             inactive_fg=colors.grey,
             bg=colors.black,
-            initally_active=isinstance(self.engine.game_data.selected_ship_planet_or_star, Starship)
+            initally_active=isinstance(engine.game_data.selected_ship_planet_or_star, Starship)
         )
         self.edit_self = SimpleElement(
             x=CONFIG_OBJECT.command_display_x+2,
@@ -3081,7 +3081,7 @@ class ShipPlacement(MainGameEventHandler):
             bg=colors.black,
             initally_active=True
         )
-        selected_ship_is_friendly = self.all_ships.index_key in self.engine.game_data.scenerio.allied_nations
+        selected_ship_is_friendly = self.all_ships.index_key in engine.game_data.scenerio.allied_nations
         self.system_x = NumberHandeler(
             limit=2, 
             max_value=CONFIG_OBJECT.sector_width, min_value=0, 
