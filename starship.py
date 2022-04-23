@@ -11,6 +11,7 @@ from components.life_support import LifeSupport
 from components.impulse_ingine import ImpulseEngine
 from components.polarized_hull import PolarizedHull
 from components.power_generator import PowerGenerator
+from components.scanner import Scanner
 from components.sensors import Sensors
 from components.shields import Shields
 from components.torpedo_launcher import TorpedoLauncher
@@ -69,6 +70,9 @@ class Starship(CanDockWith):
         
         self.sensors = Sensors()
         self.sensors.starship = self
+        
+        self.scanner = Scanner()
+        self.scanner.starship = self
         
         if ship_class.polarized_hull:
             
