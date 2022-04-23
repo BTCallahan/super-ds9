@@ -1187,7 +1187,9 @@ class AllyAI(BaseAi):
                 if friendly_ships or system.friendly_planets == 0:
                 
                     calc_oppress_hard(self)
-            
+                    
+        self.determin_order()
+        
         self.order.perform()
         
 class MissionCriticalAllyAI(BaseAi):

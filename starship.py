@@ -309,21 +309,42 @@ class Starship(CanDockWith):
                 return 0.0
             
             hull_value = hull * self.hull_percentage
-            shields_value = shields * self.shield_generator.get_effective_value
+            try:
+                shields_value = shields * self.shield_generator.get_effective_value
+            except AttributeError:
+                shields_value = 0
             energy_value = energy * self.power_generator.get_effective_value
-            crew_value = crew * self.life_support.crew_readyness
-            dodge_value = self.impulse_engine.get_effective_value * self.ship_class.evasion
-            weapon_energy_value = beam_energy * self.beam_array.get_effective_value if beam_energy else 0
-            cannon_energy_value = cannon_energy * self.cannons.get_effective_value if cannon_energy else 0
-            torpedo_value_value = torpedo_value * self.torpedo_launcher.get_effective_value if torpedo_value else 0
-            transporter_value = self.transporter.get_effective_value
+            try:
+                crew_value = crew * self.life_support.crew_readyness
+            except AttributeError:
+                crew_value = 0
+            try:
+                dodge_value = self.impulse_engine.get_effective_value * self.ship_class.evasion
+            except AttributeError:
+                dodge_value = 0
+            try:
+                weapon_energy_value = beam_energy * self.beam_array.get_effective_value if beam_energy else 0
+            except AttributeError:
+                weapon_energy_value = 0
+            try:
+                cannon_energy_value = cannon_energy * self.cannons.get_effective_value if cannon_energy else 0
+            except AttributeError:
+                cannon_energy_value = 0
+            try:
+                torpedo_value_value = torpedo_value * self.torpedo_launcher.get_effective_value if torpedo_value else 0
+            except AttributeError:
+                torpedo_value_value = 0
+            try:
+                transporter_value = self.transporter.get_effective_value
+            except AttributeError:
+                transporter_value = 0
             targeting = self.sensors.get_effective_value * self.ship_class.targeting if any(
                 (weapon_energy_value, cannon_energy_value, torpedo_value_value)
             ) else 0
             
             return (
                 hull_value + shields_value + energy_value + crew_value + weapon_energy_value + 
-                cannon_energy_value + torpedo_value_value + dodge_value + targeting
+                cannon_energy_value + torpedo_value_value + dodge_value + targeting + transporter_value
             ) * multiplier_value
         
         hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting = self.ship_class.get_stragic_values
