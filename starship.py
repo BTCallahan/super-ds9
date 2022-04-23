@@ -365,11 +365,8 @@ class Starship(CanDockWith):
             cannon_energy=cannon_energy, torpedo_value=torpedo_value, 
             multiplier_value=value_used_in_calculation
         )
-        
         return max_possible_value, value_to_be_returned
-    
-    #shields, hull, energy, torps, sys_warp_drive, sysImpuls, sysPhaser, sys_shield_generator, sys_sensors, sys_torpedos
-    
+        
     def scan_for_print(self, precision: int=1):
         
         if isinstance(precision, float):

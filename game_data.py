@@ -178,7 +178,6 @@ class GameData:
         system_coords = tuple(
             Coords(x=x,y=y) for x in self.subsecs_range_x for y in self.subsecs_range_y
         )
-        
         all_enemy_encounters:List[Dict[str,int]] = []
         
         for a in self.scenerio.enemy_encounters:
@@ -204,7 +203,6 @@ class GameData:
         selected_coords = choices(
             system_coords, k=total_enemy + total_allied + 1
         )
-        
         # we use k = total + 1 because the last coord in selected_coords will be used as the players starting point
         selected_enemy_coords = selected_coords[:total_enemy]
         

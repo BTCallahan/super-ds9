@@ -1003,8 +1003,11 @@ class CommandEventHandler(MainGameEventHandler):
             self.engine.message_log.add_message(f"Error: Warp engines are inoperative, {captain}.", fg=colors.red)
 
         elif self.engine.player.power_generator.energy <= 0:
+            
             self.engine.message_log.add_message(f"Error: Insufficent energy reserves, {captain}.", fg=colors.red)
+            
         elif self.engine.player.docked:
+            
             self.engine.message_log.add_message(f"Error: We undock first, {captain}.", fg=colors.red)
         else:
             return WarpHandlerEasy(self.engine) if self.engine.easy_warp else WarpHandler(self.engine)
@@ -1029,9 +1032,7 @@ class CommandEventHandler(MainGameEventHandler):
             return MoveHandlerEasy(self.engine) if self.engine.easy_navigation else MoveHandler(self.engine)
             
     def polarize_hull(self, captain:str):
-        
-        player = self.engine.player
-        
+                
         if not self.engine.player.polarized_hull.is_opperational:
             
             self.engine.message_log.add_message(f"Error: Hull polarization is inoperative, {captain}.", fg=colors.red)
@@ -1203,16 +1204,21 @@ class WarpHandler(HeadingBasedHandler):
                     self.can_render_confirm_button = self.engine.player.warp_drive.is_opperational
                 
             elif self.heading_button.cursor_overlap(event):
+                
                 self.selected_handeler = self.heading_button
                 self.heading_button.is_active = True
                 self.distance.is_active = False
                 self.warp_speed.is_active = False
+                
             elif self.distance.cursor_overlap(event):
+                
                 self.selected_handeler = self.distance
                 self.heading_button.is_active = False
                 self.distance.is_active = True
                 self.warp_speed.is_active = False
+                
             elif self.warp_speed.cursor_overlap(event):
+                
                 self.selected_handeler = self.warp_speed
                 self.heading_button.is_active = False
                 self.distance.is_active = False
