@@ -772,7 +772,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                 
         for i in range(number_of_simulations):
         
-            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage,             torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = self.calculate_damage(
+            new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage,             torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage, scanners_damage = self.calculate_damage(
                 amount, scan_dict=scan, precision=precision, calculate_crew=simulate_crew, 
                 calculate_systems=simulate_systems, damage_type=DAMAGE_EXPLOSION
             )
@@ -1060,6 +1060,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         cloak_sys_damage = 0
         transporter_sys_damage = 0
         polarized_hull_damage = 0
+        scanners_damage = 0
         
         if calculate_systems and not is_hulk:
             chance_to_damage_system = damage_type.chance_to_damage_system
@@ -1112,13 +1113,16 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                 if self.ship_class.polarized_hull and chance_of_system_damage():
                     polarized_hull_damage = random_system_damage()
                 
+                if chance_of_system_damage():
+                    scanners_damage = random_system_damage()
+                
         return (
             new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, 
             new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, 
             impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, 
             warp_core_sys_damage, 
             energy_weapons_sys_damage, cannon_sys_damage, 
-            torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage
+            torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage, scanners_damage
         )
 
     def take_damage(self, amount, text, *, damage_type:DamageType):
@@ -1130,7 +1134,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         ship_originaly_destroyed = old_ship_status in {STATUS_HULK, STATUS_OBLITERATED}
         
-        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = self.calculate_damage(amount, damage_type=damage_type)
+        new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage, scanners_damage = self.calculate_damage(amount, damage_type=damage_type)
         
         ship_destroyed = new_hull < 0
         
@@ -1196,6 +1200,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             self.transporter.integrety -= transporter_sys_damage
         except AttributeError:
             pass
+        self.scanner.integrety -= scanners_damage
         
         new_ship_status = self.ship_status
         
@@ -1719,7 +1724,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     crew_readyness=crew_readyness,
                     target_crew_readyness=target_crew_readyness
                 ):
-                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = target.calculate_damage(
+                    new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage, scanners_damage = target.calculate_damage(
                         damage, precision=precision, calculate_crew=simulate_crew, 
                         calculate_systems=simulate_systems, scan_dict=new_scan, damage_type=DAMAGE_TORPEDO
                     )
@@ -1862,7 +1867,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                 crew_readyness=crew_readyness,
                 target_crew_readyness=target_crew_readyness
             ):
-                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage,warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = target.calculate_damage(
+                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage,warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage, scanners_damage = target.calculate_damage(
                     amount, precision=precision, calculate_crew=scan_target_crew, 
                     calculate_systems=simulate_systems, 
                     use_effective_values=use_effective_values,
@@ -1976,7 +1981,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
             )
             if to_hit:
                 
-                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage = target.calculate_damage(
+                new_shields, new_hull, shields_dam, hull_dam, new_shields_as_a_percent, new_hull_as_a_percent, killed_outright, killed_in_sickbay, wounded, shield_sys_damage, impulse_sys_damage, warp_drive_sys_damage, sensors_sys_damage, warp_core_sys_damage, energy_weapons_sys_damage, cannon_sys_damage, torpedo_sys_damage, cloak_sys_damage, transporter_sys_damage, polarized_hull_damage, scanners_damage = target.calculate_damage(
                     self_damage, 
                     scan_dict=target_scan, 
                     damage_type=DAMAGE_RAMMING
