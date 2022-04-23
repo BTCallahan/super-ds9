@@ -40,10 +40,12 @@ def get_system_names(
     names = [
         "Warp Core:",
         "Sensors:",
+        "Scanners:"
     ]
     keys = [
         "sys_warp_core",
         "sys_sensors",
+        "sys_scanners"
     ]
     """
     if has_shields:
@@ -105,7 +107,7 @@ class ShipClass:
     power_generated_per_turn:int
     damage_control:float
     energy_weapon:EnergyWeapon
-    #nation_code:str
+    scanner_range:int
     nation:Nation
     system_names:Tuple[str]
     system_keys:Tuple[str]
@@ -198,6 +200,7 @@ to one.'''
         max_warp:int,
         power_generated_per_turn:int,
         damage_control:float, 
+        scanner_range:int,
         torp_dict:Optional[Dict[Torpedo,int]]=None,
         torp_tubes:int=0,
         max_beam_energy:int=0,
@@ -244,6 +247,7 @@ to one.'''
             max_hull=max_hull,
             max_crew=max_crew,
             transporters=transporters,
+            scanner_range=scanner_range,
             max_energy=max_energy,
             polarized_hull=polarized_hull,
             power_generated_per_turn=power_generated_per_turn,
@@ -398,6 +402,7 @@ def create_ship_classes():
     shields_pattern = re.compile(r"SHIELDS:([\d]+)\n")
     polarized_hull_pattern = re.compile(r"POLARIZED_HULL:([\d]+)\n")
     hull_pattern = re.compile(r"HULL:([\d]+)\n")
+    scanner_pattern = re.compile(r"SCANNER_RANGE:([\d]+)\n")
     energy_pattern = re.compile(r"ENERGY:([\d]+)\n")
     power_generation_pattern = re.compile(r"POWER:([\d]+)\n")
     energy_weapon_pattern = re.compile(r"ENERGY_WEAPON:([A-Z_]+)\n")
@@ -472,6 +477,10 @@ def create_ship_classes():
         crew = get_first_group_in_pattern(
             shipclass_txt, crew_pattern, return_aux_if_no_match=True,
             aux_valute_to_return_if_no_match=0, type_to_convert_to=int
+        )
+        scanner_range = get_first_group_in_pattern(
+            shipclass_txt, scanner_pattern, type_to_convert_to=int,
+            error_message=f"The entry {shipclass_code} file 'library/ships.txt' did not contain an entry for 'SCANNER_RANGE:'"
         )
         transporters = get_first_group_in_pattern(
             shipclass_txt, transporters_pattern, return_aux_if_no_match=True,
@@ -579,6 +588,7 @@ def create_ship_classes():
             max_shields=shields,
             polarized_hull=polarized_hull,
             max_hull=hull,
+            scanner_range=scanner_range,
             torp_dict=torp_dict,
             torp_tubes=torpedo_tubes,
             damage_control=damage_control,
