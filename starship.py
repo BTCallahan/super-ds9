@@ -1362,6 +1362,9 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     
                 if sensors_sys_damage > 0:
                     message_log.add_message('Sensors damaged.')
+                    
+                if scanners_damage > 0:
+                    message_log.add_message('Long range scanners damaged.')
                             
                 if shield_sys_damage > 0:
                     message_log.add_message('Shield generator damaged.')
