@@ -1316,7 +1316,9 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
                     message_log.add_message('Shield generator damaged.')
                 
                 if warp_core_sys_damage > 0:
-                    message_log.add_message('Warp core damaged.')
+                    message_log.add_message(
+                        'Warp core damaged.' if self.ship_class.max_warp else 'Power generator damaged.'
+                    )
                             
                 if torpedo_sys_damage > 0:
                     message_log.add_message('Torpedo launcher damaged.')
