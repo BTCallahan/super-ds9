@@ -194,11 +194,11 @@ class Starship(CanDockWith):
     
     @property
     def ship_color(self):
-        return self.ship_class.nation.nation_color
+        return self.nation.nation_color
 
     @property
     def is_enemy(self):
-        return self.game_data.player.nation is not self.nation
+        return self.nation in self.game_data.scenerio.get_set_of_enemy_nations
 
     @property
     def get_combat_effectivness(self):
