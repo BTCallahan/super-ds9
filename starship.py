@@ -480,6 +480,7 @@ class Starship(CanDockWith):
         except AttributeError:
             pass
         d["sys_sensors"] = self.sensors.print_info(precision), self.sensors.get_color(), self.sensors.name
+        d["sys_scanners"] = self.scanner.print_info(precision), self.scanner.get_color(), self.scanner.name
         try:
             d["sys_torpedos"] = self.torpedo_launcher.print_info(precision), self.torpedo_launcher.get_color(), self.torpedo_launcher.name
         except AttributeError:
@@ -590,6 +591,7 @@ class Starship(CanDockWith):
             except AttributeError:
                 pass
             d["sys_sensors"] = self.sensors.get_info(precision)
+            d["sys_scanners"] = self.scanner.get_info(precision)
             try:
                 d["sys_torpedos"] = self.torpedo_launcher.get_info(precision)
             except AttributeError:
