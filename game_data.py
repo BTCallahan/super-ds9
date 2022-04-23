@@ -221,10 +221,9 @@ class GameData:
             player_starting_coord = choice(coords_without_enemies)
         
         def generate_ships(
-            enemy_nation:FrozenSet[Nation], 
-            player_nation:FrozenSet[Nation], 
             selected_encounters:List[Dict[str,int]],
-            selected_coords:List[Coords]
+            selected_coords:List[Coords],
+            ai_difficulty:type[BaseAi]
         ):
             for encounter, co in zip(selected_encounters, selected_coords):
                 
@@ -244,7 +243,7 @@ class GameData:
                     ship_class = ALL_SHIP_CLASSES[k]
 
                     starship = Starship(
-                        ship_class, self.difficulty, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
+                        ship_class, ai_difficulty, local_co.x, local_co.y, star_system.coords.x, star_system.coords.y
                     )
                     starship.game_data = self
                     
@@ -252,10 +251,9 @@ class GameData:
             
         self.all_enemy_ships = list(
             generate_ships(
-                self.scenerio.get_set_of_enemy_nations,
-                self.scenerio.get_set_of_allied_nations,
                 all_enemy_encounters,
-                selected_enemy_coords
+                selected_enemy_coords,
+                self.difficulty
             )
         )
         self.target_enemy_ships = [
@@ -263,10 +261,9 @@ class GameData:
         ]
         self.all_allied_ships = list(
             generate_ships(
-                self.scenerio.get_set_of_enemy_nations,
-                self.scenerio.get_set_of_allied_nations,
                 all_allied_encounters,
-                selected_allied_coords
+                selected_allied_coords,
+                self.allied_ai
             )
         )
         self.target_allied_ships = [
