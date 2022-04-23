@@ -38,31 +38,19 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
     B. Diffrences for Now:
 
-        i. Life Support:
-
-            The current version of the game lacks this feature from Super Star Trek. That can be expected to change.
-
-        ii. Nova and Supernova:
+        i. Nova and Supernova:
 
             So far, stars will not erupt in a nova when hit by torpedos. This will probably change. It remains to be seen how many torpedos it will take 
             to induce a nova, however...
 
-        iv. Long Range Scans:
+        ii. Long Range Scans:
 
             As it stands, the long range display is updated instantly after each turn, and with perfect accuracy. Future versions will proably require 
             long range scans to determine enemy ship positions.
 
-        v. Starbases:
-
-            At present, the game lacks starbases that ship would be able to dock with.
-
-        vi. Communications:
+        iii. Communications:
 
             Furure versions will probably include a communications system to call for renforcements.
-        
-        vii: Instant Warp Travel:
-
-            In the current version, warping takes only a single turn.
         
     C. Former Diffrences:
 
@@ -73,6 +61,18 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         ii. One Difficulty Level:
 
             Three levels of difficulty are currently avaliable.
+        
+        iii. Starbases:
+
+            Ships are able to dock with friendly starbases. In addition to crewed starbases, there are also automated non-dockable defense platforms.
+        
+        iv: Instant Warp Travel:
+
+            Warping is not instant, and selecting a higher warp speed will allow for faster travel, however this will consume more energy.
+        
+        v. Life Support:
+
+            If life support goes offline for several turns, crew will begin to die.
 
 2. User Interface Basics
 
@@ -270,9 +270,8 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
     A. Warp:
 
-        This allows the player to travel to different systems. Warp travel is power hungry, and costs 500 units of energy per distance unit, so if the 
-        player is located in a system located at 5, 8, and warps to the system located at 2, 8, then this will cost 1500 units of energy. If the warp 
-        drive has been damaged, then the energy cost increases.
+        This allows the player to travel to different systems. Warp travel is power hungry, and costs much more energy then impulse travel, especially 
+        with higher warp speeds. If the warp drive has been damaged, then the energy cost increases.
 
         There are two ways of entering the destination. If the option "Easy Warping" has been selected, then all the player needs to do is enter the 
         coordinates of the destination system. This can be done manually or by clicking on the sector map.
