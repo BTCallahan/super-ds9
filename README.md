@@ -43,15 +43,10 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
             So far, stars will not erupt in a nova when hit by torpedos. This will probably change. It remains to be seen how many torpedos it will take 
             to induce a nova, however...
 
-        ii. Long Range Scans:
+        ii. Communications:
 
-            As it stands, the long range display is updated instantly after each turn, and with perfect accuracy. Future versions will proably require 
-            long range scans to determine enemy ship positions.
+            Future versions will probably include a communications system to call for renforcements.
 
-        iii. Communications:
-
-            Furure versions will probably include a communications system to call for renforcements.
-        
     C. Former Diffrences:
 
         i. Cloaking Device:
@@ -73,6 +68,22 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
         v. Life Support:
 
             If life support goes offline for several turns, crew will begin to die.
+
+        iii. Starbases:
+
+            Ships are able to dock with friendly starbases. In addition to crewed starbases, there are also automated non-dockable defense platforms.
+        
+        iv: Instant Warp Travel:
+
+            Warping is not instant, and selecting a higher warp speed will allow for faster travel, however this will consume more energy.
+        
+        v. Life Support:
+
+            If life support goes offline for several turns, crew will begin to die.
+
+        vi. Long Range Scans:
+
+            In order to determin if a system contains hostile ships or stations, you must be in range of your ship's scanner.
 
 2. User Interface Basics
 
@@ -280,6 +291,8 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
         In each method the expected warp energy cost is displayed.
 
+        After a ships warps into a new system, it will automaticly scan nearbye systems using it's long range scanners
+
     B. Shields:
 
         The shields command is used to raise, lower, or modify the shield strength. Here, energy can be transferred to and from the shields.
@@ -456,15 +469,19 @@ A modernization of the 1971 Star Trek terminal based text game. Written in Pytho
 
             Decreases maximum shield strength.
 
-        viii. Transporters:
+        viii. Scanners:
+
+            Decreases the distance at which you can detect hostile ships and stations.
+
+        ix. Transporters:
 
             Decreases the number of personel who can be transported, as well as decressing the maximum range that they can be transported.
 
-        ix. Life Support:
+        x. Life Support:
 
             Decreases the recovery rate of injured crew. If life support fails, then after several turns crew members will star to die due to exposure.
 
-        x. Warp Core:
+        xi. Warp Core:
 
             Decreases energy regeneration and the maximum amount of energy that can be stored, and increases the risk of a warp core breach when hit.
 
