@@ -254,6 +254,8 @@ class WarpTravelOrder(Order):
             return
         
         self.entity.warp_drive.current_warp_factor = 0
+        self.entity.warp_drive.warp_destinations = None
+        self.entity.warp_drive.warp_progress = 0.0
         
         subsector = self.entity.get_sub_sector
         
@@ -1272,11 +1274,17 @@ class RechargeOrder(Order):
             return OrderWarning.NOT_ENOUGHT_ENERGY
         
         if not self.active:
-            nearbye_ships = [ship for ship in self.game_data.grab_ships_in_same_sub_sector(
+            nearbye_ships = self.game_data.grab_ships_in_same_sub_sector(
                 self.entity, accptable_ship_statuses={STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED}
-            ) if ship.nation is ALL_NATIONS[self.game_data.scenerio.enemy_nation]]
+            )
+            hostile_nations = (
+                self.game_data.scenerio.get_set_of_allied_nations 
+                if self.entity.is_enemy else 
+                self.game_data.scenerio.get_set_of_enemy_nations
+            )
+            nearbye_hostile_ships = [ship for ship in nearbye_ships if ship.nation in hostile_nations]
             
-            if nearbye_ships: 
+            if nearbye_hostile_ships: 
                 return OrderWarning.ENEMY_SHIPS_NEARBY_WARN 
         return OrderWarning.SAFE
 
