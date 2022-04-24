@@ -341,7 +341,7 @@ to one.'''
     @property
     @lru_cache
     def is_automated(self):
-        return self.max_crew < 1
+        return self.max_crew <= 0
 
     @property
     @lru_cache
@@ -356,7 +356,7 @@ to one.'''
     @property
     @lru_cache
     def can_be_docked_with(self):
-        return not self.is_mobile and self.is_automated
+        return self.max_crew <= 0 and self.evasion == 0.0
 
     @property
     @lru_cache
