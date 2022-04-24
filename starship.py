@@ -18,6 +18,7 @@ from components.torpedo_launcher import TorpedoLauncher
 from components.transporter import Transporter
 from components.warp_drive import WarpDrive
 
+from get_config import get_lookup_table
 from global_functions import ajust_system_integrity, calculate_polarization, inverse_square_law, scan_assistant
 from ship_class import ShipClass
 from space_objects import SubSector, CanDockWith
@@ -2067,7 +2068,7 @@ f'Caught in the {"auto destruct radius" if self_destruct else "warp core breach"
         
         g:SubSector = self.get_sub_sector
 
-        torp_positions = game_data.engine.get_lookup_table(
+        torp_positions = get_lookup_table(
             direction_x=dirX, direction_y=dirY, normalise_direction=False
         )
         # Create dictionary of positions and ships for ships in the same system that are are not obliterated

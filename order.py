@@ -4,13 +4,14 @@ from math import atan2, ceil, floor
 from random import choice
 
 from frozendict import frozendict
+
+from get_config import CONFIG_OBJECT, get_lookup_table
 from coords import Coords, IntOrFloat
 from typing import TYPE_CHECKING, Final, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
 from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from nation import ALL_NATIONS
 from space_objects import Planet, SubSector
-from get_config import CONFIG_OBJECT
 import colors
 from torpedo import Torpedo
 if TYPE_CHECKING:
@@ -182,7 +183,7 @@ class WarpOrder(Order):
         x_aim = self.x - self.start_x
         y_aim = self.y - self.start_y
         co_tuple = tuple(
-            Coords(x=self.start_x+co.x, y=self.start_y+co.y) for co in self.game_data.engine.get_lookup_table(
+            Coords(x=self.start_x+co.x, y=self.start_y+co.y) for co in get_lookup_table(
                 direction_x=x_aim, direction_y=y_aim, normalise_direction=True
             )
         )
@@ -307,7 +308,7 @@ class MoveOrder(Order):
         self.coord_list = tuple(
             Coords(
                 co.x + self.entity.local_coords.x, co.y + self.entity.local_coords.y
-            ) for co in self.game_data.engine.get_lookup_table(
+            ) for co in get_lookup_table(
                 direction_x=x_aim, direction_y=y_aim, normalise_direction=False
             )
         )[:ceil(distance)]
@@ -949,7 +950,7 @@ class TorpedoOrder(Order):
         self.torpedo = torpedo
         self.cost = cost
         
-        torp_coords = self.game_data.engine.get_lookup_table(
+        torp_coords = get_lookup_table(
             direction_x=x_aim, direction_y=y_aim, normalise_direction=False
         )
         self.coord_list = tuple(

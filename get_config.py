@@ -1,4 +1,5 @@
 
+from functools import lru_cache
 from math import ceil
 from typing import Dict, Final
 from collections.abc import Mapping
@@ -256,3 +257,28 @@ class ConfigObject:
         )
         
 CONFIG_OBJECT:Final= ConfigObject.create_config()
+
+@lru_cache
+def get_lookup_table(
+    *, direction_x:float, direction_y:float, normalise_direction:bool=True, no_dups:bool=True
+):    
+    new_coords_x, new_coords_y = Coords(
+        x=direction_x, y=direction_y
+    ).normalize() if normalise_direction else (direction_x, direction_y)
+
+    def create_tuple():
+
+        old_x, old_y = new_coords_x, new_coords_y
+        old_c = None
+        for r in range(CONFIG_OBJECT.max_distance):
+
+            c:Coords = Coords(round(old_x), round(old_y))
+
+            if not no_dups or (not old_c or c != old_c):
+                yield c
+            
+            old_c = c
+            old_x += new_coords_x
+            old_y += new_coords_y
+    
+    return tuple(create_tuple())

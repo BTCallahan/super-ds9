@@ -88,35 +88,3 @@ class Engine:
             self.game_data.selected_ship_planet_or_star = None
         
         self.game_data.set_condition()
-
-    def get_lookup_table(
-        self, *, direction_x:float, direction_y:float, normalise_direction:bool=True, no_dups:bool=True
-    ):
-        origin_tuple = Coords(direction_x, direction_y)
-        
-        try:
-            return self.lookup_table[(origin_tuple, normalise_direction, no_dups)]
-        except KeyError:
-            
-            new_coords_x, new_coords_y = Coords(x=direction_x, y=direction_y).normalize() if normalise_direction else (direction_x, direction_y)
-
-            def create_tuple():
-
-                old_x, old_y = new_coords_x, new_coords_y
-                old_c = None
-                for r in range(CONFIG_OBJECT.max_distance):
-
-                    c:Coords = Coords(round(old_x), round(old_y))
-
-                    if not no_dups or (not old_c or c != old_c):
-                        yield c
-                    
-                    old_c = c
-                    old_x += new_coords_x
-                    old_y += new_coords_y
-            
-            t = tuple(create_tuple())
-
-            self.lookup_table[(origin_tuple, normalise_direction, no_dups)] = t
-
-            return t
