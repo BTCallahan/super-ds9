@@ -33,7 +33,7 @@ def get_system_names(
     has_warp:bool=True,
     has_shields:bool,
     has_polerized_hull:bool,
-    mobile:bool=True,
+    has_impulse:bool=True,
     beam_weapon_name:str="",
     cannon_weapon_name:str=""
 ):
@@ -69,8 +69,8 @@ def get_system_names(
         names.append("Warp Drive:")
         keys.append("sys_warp_drive")
     
-    if mobile:
-        names.append("Impulse Eng.:")
+    if has_impulse:
+        names.append("I. Engines:")
         keys.append("sys_impulse")
         
     if beam_weapon_name:
@@ -231,7 +231,7 @@ to one.'''
             has_transporters=max_crew > 0,
             beam_weapon_name=f"{short_beam_name_cap}s",
             cannon_weapon_name=f"{short_can_name_cap}",
-            mobile=evasion > 0.0,
+            has_impulse=evasion > 0.0,
             has_warp=max_warp > 0,
             has_shields=max_shields > 0, 
             has_polerized_hull=polarized_hull > 0
