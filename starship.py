@@ -253,7 +253,7 @@ class Starship(CanDockWith):
     @property
     def get_stragic_value(self):
         
-        hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting = self.ship_class.get_stragic_values
+        hull, shields, polarized_hull, energy, power_generated_per_turn, max_warp, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting, scanner_range = self.ship_class.get_stragic_values
 
         hull_value = hull * self.hull_percentage
         
@@ -264,7 +264,7 @@ class Starship(CanDockWith):
             
         energy_value = energy * self.power_generator.get_effective_value
         try:
-            crew_value = self.life_support.crew_readyness
+            crew_value = crew * self.life_support.crew_readyness
         except AttributeError:
             crew_value = 1
         try:
@@ -305,10 +305,10 @@ class Starship(CanDockWith):
         
         def calculate_value(
             *,
-            hull:float, shields:float, energy:float, crew:int, 
+            hull:float, shields:float, polarize:float, energy:float, power_generated_per_turn:float, max_warp:float,
+            crew:int, engine:float, cloak:float, detect:float, scan_range:float, targeting:float,
             beam_energy:int, cannon_energy:int, torpedo_value:int, multiplier_value:float
         ):
-            
             if multiplier_value == 0.0:
                 return 0.0
             
@@ -317,15 +317,26 @@ class Starship(CanDockWith):
                 shields_value = shields * self.shield_generator.get_effective_value
             except AttributeError:
                 shields_value = 0
+            try:
+                polarise_value = polarize * self.polarized_hull.get_effective_value
+            except AttributeError:
+                polarise_value = 0
+            
             energy_value = energy * self.power_generator.get_effective_value
+            
+            power_generation_value = power_generated_per_turn * self.power_generator.get_effective_value
             try:
                 crew_value = crew * self.life_support.crew_readyness
             except AttributeError:
                 crew_value = 0
             try:
-                dodge_value = self.impulse_engine.get_effective_value * self.ship_class.evasion
+                dodge_value = engine * self.impulse_engine.get_effective_value
             except AttributeError:
                 dodge_value = 0
+            try:
+                warp_value = max_warp * self.warp_drive.get_effective_value
+            except AttributeError:
+                warp_value = 0
             try:
                 weapon_energy_value = beam_energy * self.beam_array.get_effective_value if beam_energy else 0
             except AttributeError:
@@ -342,16 +353,27 @@ class Starship(CanDockWith):
                 transporter_value = self.transporter.get_effective_value
             except AttributeError:
                 transporter_value = 0
-            targeting = self.sensors.get_effective_value * self.ship_class.targeting if any(
+            try:
+                cloak_value = cloak * self.cloak.get_effective_value
+            except AttributeError:
+                cloak_value = 0
+            
+            scan_value = scan_range * self.scanner.get_effective_value
+            
+            detect_value = detect * self.sensors.get_effective_value
+            
+            targeting = self.sensors.get_effective_value * targeting if any(
                 (weapon_energy_value, cannon_energy_value, torpedo_value_value)
             ) else 0
             
             return (
-                hull_value + shields_value + energy_value + crew_value + weapon_energy_value + 
-                cannon_energy_value + torpedo_value_value + dodge_value + targeting + transporter_value
+                hull_value + shields_value + polarise_value + energy_value + power_generation_value + 
+                crew_value + weapon_energy_value + cannon_energy_value + torpedo_value_value + targeting + 
+                dodge_value + transporter_value + 
+                warp_value + scan_value + cloak_value + detect_value
             ) * multiplier_value
         
-        hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting = self.ship_class.get_stragic_values
+        hull, shields, polarized_hull, energy, power_generated_per_turn, max_warp, crew, beam_energy, cannon_energy, torpedo_value, detection_strength, cloaking, evasion, targeting, scanner_range = self.ship_class.get_stragic_values
         
         max_possible_value = sum(
             (hull, shields, energy, crew, beam_energy, cannon_energy, torpedo_value, 1), 
@@ -365,8 +387,10 @@ class Starship(CanDockWith):
             )
         )
         value_to_be_returned = calculate_value(
-            hull=hull, shields=shields, energy=energy, crew=crew, beam_energy=beam_energy, 
-            cannon_energy=cannon_energy, torpedo_value=torpedo_value, 
+            hull=hull, shields=shields, polarize=polarized_hull, 
+            energy=energy, power_generated_per_turn=power_generated_per_turn, max_warp=max_warp,
+            crew=crew, cloak=cloaking, detect=detection_strength, scan_range=scanner_range, targeting=targeting,
+            beam_energy=beam_energy, cannon_energy=cannon_energy, torpedo_value=torpedo_value, engine=evasion,
             multiplier_value=value_used_in_calculation
         )
         return max_possible_value, value_to_be_returned

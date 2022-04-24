@@ -379,17 +379,18 @@ to one.'''
         evasion = self.size / (1.0 + self.evasion)
         
         return (
-            self.max_hull * (1 + self.damage_control) * 4, self.max_shields, self.max_energy * 0.25, 
+            self.max_hull * (1 + self.damage_control) * 4, self.max_shields, self.polarized_hull,
+            self.max_energy * 0.25, self.power_generated_per_turn, self.max_warp,
             self.max_crew, self.max_beam_energy, self.max_cannon_energy, torpedo_value, 
             self.detection_strength, cloaking,
-            evasion, self.targeting
+            evasion, self.targeting, self.scanner_range
         )
 
     @property
     @lru_cache
     def get_added_stragic_values(self):
         
-        hull, shields, energy, crew, weapon_energy, cannon_energy, torpedos, detection_strength, cloaking, evasion, targeting = self.get_stragic_values
+        hull, shields, polarized_hull, energy, power_generated_per_turn, max_warp, crew, weapon_energy, cannon_energy, torpedos, detection_strength, cloaking, evasion, targeting, scanner_range = self.get_stragic_values
         
         return hull + shields + energy + crew + weapon_energy + cannon_energy + torpedos + detection_strength
 
