@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from coords import Coords, AnyCoords
+from coords import Coords
 from typing import Dict, Tuple, TYPE_CHECKING
 import lzma, pickle
 from data_globals import STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK

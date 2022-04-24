@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING, Final, Iterable, List, Optional, Tuple, Union
 from enum import Enum, auto
 from math import atan2, ceil, floor
 from random import choice
@@ -7,13 +8,12 @@ from frozendict import frozendict
 
 from get_config import CONFIG_OBJECT, get_lookup_table
 from coords import Coords, IntOrFloat
-from typing import TYPE_CHECKING, Final, Iterable, List, Optional, Tuple, Union
 from global_functions import TO_RADIANS, heading_to_coords, heading_to_direction
-from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, PLANET_NEUTRAL, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
-from nation import ALL_NATIONS
+from data_globals import DAMAGE_BEAM, DAMAGE_CANNON, DAMAGE_RAMMING, PLANET_BARREN, PLANET_BOMBED_OUT, PLANET_HOSTILE, PLANET_PREWARP, STATUS_ACTIVE, STATUS_CLOAK_COMPRIMISED, STATUS_CLOAKED, STATUS_DERLICT, STATUS_HULK, WARP_FACTOR, CloakStatus
 from space_objects import Planet, SubSector
 import colors
 from torpedo import Torpedo
+
 if TYPE_CHECKING:
     from starship import Starship
 

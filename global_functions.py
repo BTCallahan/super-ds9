@@ -1,7 +1,6 @@
 from datetime import datetime
 from math import floor, pi, sin, cos, atan2, exp
 from typing import Final, Iterable, Optional, Pattern
-import re
 from coords import IntOrFloat
 from decimal import Decimal
 
@@ -285,4 +284,3 @@ def calculate_polarization(damage:float, polarization:int):
 def ajust_system_integrity(value:float):
     
     return 0.0 if value < 0.15 else min(1.0, value * 1.25)
-
