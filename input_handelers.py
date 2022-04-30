@@ -1276,8 +1276,9 @@ class WarpHandlerEasy(CoordBasedHandler):
             starting_y=sector_coords.y
         )
         self.energy_cost = round(
-            engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-            engine.player.warp_drive.affect_cost_multiplier * CONFIG_OBJECT.sector_energy_cost
+            engine.player.sector_coords.distance(
+                x=self.x_button.add_up(),y=self.y_button.add_up()
+            ) * CONFIG_OBJECT.sector_energy_cost * WARP_FACTOR[1][1]
         )
         self.cost_button:SimpleElement = cost_button(f"{self.energy_cost}")
         
@@ -1357,9 +1358,12 @@ class WarpHandlerEasy(CoordBasedHandler):
                     self.x_button.set_text(x)
                     self.y_button.set_text(y)
                     
+                    warp_speed, cost =  WARP_FACTOR[self.warp_speed.add_up()]
+                    
                     self.energy_cost = round(
-                        self.engine.player.sector_coords.distance(x=self.x_button.add_up(),y=self.y_button.add_up()) * 
-                        self.engine.player.warp_drive.affect_cost_multiplier * CONFIG_OBJECT.sector_energy_cost
+                        self.engine.player.sector_coords.distance(
+                            x=self.x_button.add_up(),y=self.y_button.add_up()
+                        ) * cost * CONFIG_OBJECT.sector_energy_cost
                     )
                     self.cost_button.text = f"{self.energy_cost}"
                 else:
