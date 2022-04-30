@@ -1051,6 +1051,7 @@ class TorpedoOrder(Order):
 
         hit_enemy_ship = False
         hit_friendly_ship = False
+                
         for co in self.coord_list:
             try:
                 planet = sub_sector.planets_dict[co]
@@ -1074,7 +1075,14 @@ class TorpedoOrder(Order):
                     try:
                         ship = self.ships[co]
                         if ship:
-                            if ship.ship_class.nation_code == self.entity.ship_class.nation_code:
+                                
+                            ship_side = (
+                                self.game_data.scenerio.get_set_of_enemy_nations 
+                                if ship.is_enemy else 
+                                self.game_data.scenerio.get_set_of_allied_nations
+                            )
+                            if ship.ship_class.nation in ship_side:
+                                
                                 hit_friendly_ship = True
                             else:
                                 hit_enemy_ship = True
